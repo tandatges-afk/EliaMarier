@@ -77,3 +77,20 @@
 .delivery-photo-actions button:hover:not(:disabled){filter:brightness(.96)}
 .delivery-photo-actions button:disabled{opacity:.55;cursor:wait;}
 .delivery-photo-actions button:focus-visible{outline:2px solid #436c9f;outline-offset:2px;}
+
+/* Élia Marier — compact photo cards: filename at bottom-left ON the photo,
+   keep select/download BELOW the photo (no action overlays). */
+.delivery-photos > .delivery-photo{grid-template-rows:auto auto auto}
+.delivery-photos > .delivery-photo > .delivery-photo-image > .delivery-photo-title{
+  position:absolute;z-index:1;bottom:0;left:0;right:0;top:auto;
+  box-sizing:border-box;display:block;max-width:100%;padding:22px 9px 8px;
+  background:linear-gradient(0deg,rgba(15,24,19,.78),rgba(15,24,19,0));
+  color:#fff;font-size:11px;font-weight:650;line-height:1.35;text-align:left;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;
+}
+.delivery-photos > .delivery-photo > .delivery-photo-footer{
+  display:block;min-height:0;padding:7px;gap:0;border-top:0;
+}
+.delivery-photos > .delivery-photo > .delivery-photo-footer > .delivery-photo-actions>button{
+  min-height:34px;padding:6px 3px;
+}
