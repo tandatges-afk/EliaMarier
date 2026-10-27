@@ -1,0 +1,25 @@
+import {readFileSync,existsSync} from 'node:fs';
+import {resolve} from 'node:path';
+const root=process.cwd();
+const read=f=>readFileSync(resolve(root,f),'utf8');
+const exists=f=>existsSync(resolve(root,f));
+function check(ok,label){if(!ok)throw new Error(label);console.log('PASS',label);}
+const manifest=JSON.parse(read('package.json'));
+check(manifest.scripts.build==='next build','Next.js native build');
+check(!exists('vercel.json'),'Hosting-portable build (no Vercel-only config)');
+check(!read('next.config.ts').includes('legacy/index.html'),'Legacy workspace rewrite removed');
+check(exists('app/studio/page.tsx'),'Legacy URL redirects to current workspace');
+check(!exists('public/legacy/index.html'),'Legacy HTML retired');
+check(!exists('public/assets/js/main.js'),'Legacy JS retired');
+check(!exists('pages/api/get-drive-images.js'),'Legacy image API retired');
+check(exists('pages/api/drive-video.js'),'Next.js authenticated Drive stream preserved');
+check(exists('app/api/delivery/[eventId]/media/route.ts'),'Scoped guest delivery API preserved');
+check(read('app/page.tsx').includes('params.client_gallery'),'Old client links redirect');
+check(read('app/page.tsx').includes('params.staff'),'Old staff links redirect');
+check(read('components/Dashboard.tsx').includes("name:'Hệ thống'"),'Unified System navigation exists');
+check(read('lib/server/delivery-media.ts').includes('persistMedia(sharedKey,items)'),'Persisted encrypted media metadata wired');
+check(read('lib/server/delivery-media-cache.ts').includes('aes-256-gcm'),'Cache encrypted with AES-256-GCM');
+check(read('app/api/dashboard/route.ts').includes('authenticatedAdmin(request)'),'Dashboard checks server-side admin');
+check(!read('app/api/dashboard/route.ts').includes('NEXT_PUBLIC_FIREBASE_ADMIN'),'No public admin private credentials');
+check(exists('postcss.config.mjs')&&read('app/globals.css').includes("@import 'tailwindcss'"),'Tailwind v4 build configured');
+check(exists('app/api/events/route.ts')&&exists('components/NewBookingDialog.tsx'),'Native booking workflow preserved');
