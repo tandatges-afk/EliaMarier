@@ -32,3 +32,11 @@ tmp/
 **/rclone.conf
 .config/
 *.key
+
+# Never commit Firebase Admin/Google Drive service-account JSON downloaded from Google.
+*firebase-adminsdk*.json
+*firebase-admin*.json
+*drive-reader*.json
+*service-account*.json
+*service_account*.json
+*google-credentials*.json

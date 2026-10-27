@@ -19,13 +19,14 @@ const options=new Map();
 for(let i=2;i<process.argv.length;i++){
   const flag=process.argv[i];
   if(['--dry-run','--help'].includes(flag)){options.set(flag,true);continue;}
-  if(!['--id','--max'].includes(flag)||i+1>=process.argv.length)throw Error(`Unknown/missing option: ${flag}`);
+  if(!['--id','--folder','--max'].includes(flag)||i+1>=process.argv.length)throw Error(`Unknown/missing option: ${flag}`);
   options.set(flag,process.argv[++i]);
 }
 if(options.has('--help')){
-  console.log('node scripts/auto-drive-to-r2.mjs [--id DRIVE_ID] [--max 1] [--dry-run]');
+  console.log('node scripts/auto-drive-to-r2.mjs [--id DRIVE_ID | --folder DRIVE_FOLDER_ID] [--max 1] [--dry-run]');
   process.exit(0);
 }
+if(options.has('--id') && options.has('--folder'))throw Error('Choose --id or --folder, not both');
 const dry=options.has('--dry-run');
 const now=Date.now();
 const days=Number(process.env.AMORRI_SYNC_LOOKBACK_DAYS||'120');
@@ -101,7 +102,7 @@ if(firebaseJSON && databaseURL){
   const app=getApps().find(a=>a.name==='amorri-r2-worker')||initializeApp({credential:cert({projectId:credentials.project_id,clientEmail:credentials.client_email,privateKey:credentials.private_key.replace(/\\n/g,'\n')}),databaseURL},'amorri-r2-worker');
   db=getDatabase(app);
 }
-if(!db && !options.has('--id'))throw Error('Firebase credentials required for automatic discovery');
+if(!db && !options.has('--id') && !options.has('--folder'))throw Error('Firebase credentials required for automatic discovery');
 if(!db && !dry)throw Error('Firebase credentials required to record sync status');
 const ledgerRef=db?.ref('studioPlanner_v1/videoSync_v1/status');
 async function status(id,updates){
@@ -123,6 +124,10 @@ async function main(){
     const id=String(options.get('--id'));
     if(!validVideoId(id))throw Error('Invalid --id');
     videoIds=[id];
+  }else if(options.has('--folder')){
+    const id=String(options.get('--folder'));
+    if(!validVideoId(id))throw Error('Invalid --folder');
+    videoIds=await folderVideos(id);
   }else{
     const from=new Date(now-days*86400000).toISOString().slice(0,10);
     const through=new Date(now+60*86400000).toISOString().slice(0,10);

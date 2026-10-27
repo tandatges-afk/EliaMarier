@@ -9,6 +9,10 @@ name: Élia Marier Private R2 Video Sync
         description: 'Optional Google Drive video ID; blank scans recent Firebase products'
         required: false
         type: string
+      drive_folder_id:
+        description: 'Optional Google Drive FOLDER ID for first-time sync; use only one of file/folder'
+        required: false
+        type: string
       dry_run:
         description: 'Discover/verify only (no upload)'
         required: false
@@ -53,6 +57,7 @@ jobs:
       AMORRI_SYNC_SOFT_LIMIT_BYTES: ${{ vars.AMORRI_SYNC_SOFT_LIMIT_BYTES || '9000000000' }}
       AMORRI_SYNC_LOOKBACK_DAYS: '120'
       INPUT_FILE_ID: ${{ inputs.drive_file_id }}
+      INPUT_FOLDER_ID: ${{ inputs.drive_folder_id }}
       INPUT_DRY_RUN: ${{ inputs.dry_run }}
     steps:
       - uses: actions/checkout@v5
@@ -96,7 +101,11 @@ jobs:
           set -euo pipefail
           args=(--max 2)
           if [[ "$GITHUB_EVENT_NAME" == 'workflow_dispatch' ]]; then
+            if [[ -n "$INPUT_FILE_ID" && -n "$INPUT_FOLDER_ID" ]]; then
+              echo 'Choose only one of drive_file_id or drive_folder_id' >&2; exit 1
+            fi
             if [[ -n "$INPUT_FILE_ID" ]]; then args+=(--id "$INPUT_FILE_ID"); fi
+            if [[ -n "$INPUT_FOLDER_ID" ]]; then args+=(--folder "$INPUT_FOLDER_ID"); fi
             if [[ "$INPUT_DRY_RUN" == 'true' ]]; then args+=(--dry-run); fi
           fi
           node scripts/auto-drive-to-r2.mjs "${args[@]}"

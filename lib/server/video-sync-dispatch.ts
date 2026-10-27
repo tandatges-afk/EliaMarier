@@ -17,7 +17,7 @@ export async function dispatchR2Sync(source:Source):Promise<DispatchResult>{
       method:'POST',signal:controller.signal,cache:'no-store',
       headers:{'Accept':'application/vnd.github+json','Content-Type':'application/json',
         'Authorization':`Bearer ${token}`,'X-GitHub-Api-Version':'2022-11-28'},
-      body:JSON.stringify({ref:'main',inputs:{drive_file_id:source.type==='file'?source.id:'',dry_run:false}})
+      body:JSON.stringify({ref:'main',inputs:{drive_file_id:source.type==='file'?source.id:'',drive_folder_id:source.type==='folder'?source.id:'',dry_run:false}})
     });
     if(response.status===204)return {queued:true,reason:'github-dispatch-accepted'};
     // Log only status: GitHub response may contain identifiers, never include credentials.
