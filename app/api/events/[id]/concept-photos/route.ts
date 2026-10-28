@@ -33,32 +33,11 @@ export async function GET(request:Request,{params}:{params:Promise<{id:string}>}
  if(!await eventExists(id))return reply({error:'Lịch không tồn tại'},404);
  try{return reply({photos:payload(await photos(id))});}catch(e){return failure(e);}
 }
-export async function POST(request:Request,{params}:{params:Promise<{id:string}>}){
+/** Concept photo upload has been replaced by wardrobe code reservations.
+ * Existing photos remain readable/removable for historical appointments. */
+export async function POST(request:Request){
  const user=await auth(request);if(user instanceof Response)return user;
- const {id}=await params;if(!EVENT_ID.test(id))return reply({error:'Mã lịch không hợp lệ'},400);
- if(!await eventExists(id))return reply({error:'Bạn cần lưu lịch trước khi tải hình lên'},404);
- if(Number(request.headers.get('content-length')||0)>MAX_CONCEPT_BYTES+100_000)return reply({error:'Ảnh quá lớn (tối đa 2.5 MB)'},413);
- let form:FormData;try{form=await request.formData();}catch{return reply({error:'Dữ liệu ảnh không hợp lệ'},400);}
- const file=form.get('photo');if(!(file instanceof File))return reply({error:'Chọn ảnh trước khi tải lên'},400);
- if(file.size<12||file.size>MAX_CONCEPT_BYTES)return reply({error:'Ảnh phải nhỏ hơn 2.5 MB'},413);
- const bytes=Buffer.from(await file.arrayBuffer());const image=detectConceptImage(bytes);
- if(!image)return reply({error:'Chỉ hỗ trợ JPG, PNG, WebP hợp lệ; không hỗ trợ SVG/video'},415);
- const itemId=randomUUID();const key=conceptKey(id,itemId,image.ext as 'jpg'|'png'|'webp');
- try{
-  // Serialize additions under an RTDB lease to prevent more than 6 uploaded photos.
-  // The lease is short and removed on completion; a stale lease expires automatically.
-  const mutex=ref(id).child('_uploadLease');const leaseId=randomUUID();const now=Date.now();
-  const lease=await mutex.transaction(v=>!v||v.expiresAt<now?{id:leaseId,expiresAt:now+40_000}:undefined,undefined,false);
-  if(!lease.committed)return reply({error:'Đang tải ảnh khác. Vui lòng đợi một chút.'},409);
-  try{
-   if((await photos(id)).length>=MAX_CONCEPT_PHOTOS)return reply({error:`Mỗi lịch tối đa ${MAX_CONCEPT_PHOTOS} hình concept`},409);
-   await uploadConcept(key,image.type,bytes);
-   const record:Photo={id:itemId,key,name:file.name.slice(0,120)||`concept.${image.ext}`,size:bytes.length,contentType:image.type,createdAt:Date.now()};
-   try{await ref(id).child(itemId).set(record);}
-   catch(e){await deleteConcept(key).catch(()=>{});throw e;}
-   return reply({photo:payload([record])[0]},201);
-  }finally{await mutex.transaction(v=>v?.id===leaseId?null:undefined,undefined,false).catch(()=>{});}
- }catch(e){return failure(e);}
+ return reply({error:'Đã chuyển sang chọn mã trang phục và ngày lấy/trả trong lịch váy cưới.',code:'CONCEPT_UPLOAD_RETIRED'},410);
 }
 export async function DELETE(request:Request,{params}:{params:Promise<{id:string}>}){
  const user=await auth(request);if(user instanceof Response)return user;

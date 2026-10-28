@@ -1,0 +1,12 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';import {createRequire} from 'node:module';const require=createRequire(import.meta.url);const ts=require('typescript');
+const src=readFileSync(new URL('../lib/domain/wedding-advisory.ts',import.meta.url),'utf8');
+const code=ts.transpileModule(src,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+const module={exports:{}};Function('module','exports','require',code)(module,module.exports,(s)=>s.includes('wedding-rental')?{validWeddingRange:(a,b)=>a<=b&&/^\d{4}-\d{2}-\d{2}$/.test(a)&&/^\d{4}-\d{2}-\d{2}$/.test(b),weddingOverlaps:(a,b,c,d)=>a<=d&&c<=b}:null);
+const {predictWardrobeUsage,shiftWeddingDay}=module.exports;
+const mk=(id,a,b,status='reserved')=>({id,startDate:a,endDate:b,customerName:id,customerPhone:'0123456789',status});
+test('nêu tên khách và cảnh báo 1-2 ngày trước/sau, không chặn đặt',()=>{const p=predictWardrobeUsage({a:mk('Khách trước','2026-11-16','2026-11-18'),b:mk('Khách sau','2026-11-24','2026-11-25')},'2026-11-20','2026-11-22');assert.equal(p.conflicts.length,0);assert.equal(p.nearby.length,2);assert.deepEqual(p.nearby.map(x=>[x.customerName,x.side,x.gapDays]),[['Khách trước','before',2],['Khách sau','after',2]]);});
+test('trùng ngày lấy, trả đều bị chặn',()=>{const p=predictWardrobeUsage({a:mk('Trùng trả','2026-11-22','2026-11-23')},'2026-11-20','2026-11-22');assert.equal(p.conflicts.length,1);});
+test('ngày thứ ba trước/sau không báo',()=>{const p=predictWardrobeUsage({a:mk('Trước xa','2026-11-16','2026-11-17'),b:mk('Sau xa','2026-11-25','2026-11-26')},'2026-11-20','2026-11-22');assert.equal(p.nearby.length,0);});
+test('bỏ lịch đã hủy và bỏ lịch đang chỉnh sửa',()=>{const p=predictWardrobeUsage({a:mk('Đã hủy','2026-11-20','2026-11-22','cancelled'),b:mk('Đang sửa','2026-11-21','2026-11-22')},'2026-11-20','2026-11-22','Đang sửa');assert.equal(p.conflicts.length,0);});
+test('dịch ngày đúng qua tháng/năm',()=>{assert.equal(shiftWeddingDay('2027-01-01',-2),'2026-12-30');assert.equal(shiftWeddingDay('2026-02-28',2),'2026-03-02');});

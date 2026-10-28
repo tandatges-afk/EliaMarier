@@ -1,4 +1,5 @@
 import {withApiTrace} from '@/lib/server/trace';
+import {hasActiveWeddingEventLinks} from '@/lib/server/wedding-wardrobe';
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
 import { adminDatabase, authenticatedAdmin, publicAuthFailure } from '@/lib/server/firebase-admin';
@@ -79,6 +80,9 @@ async function handlePATCH(request:Request,{params}:{params:Promise<{id:string}>
     const validated=validateEventChanges(payload.changes,located.value);
     if(!validated.ok)return json({error:validated.message,code:'BOOKING_VALIDATION'},422);
     if(located.version!==payload.expectedVersion)return json({error:'Lịch đã thay đổi ở một phiên khác. Hãy tải lại trước khi lưu.'},409);
+    if((validated.value.date&&validated.value.date!==located.value.date)||validated.value.status==='cancelled'){
+      if(await hasActiveWeddingEventLinks(id))return json({error:'Lịch đang giữ mã trang phục. Hãy hủy các lượt giữ trong mục Trang phục trước khi đổi ngày hoặc hủy lịch.',code:'WARDROBE_LINK_ACTIVE'},409);
+    }
     // Validate references against authoritative staff list, not the UI's cached roster.
     if(validated.value.assignments){
       const snap=await adminDatabase().ref('studioPlanner_v1/staff').once('value');
@@ -128,6 +132,7 @@ async function handleDELETE(request:Request,{params}:{params:Promise<{id:string}
     const {id}=await params;const item=await findBooking(id);
     if(String(item.value.name)!==confirmName.trim())return json({error:'Tên lịch xác nhận không trùng khớp'},422);
     if(item.version!==expectedVersion)return json({error:'Lịch đã thay đổi. Tải lại trước khi xóa.'},409);
+    if(await hasActiveWeddingEventLinks(id))return json({error:'Lịch đang liên kết mã trang phục. Hãy hủy các lượt giữ mã váy trước khi xóa lịch.',code:'WARDROBE_LINK_ACTIVE'},409);
     // Archive BEFORE removal. An archive error must never lead to destructive deletion.
     const archive=adminDatabase().ref('amorriStudioAdminArchive_v1/events').child(id);
     const opId=randomUUID();
