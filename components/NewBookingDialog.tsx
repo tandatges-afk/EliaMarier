@@ -10,9 +10,9 @@ import {VndInput} from '@/lib/ui/VndInput';
 import {useStaffAvailability} from '@/lib/ui/useStaffAvailability';
 import {ConceptPhotoDraft,uploadConceptPhoto} from './ConceptPhotos';
 
-type Props = {open:boolean; onClose:()=>void; onCreated:()=>void; user:User;staff:Staff[];initialDate?:string};
+type Props = {isAdmin:boolean;open:boolean; onClose:()=>void; onCreated:()=>void; user:User;staff:Staff[];initialDate?:string};
 const today = () => new Date(Date.now()+7*60*60*1000).toISOString().slice(0,10);
-export function NewBookingDialog({open,onClose,onCreated,user,staff,initialDate}:Props){
+export function NewBookingDialog({isAdmin,open,onClose,onCreated,user,staff,initialDate}:Props){
  const [id,setId]=useState('');
  const [conceptFiles,setConceptFiles]=useState<File[]>([]),[createdEventId,setCreatedEventId]=useState<string|null>(null);
  const [name,setName]=useState(''),[date,setDate]=useState(today),[start,setStart]=useState('08:00'),[end,setEnd]=useState('17:00');
@@ -53,7 +53,7 @@ export function NewBookingDialog({open,onClose,onCreated,user,staff,initialDate}
    }
    const busyNames=availability.ready?assignments.filter(a=>availability.busy[a.id]).map(a=>staff.find(s=>s.id===a.id)?.name||a.id):[];
    if(busyNames.length){setError(`${busyNames.join(', ')} đã có lịch hoặc đã báo nghỉ. Bỏ phân công này hoặc đổi giờ/ngày.`);return;}
-   const checked=validateBooking({id,name,date,start,end,eventType,location,phone,note,status,price:Number(price),deposit:Number(deposit),assignments,isRuocDau,
+   const checked=validateBooking({id,name,date,start,end,eventType,location,phone,note,status,price:Number(price),deposit:Number(deposit),assignments:isAdmin?assignments:[],isRuocDau,
      startTrai:isRuocDau?startTrai:'',startGai:isRuocDau?startGai:'',locTrai:isRuocDau?locTrai:'',locGai:isRuocDau?locGai:'',phoneTrai:isRuocDau?phoneTrai:'',phoneGai:isRuocDau?phoneGai:''});
    if(!checked.ok){setError(checked.message);return;}
    setBusy(true);setError('');
@@ -106,7 +106,7 @@ export function NewBookingDialog({open,onClose,onCreated,user,staff,initialDate}
       <label className={lab}>Đã cọc (VND)<VndInput className={field} value={Number(deposit)} onValueChange={v=>setDeposit(String(v))}/></label>
       <label className={`${lab} sm:col-span-2`}>Ghi chú<textarea rows={2} maxLength={1000} className={field} value={note} onChange={e=>setNote(e.target.value)}/></label>
       <ConceptPhotoDraft files={conceptFiles} onChange={setConceptFiles} disabled={busy}/>
-      <fieldset className="sm:col-span-2 rounded-xl border border-indigo-100 bg-indigo-50/40 p-4"><legend className="px-2 text-sm font-bold text-slate-800">Phân công nhân sự ngay khi tạo lịch ({assignments.length})</legend>
+      {isAdmin&&<fieldset className="sm:col-span-2 rounded-xl border border-indigo-100 bg-indigo-50/40 p-4"><legend className="px-2 text-sm font-bold text-slate-800">Phân công nhân sự ngay khi tạo lịch ({assignments.length})</legend>
        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs"><span className="font-semibold text-indigo-800">{availability.loading?'Đang kiểm tra lịch bận…':availability.error?`Chưa kiểm tra được: ${availability.error}`:availability.ready?`${Object.keys(availability.busy).length} nhân sự bận trong khung giờ này`:'Chọn giờ để kiểm tra nhân sự'}</span><label className="flex items-center gap-2 text-slate-700"><input type="checkbox" checked={hideBusy} onChange={e=>setHideBusy(e.target.checked)}/> Ẩn người đã bận</label></div>
        {staff.filter(s=>s.active!==false).length===0&&<p className="text-sm text-slate-500">Chưa có nhân sự. Vào mục Đội ngũ để thêm nhân sự.</p>}
        <div className="max-h-80 space-y-2 overflow-y-auto">{staff.filter(s=>s.active!==false).map(st=>{const a=assignments.find(a=>a.id===st.id);const conflict=availability.busy[st.id];if(hideBusy&&conflict&&!a)return null;return <div key={st.id} className={`rounded-lg border bg-white p-3 ${conflict?'border-amber-300 bg-amber-50/60':''}`}><label className="flex items-center gap-2 text-xs font-semibold"><input type="checkbox" checked={!!a} disabled={!!conflict&&!a} onChange={e=>toggleStaff(st.id,e.target.checked)}/>{st.name} <span className="font-normal text-slate-500">{st.role}</span>{conflict&&<span className="ml-auto rounded bg-amber-100 px-2 py-1 text-[11px] font-bold text-amber-800" title={conflict.eventId||''}>{conflict.label}</span>}</label>{a&&<div className="mt-2 grid gap-2 sm:grid-cols-2">
@@ -115,8 +115,8 @@ export function NewBookingDialog({open,onClose,onCreated,user,staff,initialDate}
          {isRuocDau&&<label className={lab}>Vị trí rước dâu<select className={field} value={a.locType||'Nhà trai'} onChange={e=>changeAssignment(st.id,'locType',e.target.value)}><option value="Nhà trai">Nhà trai</option><option value="Nhà gái">Nhà gái</option></select></label>}
        </div>}</div>})}</div>
        <p className="mt-2 text-xs text-indigo-800">Người đã có lịch được đánh dấu và không thể chọn trùng giờ. Nếu thay đổi khung giờ, danh sách sẽ tự kiểm tra lại; server kiểm tra lần cuối khi lưu.</p>
-      </fieldset>
-      <p className="sm:col-span-2 rounded-xl bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-500">Bạn đã có thể phân công ngay trong form. Sau khi tạo, mở lịch để bổ sung link sản phẩm, chỉnh sửa và kiểm tra lịch nhân sự. Một số nghiệp vụ nâng cao vẫn đang được chuyển đổi.</p>
+      </fieldset>}
+      <p className="sm:col-span-2 rounded-xl bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-500">{isAdmin?'Admin có thể phân công và đặt chi phí nhân sự.':'Nhân viên tạo lịch và điền tài chính hợp đồng; chỉ Admin được phân công và nhập chi phí nhân sự.'}</p>
       {error&&<p role="alert" className="sm:col-span-2 rounded-lg bg-red-50 p-3 text-xs font-semibold text-red-700">{error}</p>}
     </form>
     <footer className="flex items-center justify-between border-t border-slate-100 px-5 py-4 sm:px-7"><div className="flex items-center gap-2 text-xs text-slate-400"><CheckCircle2 size={15}/> Kiểm tra dữ liệu trước khi lưu</div><div className="flex gap-2"><button onClick={onClose} type="button" disabled={busy} className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-700">Hủy</button><button form="new-booking-form" disabled={busy} type="submit" className="rounded-xl bg-slate-900 px-5 py-2.5 text-xs font-bold text-white hover:bg-slate-700 disabled:opacity-50">{busy?'Đang lưu…':createdEventId?'Lưu ảnh và hoàn tất':'Lưu lịch'}</button></div></footer>

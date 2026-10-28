@@ -1,5 +1,6 @@
+import {authenticatedOffice} from '@/lib/server/office-auth';
 import {NextResponse} from 'next/server';
-import {authenticatedAdmin,publicAuthFailure} from './firebase-admin';
+import {publicAuthFailure} from './firebase-admin';
 import {responseForDeliveryError,DeliveryError,deliveryToken,verifyDeliveryGrant,assertGrantProduct} from './delivery-access';
 import {findBooking} from './event-storage';
 import {pickProducts,validId} from '@/lib/domain/delivery';
@@ -8,8 +9,8 @@ export const json=(body:object,status=200)=>NextResponse.json(body,{status,heade
 export const deliveryFailure=(error:unknown)=>{const result=responseForDeliveryError(error);return json({error:result.error,code:result.code},result.status);};
 export async function requireAdmin(request:Request){
   try{
-    const actor=await authenticatedAdmin(request);
-    if(!actor)throw new DeliveryError(403,'DELIVERY_ADMIN_REQUIRED','Chỉ Admin được quản lý link bàn giao');
+    const office=await authenticatedOffice(request);const actor=office?.token;
+    if(!actor)throw new DeliveryError(403,'DELIVERY_ADMIN_REQUIRED','Chỉ nhân viên vận hành hoặc Admin được quản lý bàn giao');
     return actor;
   }catch(err){if(err instanceof DeliveryError)throw err;
     const failure=publicAuthFailure(err);

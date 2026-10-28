@@ -1,3 +1,4 @@
+import {officeRole} from '@/lib/server/office-auth';
 import { randomUUID } from 'node:crypto';
 import { adminDatabase, authenticatedUser, isAdmin, publicAuthFailure, firebaseAdminApp } from './firebase-admin';
 import { getAuth } from 'firebase-admin/auth';
@@ -13,10 +14,11 @@ export function failure(err:unknown){
   console.error('[staff-scheduling]',err);
   return json({error:'Lỗi kết nối Firebase. Kiểm tra Runtime Logs.',code:'SCHEDULE_DATABASE_ERROR'},503);
 }
-export async function identity(request:Request,adminOnly=false):Promise<DecodedIdToken|Response>{
+export async function identity(request:Request,adminOnly:boolean|'office'=false):Promise<DecodedIdToken|Response>{
   try {
     const token=await authenticatedUser(request);
-    if(adminOnly&&!isAdmin(token))return json({error:'Cần quyền Admin'},403);
+    if(adminOnly==='office'){if(!await officeRole(token))return json({error:'Cần quyền nhân viên vận hành hoặc Admin'},403);}
+    else if(adminOnly&&!isAdmin(token))return json({error:'Cần quyền Admin'},403);
     return token;
   }catch(err){const failure=publicAuthFailure(err);return json({error:failure.error,code:failure.code},failure.status);}
 }

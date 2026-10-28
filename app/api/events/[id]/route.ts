@@ -8,6 +8,8 @@ import { validateEventChanges, requireVersion } from '@/lib/domain/event-managem
 import { normaliseEvents } from '@/lib/domain/studio';
 import { scheduleConflict, recordValues } from '@/lib/domain/scheduling';
 import { withScheduleLock, dailyEvents, dailyBlackouts, ScheduleError } from '@/lib/server/staff-scheduling';
+import {authenticatedOffice,safeOfficeEvent} from '@/lib/server/office-auth';
+import {isAdmin} from '@/lib/server/firebase-admin';
 import { encryptBookingArchive, ArchiveConfigurationError } from '@/lib/server/booking-archive';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 
@@ -16,7 +18,7 @@ export const dynamic='force-dynamic';
 const headers={'Cache-Control':'private, no-store, max-age=0'};
 const json=(payload:object,status=200)=>NextResponse.json(payload,{status,headers});
 async function requireAdmin(request:Request):Promise<DecodedIdToken|Response>{
-  try {const user=await authenticatedAdmin(request);return user||json({error:'Tài khoản không có quyền admin'},403);}
+  try {const actor=await authenticatedOffice(request);return actor?.token||json({error:'Tài khoản không có quyền vận hành'},403);}
   catch(err){const failure=publicAuthFailure(err);return json({error:failure.error,code:failure.code},failure.status);}
 }
 function fail(err:unknown){
@@ -37,7 +39,7 @@ function fail(err:unknown){
 async function audit(action:string,user:DecodedIdToken,event:Record<string,unknown>,id:string,detail:string){
   try {const key=randomUUID();await adminDatabase().ref('studioPlanner_v1/auditLogs').child(key).set({
     id:key, action,actionLabel:action==='EVENT_DELETED'?'Xóa lịch':'Cập nhật lịch',category:'booking',severity:action==='EVENT_DELETED'?'danger':'info',
-    actorId:user.uid, actorName:user.email||'Admin',actorRole:'admin',timestamp:Date.now(),
+    actorId:user.uid, actorName:user.email||'Admin',actorRole:isAdmin(user)?'admin':'office',timestamp:Date.now(),
     targetType:'event', targetId:id,eventName:String(event.name||''),eventDate:String(event.date||''),message:detail,
   });}catch(err){console.error('[booking-manager] audit failed',err);}
 }
@@ -47,7 +49,7 @@ async function handleGET(request:Request,{params}:{params:Promise<{id:string}>})
     const deliveryCompleted=Boolean((await adminDatabase().ref(`studioPlanner_v1/deliveryState/${id}`).once('value')).val()?.completedAt);
     const productState=(await adminDatabase().ref(`studioPlanner_v1/deliveryProductState/${id}`).once('value')).val()||{};
     const completedProductIds=Object.entries(productState as Record<string,{completedAt?:unknown}>).filter(([,value])=>Boolean(value?.completedAt)).map(([productId])=>productId);
-    return json({event:{...normaliseEvents([item.value])[0],deliveryCompleted,completedProductIds,phone:item.value.phone||'',note:item.value.note||'',isRuocDau:item.value.isRuocDau===true,
+    return json({event:{...safeOfficeEvent(normaliseEvents([item.value])[0],isAdmin(user)?'admin':'sale'),deliveryCompleted,completedProductIds,phone:item.value.phone||'',note:item.value.note||'',isRuocDau:item.value.isRuocDau===true,
     sourceLinks:Object.fromEntries(recordValues(item.value.assignments).filter(a=>a.id!=null).map(a=>[String(a.id),String(a.link||'')])),
     products:recordValues(item.value.products).map(p=>({id:String(p.id||''),name:String(p.name||''),url:String(p.url||''),mediaType:String(p.mediaType||'auto')})),
     startTrai:item.value.startTrai||'',startGai:item.value.startGai||'',locTrai:item.value.locTrai||'',locGai:item.value.locGai||'',phoneTrai:item.value.phoneTrai||'',phoneGai:item.value.phoneGai||''},version:item.version});
@@ -59,6 +61,7 @@ async function handlePATCH(request:Request,{params}:{params:Promise<{id:string}>
   let body:unknown;try{body=await request.json();}catch{return json({error:'JSON không hợp lệ'},400);}
   if(!body||typeof body!=='object'||Array.isArray(body))return json({error:'Yêu cầu không hợp lệ'},400);
   const payload=body as Record<string,unknown>;
+  if(!isAdmin(user)&&payload.changes&&typeof payload.changes==='object'&&Object.prototype.hasOwnProperty.call(payload.changes,'assignments'))return json({error:'Chỉ Admin được phân công nhân sự và sửa chi phí nhân sự'},403);
   if(!requireVersion(payload.expectedVersion))return json({error:'Thiếu mã phiên bản lịch. Hãy tải lại chi tiết trước khi sửa.'},400);
   try {
     const {id}=await params;
@@ -116,6 +119,7 @@ async function handlePATCH(request:Request,{params}:{params:Promise<{id:string}>
 }
 async function handleDELETE(request:Request,{params}:{params:Promise<{id:string}>}){
   const user=await requireAdmin(request);if(user instanceof Response)return user;
+  if(!isAdmin(user))return json({error:'Chỉ Admin được xóa lịch'},403);
   let body:unknown;try{body=await request.json();}catch{return json({error:'JSON không hợp lệ'},400);}
   if(!body||typeof body!=='object'||Array.isArray(body))return json({error:'Dữ liệu không hợp lệ'},400);
   const {expectedVersion,confirmName}=body as Record<string,unknown>;

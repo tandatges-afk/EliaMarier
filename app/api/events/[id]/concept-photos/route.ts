@@ -1,6 +1,7 @@
+import {authenticatedOffice} from '@/lib/server/office-auth';
 import {NextResponse} from 'next/server';
 import {randomUUID} from 'node:crypto';
-import {adminDatabase,authenticatedAdmin,publicAuthFailure} from '@/lib/server/firebase-admin';
+import {adminDatabase,publicAuthFailure} from '@/lib/server/firebase-admin';
 import {findBooking} from '@/lib/server/event-storage';
 import {conceptKey,signConceptRead,uploadConcept,deleteConcept} from '@/lib/server/concept-r2';
 import {detectConceptImage,EVENT_ID,PHOTO_ID,MAX_CONCEPT_PHOTOS,MAX_CONCEPT_BYTES} from '@/lib/server/concept-policy.mjs';
@@ -10,7 +11,7 @@ const headers={'Cache-Control':'no-store'};
 const reply=(data:unknown,status=200)=>NextResponse.json(data,{status,headers});
 type Photo={id:string;key:string;name:string;size:number;contentType:string;createdAt:number};
 async function auth(request:Request){
- try{const user=await authenticatedAdmin(request);return user||reply({error:'Chỉ Admin được phép xem và tải hình concept'},403);}
+ try{const office=await authenticatedOffice(request);return office?.token||reply({error:'Chỉ nhân viên vận hành hoặc Admin được xem và tải hình concept'},403);}
  catch(e){const f=publicAuthFailure(e);return reply({error:f.error,code:f.code},f.status);}
 }
 function failure(e:unknown){

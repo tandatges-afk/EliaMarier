@@ -1,5 +1,6 @@
+import {authenticatedOffice} from '@/lib/server/office-auth';
 import {NextResponse} from 'next/server';
-import {authenticatedAdmin} from '@/lib/server/firebase-admin';
+
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -59,8 +60,8 @@ function describeGoogleError(status: number, payload: GoogleApiError) {
 
 /** Autocomplete (New) is accessed only through the server; key is never exposed to browser. */
 export async function GET(request: Request) {
- const admin = await authenticatedAdmin(request).catch(() => null);
- if (!admin) return json({error: 'Chỉ Admin được tìm địa điểm'}, 403);
+ const admin = await authenticatedOffice(request).catch(() => null);
+ if (!admin) return json({error: 'Chỉ Admin hoặc nhân viên vận hành được tìm địa điểm'}, 403);
  const input = new URL(request.url).searchParams.get('input')?.trim() || '';
  if (input.length < 3 || input.length > 160) return json({items: []});
  const key = (process.env.GOOGLE_MAPS_API_KEY || '').trim();

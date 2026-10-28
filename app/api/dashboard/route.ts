@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import {randomUUID} from 'node:crypto';
-import { adminDatabase, authenticatedAdmin, publicAuthFailure } from '@/lib/server/firebase-admin';
+import { adminDatabase, publicAuthFailure } from '@/lib/server/firebase-admin';
 import { normaliseAudit, normaliseEvents, normalisePayroll, normaliseStaff } from '@/lib/domain/studio';
 import type { DashboardData } from '@/lib/domain/types';
+import {authenticatedOffice,safeOfficeEvent} from '@/lib/server/office-auth';
 import { classifyFirebaseError } from '@/lib/server/dashboard-errors';
 
 export const runtime = 'nodejs';
@@ -15,13 +16,14 @@ const yyyyMM = /^\d{4}-(0[1-9]|1[0-2])$/;
 export async function GET(request: Request) {
   const requestId=randomUUID();
   let permitted = null;
-  try { permitted = await authenticatedAdmin(request); }
+  try { permitted = await authenticatedOffice(request); }
   catch (err) {
     const failure = publicAuthFailure(err);
     console.warn('[dashboard]',{requestId,code:failure.code});
     return errorResponse({error:failure.error,code:failure.code},failure.status,requestId);
   }
-  if (!permitted) return errorResponse({error:'Chỉ tài khoản admin mới được truy cập dashboard.',code:'ADMIN_REQUIRED'},403,requestId);
+  if (!permitted) return errorResponse({error:'Tài khoản không có quyền vào quản trị.',code:'OFFICE_ACCESS_DENIED'},403,requestId);
+  const actorRole=permitted.role;
   const url = new URL(request.url);
   const vnParts = new Intl.DateTimeFormat('en-US',{year:'numeric',month:'2-digit',timeZone:'Asia/Ho_Chi_Minh'}).formatToParts(new Date());
   const fallbackMonth = `${vnParts.find(p=>p.type==='year')?.value}-${vnParts.find(p=>p.type==='month')?.value}`;
@@ -51,8 +53,8 @@ export async function GET(request: Request) {
     const settled=await Promise.allSettled([
       base.child('events').orderByChild('date').startAt(month+'-01').endAt(month+'-31').limitToFirst(1001).once('value'),
       base.child('staff').once('value'),
-      base.child('payroll').child(month).once('value'),
-      base.child('auditLogs').limitToLast(20).once('value'),
+      actorRole==='admin'?base.child('payroll').child(month).once('value'):Promise.resolve({val:()=>null}),
+      actorRole==='admin'?base.child('auditLogs').limitToLast(20).once('value'):Promise.resolve({val:()=>null}),
       base.child('deliveryState').once('value'),
       base.child('deliveryProductState').once('value')
     ]);
@@ -81,8 +83,8 @@ export async function GET(request: Request) {
         completedProductIds:Object.entries(productState[event.id]||{}).filter(([,v])=>Boolean(v?.completedAt)).map(([id])=>id)
       }));
       const payload: DashboardData = {
-        month, events, staff: normaliseStaff(snapshot(1).val()),
-        payroll: normalisePayroll(snapshot(2).val()), audit: normaliseAudit(snapshot(3).val()),
+        month, events:events.map(event=>safeOfficeEvent(event,actorRole)), staff: normaliseStaff(snapshot(1).val()),
+        payroll:actorRole==='admin'?normalisePayroll(snapshot(2).val()):{}, audit:actorRole==='admin'?normaliseAudit(snapshot(3).val()):[],
         eventLimitReached: events.length >= 1001, generatedAt: new Date().toISOString()
       };
       return NextResponse.json(payload,{headers:{...NO_CACHE,'X-Amorri-Request-Id':requestId}});

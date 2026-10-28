@@ -6,7 +6,7 @@ export const dynamic='force-dynamic';
 const CLOCK=/^([01]\d|2[0-3]):[0-5]\d$/;
 /** This is a preview only. The write APIs still enforce the authoritative conflict check. */
 export async function GET(request:Request){
- const auth=await identity(request,true);if(auth instanceof Response)return auth;
+ const auth=await identity(request,'office');if(auth instanceof Response)return auth;
  const q=new URL(request.url).searchParams;
  const date=q.get('date')||'',start=q.get('start')||'',end=q.get('end')||'';
  const isRuocDau=q.get('isRuocDau')==='true';

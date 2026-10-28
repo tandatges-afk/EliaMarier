@@ -1,9 +1,10 @@
 import {withApiTrace} from '@/lib/server/trace';
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
-import { authenticatedAdmin, adminDatabase, publicAuthFailure } from '@/lib/server/firebase-admin';
+import { adminDatabase, publicAuthFailure } from '@/lib/server/firebase-admin';
 import {validateBooking} from '@/lib/domain/booking';
 import {scheduleConflict,recordValues} from '@/lib/domain/scheduling';
+import {authenticatedOffice} from '@/lib/server/office-auth';
 import {withScheduleLock,dailyEvents,dailyBlackouts,ScheduleError} from '@/lib/server/staff-scheduling';
 
 export const runtime = 'nodejs';
@@ -11,9 +12,9 @@ export const dynamic = 'force-dynamic';
 const headers = { 'Cache-Control': 'no-store' };
 async function handlePOST(request: Request) {
   let user;
-  try {user = await authenticatedAdmin(request);}
+  try {user = await authenticatedOffice(request);}
   catch (err) {const failure=publicAuthFailure(err);console.error('[events] auth failed',{code:failure.code});return NextResponse.json({error:failure.error,code:failure.code}, {status:failure.status,headers});}
-  if (!user) return NextResponse.json({error:'Chỉ admin được tạo lịch'}, {status:403,headers});
+  if (!user) return NextResponse.json({error:'Không có quyền tạo lịch'}, {status:403,headers});
   const size = Number(request.headers.get('content-length') || '0');
   if (size>16_384) return NextResponse.json({error:'Dữ liệu quá lớn'}, {status:413,headers});
   let parsed: unknown;
@@ -21,6 +22,7 @@ async function handlePOST(request: Request) {
   catch {return NextResponse.json({error:'JSON không hợp lệ'}, {status:400,headers});}
   const validated = validateBooking(parsed);
   if (!validated.ok) return NextResponse.json({error:validated.message}, {status:422,headers});
+  if(user.role!=='admin' && (validated.value.assignments?.length||0))return NextResponse.json({error:'Chỉ Admin được phân công và nhập chi phí nhân sự'}, {status:403,headers});
   const event = {
     ...validated.value,
     products:[], favoritePhotos:[], favoritePhotoItems:[]
@@ -47,7 +49,7 @@ async function handlePOST(request: Request) {
       const auditId = randomUUID();
       await base.child('auditLogs').child(auditId).set({
         id:auditId, action:'EVENT_CREATED',actionLabel:'Tạo lịch',category:'booking',severity:'success',
-        actorId:user.uid,actorName:user.email||'Admin',actorRole:'admin', timestamp:Date.now(),
+        actorId:user.token.uid,actorName:user.token.email||'Nhân viên',actorRole:user.role, timestamp:Date.now(),
         eventName:event.name,eventDate:event.date,targetType:'event',targetId:event.id,
         message:`Đã tạo lịch ${event.name} ngày ${event.date}`
       });

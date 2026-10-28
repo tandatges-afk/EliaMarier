@@ -15,7 +15,7 @@ import {ConceptPhotoGallery} from './ConceptPhotos';
 import {matchingDriveProduct} from '@/lib/domain/drive-duplicate';
 
 type Detail = Omit<StudioEvent,'products'> & {sourceLinks?:Record<string,string>;products:{id:string;name:string;url:string;mediaType:string}[];phone?:string;note?:string;isRuocDau?:boolean;startTrai?:string;startGai?:string;locTrai?:string;locGai?:string;phoneTrai?:string;phoneGai?:string};
-type Props={id:string|null;staff:Staff[];user:User;onClose:()=>void;onChanged:(newDate?:string)=>void;onDataUpdated?:()=>void};
+type Props={isAdmin:boolean;id:string|null;staff:Staff[];user:User;onClose:()=>void;onChanged:(newDate?:string)=>void;onDataUpdated?:()=>void};
 const money = formatVnd;
 const input='w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100';
 const label='flex flex-col gap-1.5 text-xs font-semibold text-slate-600';
@@ -29,7 +29,7 @@ async function authorizedRequest(user:User,url:string,init:RequestInit={}){
  const ask=async(force=false)=>fetch(url,{...init,cache:'no-store',headers:{...init.headers,Authorization:`Bearer ${await user.getIdToken(force)}`}});
  let res=await ask();if(res.status===401)res=await ask(true);return res;
 }
-export function EventEditor({id,staff,user,onClose,onChanged,onDataUpdated}:Props){
+export function EventEditor({isAdmin,id,staff,user,onClose,onChanged,onDataUpdated}:Props){
  const [detail,setDetail]=useState<Detail|null>(null),[version,setVersion]=useState('');
  const [form,setForm]=useState<EditableChanges>({}),[busy,setBusy]=useState(false),[loading,setLoading]=useState(false),[error,setError]=useState('');
  const [diagnostic,setDiagnostic]=useState(''),[diagnosticBusy,setDiagnosticBusy]=useState(false);
@@ -87,7 +87,7 @@ export function EventEditor({id,staff,user,onClose,onChanged,onDataUpdated}:Prop
   e.preventDefault();if(!detail||busy)return;
   setBusy(true);setError('');
   try{
-   const busyNames=availability.ready?(form.assignments||[]).filter(a=>availability.busy[a.id]).map(a=>staff.find(s=>s.id===a.id)?.name||a.id):[];
+   const busyNames=isAdmin&&availability.ready?(form.assignments||[]).filter(a=>availability.busy[a.id]).map(a=>staff.find(s=>s.id===a.id)?.name||a.id):[];
    if(busyNames.length){setError(`${busyNames.join(', ')} bị trùng lịch hoặc đã báo nghỉ. Bỏ chọn hoặc điều chỉnh thời gian.`);setBusy(false);return;}
    // Submit ONLY edited fields. The old implementation submitted every field,
    // including old blank times and unchanged staff, falsely triggering
@@ -101,6 +101,7 @@ export function EventEditor({id,staff,user,onClose,onChanged,onDataUpdated}:Prop
      }
    }
    if(detail.isRuocDau){delete changes.start;delete changes.location;delete changes.phone;}
+   if(!isAdmin)delete changes.assignments;
    // The footer's Save button also handles product drafts: previously it only
    // submitted the schedule, leaving product link edits silently unsaved.
    const currentProduct=productId?detail.products.find(p=>p.id===productId):undefined;
@@ -242,18 +243,18 @@ export function EventEditor({id,staff,user,onClose,onChanged,onDataUpdated}:Prop
       <label className={label}>Ngày thực hiện<input className={input} type="date" required value={form.date||''} onChange={e=>set('date',e.target.value)}/></label>
       <label className={label}>Trạng thái<select className={input} value={form.status||'pending'} onChange={e=>set('status',e.target.value as NonNullable<EditableChanges['status']>)}><option value="pending">Chờ xác nhận</option><option value="confirmed">Đã chốt</option><option value="done">Hoàn thành</option><option value="cancelled">Đã hủy</option></select></label>
       {!detail.isRuocDau&&<><label className={label}>Bắt đầu<input className={input} type="time" required value={form.start||''} onChange={e=>set('start',e.target.value)}/></label><label className={label}>Kết thúc<input className={input} type="time" required value={form.end||''} onChange={e=>set('end',e.target.value)}/></label></>}
-      <label className={`${label} sm:col-span-2`}>Dịch vụ<input className={input} value={form.eventType||''} maxLength={80} onChange={e=>{const next=e.target.value;setForm(previous=>({...previous,eventType:next,assignments:(previous.assignments||[]).map(a=>({...a,task:taskForService(a.task,roster.find(s=>s.id===a.id)?.role||'',next)}))}));}}/></label>
+      <label className={`${label} sm:col-span-2`}>Dịch vụ<input className={input} value={form.eventType||''} maxLength={80} onChange={e=>{const next=e.target.value;setForm(previous=>({...previous,eventType:next,assignments:isAdmin?(previous.assignments||[]).map(a=>({...a,task:taskForService(a.task,roster.find(s=>s.id===a.id)?.role||'',next)})):previous.assignments}));}}/></label>
       {!detail.isRuocDau&&<><label className={`${label} sm:col-span-2`}>Địa điểm<MapLocationInput user={user} className={input} maxLength={1500} value={form.location||''} onChange={v=>set('location',v)}/></label><label className={`${label} sm:col-span-2`}>Số điện thoại<input className={input} value={form.phone||''} maxLength={50} onChange={e=>set('phone',e.target.value)}/></label></>}
       <label className={label}>Giá trị hợp đồng (VND)<VndInput className={input} value={form.price??0} onValueChange={v=>set('price',v)}/></label>
       <label className={label}>Tiền cọc (VND)<VndInput className={input} value={form.deposit??0} onValueChange={v=>set('deposit',v)}/></label>
       <label className={`${label} sm:col-span-2`}>Ghi chú<textarea className={input} rows={2} maxLength={1000} value={form.note||''} onChange={e=>set('note',e.target.value)}/></label>
       <div className="col-span-full"><ConceptPhotoGallery eventId={eventId} user={user}/></div>
-      <fieldset className="col-span-full rounded-xl border border-slate-200 p-4"><legend className="px-2 text-sm font-bold text-slate-800">Phân công nhân sự ({assignments.length})</legend>
+      {isAdmin?<fieldset className="col-span-full rounded-xl border border-slate-200 p-4"><legend className="px-2 text-sm font-bold text-slate-800">Phân công nhân sự ({assignments.length})</legend>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs"><span className="font-semibold text-slate-600">{availability.loading?'Đang kiểm tra lịch bận…':availability.error?`Chưa kiểm tra được: ${availability.error}`:availability.ready?`${Object.keys(availability.busy).length} nhân sự đang bận`:'Chưa có dữ liệu lịch bận'}</span><label className="flex items-center gap-2"><input type="checkbox" checked={hideBusy} onChange={e=>setHideBusy(e.target.checked)}/> Ẩn người đã bận</label></div>
         <div className="space-y-3">{roster.map(s=>{const a=assignments.find(a=>a.id===s.id);const conflict=availability.busy[s.id];if(hideBusy&&conflict&&!a)return null;return <div key={s.id} className={`rounded-lg p-3 ${conflict?'bg-amber-50 ring-1 ring-amber-200':'bg-slate-50'}`}><label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-slate-700"><input type="checkbox" checked={!!a} disabled={!!conflict&&!a} onChange={e=>toggleStaff(s.id,e.target.checked)}/>{s.name} <span className="text-xs font-normal text-slate-400">{s.role}</span>{conflict&&<span className="ml-auto rounded bg-amber-100 px-2 py-1 text-[11px] text-amber-800" title={conflict.eventId||''}>{conflict.label}</span>}</label>{a&&<><div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">{taskOptionsFor(s.role,String(form.eventType||'')).length>0&&<label className={label}>Công việc cưới<select className={input} value={a.task} onChange={e=>editAssignment(s.id,'task',e.target.value)}>{!taskOptionsFor(s.role,String(form.eventType||'')).includes(a.task)&&<option value={a.task}>{a.task||'Chưa phân loại (legacy)'}</option>}{taskOptionsFor(s.role,String(form.eventType||'')).map(t=><option key={t} value={t}>{t}</option>)}</select></label>}
          <label className={label}>Chi phí (VND)<VndInput className={input} value={a.cost} onValueChange={v=>editAssignment(s.id,'cost',v)}/></label>
          {detail.isRuocDau&&<label className={label}>Vị trí rước dâu<select className={input} value={a.locType||'Nhà trai'} onChange={e=>editAssignment(s.id,'locType',e.target.value)}><option value="Nhà trai">Nhà trai</option><option value="Nhà gái">Nhà gái</option>{a.locType&&!['Nhà trai','Nhà gái'].includes(a.locType)&&<option value={a.locType}>{a.locType} (legacy)</option>}</select></label>}</div><div className="mt-2 rounded-lg border border-dashed border-slate-200 bg-white p-2">{!released&&<p className="text-xs font-semibold text-amber-800">Source chỉ mở sau {form.date||detail.date} lúc {form.end||detail.end}.</p>}{released&&<><label className={label}>Link Source nhân sự (http/https)<input className={input} type="url" value={sourceDrafts[s.id]||''} onChange={e=>setSourceDrafts(v=>({...v,[s.id]:e.target.value}))} placeholder="Dán link thư mục Source của thợ" maxLength={1500}/></label><button className="mt-2 rounded-lg border bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-800 disabled:opacity-40" type="button" disabled={busy||sourceDrafts[s.id]===(detail.sourceLinks?.[s.id]||'')} onClick={()=>void saveSource(s.id)}>Lưu link Source</button></>}</div></>}</div>})}</div>
-      </fieldset>
+      </fieldset>:<div className="col-span-full rounded-xl bg-indigo-50 p-3 text-xs text-indigo-900">Phân công và chi phí nhân sự do Admin quản lý. Bạn vẫn có thể xem người được phân công trong chi tiết lịch.</div>}
       <fieldset className="col-span-full rounded-xl border border-indigo-200 p-4"><legend className="px-2 text-sm font-bold text-slate-800">Sản phẩm bàn giao / Google Drive</legend>
        {!released&&<p className="mb-3 rounded-lg bg-amber-50 p-3 text-xs font-semibold text-amber-900">Quản lý link bàn giao chỉ mở sau {form.date||detail.date} lúc {form.end||detail.end}. Link chỉ cấp sau khi kết thúc lịch.</p>}
        {released&&<>
@@ -283,7 +284,7 @@ export function EventEditor({id,staff,user,onClose,onChanged,onDataUpdated}:Prop
       <p className="col-span-full text-xs text-slate-400">Thông tin sản phẩm, file nguồn và ảnh yêu thích không bị thay thế bởi form này. Định dạng số tiền: VND — ví dụ {money(1_500_000)}.</p>
     </form>
     <footer className="flex items-center justify-between gap-2 border-t border-slate-200 p-4">
-      <button type="button" disabled={busy} className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-white px-3 py-2.5 text-xs font-bold text-rose-700 disabled:opacity-50" onClick={()=>{setConfirmName('');setDeleting(true);}}><Trash2 size={15}/> Xóa lịch</button>
+      {isAdmin&&<button type="button" disabled={busy} className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-white px-3 py-2.5 text-xs font-bold text-rose-700 disabled:opacity-50" onClick={()=>{setConfirmName('');setDeleting(true);}}><Trash2 size={15}/> Xóa lịch</button>}
       <div className="flex justify-end gap-2"><button type="button" disabled={busy} onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold">Đóng</button><button type="submit" form="edit-event-form" disabled={busy} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-xs font-bold text-white"><Save size={16}/>{busy?'Đang xử lý…':'Lưu thay đổi'}</button></div>
     </footer>
    </>}

@@ -8,7 +8,7 @@ import {isEventReleased} from '@/lib/domain/event-release';
 export const runtime='nodejs';export const dynamic='force-dynamic';
 /** Moves the legacy source-delivery link mutation to server-authorized API. */
 export async function PUT(request:Request,{params}:{params:Promise<{id:string}>}){
- const user=await identity(request,true);if(user instanceof Response)return user;
+ const user=await identity(request,'office');if(user instanceof Response)return user;
  try{
   const {id}=await params;
   const body=await jsonBody(request,4096) as Record<string,unknown>;

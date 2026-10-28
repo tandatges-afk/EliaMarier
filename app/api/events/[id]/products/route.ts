@@ -14,7 +14,7 @@ import type {ProductBaseline} from '@/lib/domain/product-cas';
 export const runtime='nodejs';export const dynamic='force-dynamic';
 
 async function handlePOST(request:Request,{params}:{params:Promise<{id:string}>}){
- const user=await identity(request,true);if(user instanceof Response)return user;
+ const user=await identity(request,'office');if(user instanceof Response)return user;
  try{
   const {id}=await params;
   const body=await jsonBody(request,4096) as Record<string,unknown>;
@@ -88,7 +88,7 @@ async function handlePOST(request:Request,{params}:{params:Promise<{id:string}>}
 
 /** Admin removes the product pointer only. Historic selections/reviews remain archived in Firebase. */
 async function handleDELETE(request:Request,{params}:{params:Promise<{id:string}>}){
- const user=await identity(request,true);if(user instanceof Response)return user;
+ const user=await identity(request,'office');if(user instanceof Response)return user;
  try{
   const {id}=await params;
   const body=await jsonBody(request,4096) as Record<string,unknown>;
