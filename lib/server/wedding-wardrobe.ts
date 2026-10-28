@@ -1,10 +1,25 @@
 import {createHash,randomUUID} from 'node:crypto';
 import {adminDatabase} from '@/lib/server/firebase-admin';
-import type {WeddingItem,WeddingBooking} from '@/lib/domain/wedding-rental';
+import type {WeddingItem,WeddingBooking,WeddingFolder} from '@/lib/domain/wedding-rental';
 import {normalizeWeddingCode,validWeddingCode,isValidWeddingDate,validWeddingRange} from '@/lib/domain/wedding-rental';
 
-const BASE='studioPlanner_v1/weddingWardrobe/items';
+const ROOT='studioPlanner_v1/weddingWardrobe';
+const BASE=`${ROOT}/items`;
+export const weddingFoldersRef=()=>adminDatabase().ref(`${ROOT}/folders`);
+export function asWeddingFolder(raw:unknown):WeddingFolder|null{
+ if(!raw||typeof raw!=='object')return null;
+ const a=raw as Partial<WeddingFolder>;
+ return typeof a.id==='string'&&typeof a.name==='string'&&a.name.trim()?{id:a.id,name:a.name,createdAt:Number(a.createdAt||0),createdBy:String(a.createdBy||'')}:null;
+}
 export const weddingItemsRef=()=>adminDatabase().ref(BASE);
+/** Prevent deleting or moving a studio event while it still reserves wardrobe codes. */
+export async function hasActiveWeddingEventLinks(eventId:string):Promise<boolean>{
+ const snapshot=await weddingItemsRef().once('value');
+ return Object.values(snapshot.val()||{}).some(raw=>{
+  const item=asWeddingItem(raw);
+  return item&&Object.values(item.bookings).some(b=>b.eventId===eventId&&(b.status==='reserved'||b.status==='picked_up'));
+ });
+}
 export function weddingKey(code:string):string{
  const value=normalizeWeddingCode(code);
  if(!validWeddingCode(value))throw new WeddingFault(422,'Mã váy phải từ 2–36 ký tự, chỉ gồm chữ, số, khoảng trắng, dấu gạch hoặc chấm.','INVALID_CODE');
@@ -22,7 +37,7 @@ export function asWeddingItem(raw:unknown):WeddingItem|null{
  if(!raw||typeof raw!=='object')return null;
  const a=raw as Partial<WeddingItem>;
  if(typeof a.id!=='string'||typeof a.code!=='string')return null;
- return {id:a.id,code:a.code,name:String(a.name||a.code),kind:a.kind==='outfit'?'outfit':'wedding_dress',active:a.active!==false,createdAt:Number(a.createdAt||0),createdBy:String(a.createdBy||''),bookings:(a.bookings && typeof a.bookings==='object')?a.bookings:{}};
+ return {id:a.id,code:a.code,name:String(a.name||a.code),kind:a.kind==='outfit'?'outfit':'wedding_dress',folderId:typeof a.folderId==='string'?a.folderId:'',active:a.active!==false,createdAt:Number(a.createdAt||0),createdBy:String(a.createdBy||''),bookings:(a.bookings && typeof a.bookings==='object')?a.bookings:{}};
 }
 export async function weddingAudit(actor:{uid:string;email?:string},action:string,itemId:string,detail:string){
  try {const id=randomUUID();await adminDatabase().ref('studioPlanner_v1/auditLogs').child(id).set({id,action,actionLabel:detail,category:'wedding-rental',severity:'info',actorId:actor.uid,actorName:actor.email||'Nhân viên',timestamp:Date.now(),targetType:'wedding-item',targetId:itemId,message:detail});}
