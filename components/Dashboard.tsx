@@ -3,6 +3,7 @@ import {formatVnd} from '@/lib/domain/vietnam-money';
 
 import {OfficeAccountsManager} from './OfficeAccountsManager';
 import {WeddingWardrobe} from './WeddingWardrobe';
+import {WeddingCatalogManager} from './WeddingCatalogManager';
 import {PayrollManager} from '@/components/PayrollManager';
 import {DeliveryGrantManager} from '@/components/DeliveryGrantManager';
 import {DeliveryReviewManager} from '@/components/DeliveryReviewManager';
@@ -35,7 +36,7 @@ import type { DashboardData, StudioEvent } from '@/lib/domain/types';
 
 type Tab = 'overview'|'calendar'|'wedding'|'staff'|'payroll'|'delivery'|'analytics'|'system'|'accounts';
 type AccessRole='admin'|'receptionist'|'guest'|'staff';
-type SystemSection='health'|'activity'|'data';
+type SystemSection='health'|'activity'|'data'|'wardrobe';
 const monthNow = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; };
 const localToday = () => { const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const take=(type:string)=>parts.find(p=>p.type===type)?.value||'';return `${take('year')}-${take('month')}-${take('day')}`; };
 const money = formatVnd;
@@ -304,13 +305,15 @@ export function Dashboard(){
             <button type="button" className={systemSection==='health'?'active':''} onClick={()=>setSystemSection('health')}><ShieldCheck size={16}/> Sức khỏe</button>
             <button type="button" className={systemSection==='activity'?'active':''} onClick={()=>setSystemSection('activity')}><Activity size={16}/> Hoạt động</button>
             <button type="button" className={systemSection==='data'?'active':''} onClick={()=>setSystemSection('data')}><Settings2 size={16}/> Kiểm tra dữ liệu</button>
+            <button type="button" className={systemSection==='wardrobe'?'active':''} onClick={()=>setSystemSection('wardrobe')}><Shirt size={16}/> Kho trang phục</button>
           </div>
           {systemSection==='health'&&<SystemHealth user={user}/>}
+          {systemSection==='wardrobe'&&<WeddingCatalogManager user={user}/>}
           {systemSection==='data'&&<MigrationReadiness embedded/>}
           {systemSection==='activity'&&<section className="surface"><div className="surface-title"><h3>Nhật ký hoạt động gần đây</h3></div>{data?.audit.length?<div className="activity-list">{data.audit.map((a,i)=><div key={a.id||i} className="activity-item"><div className="activity-symbol"><Activity size={17}/></div><div><strong>{a.message||a.action||'Hoạt động'}</strong><p>{a.action} · {a.createdAt?new Date(a.createdAt<1e12?a.createdAt*1000:a.createdAt).toLocaleString('vi-VN'):'Chưa xác định'}</p></div></div>)}</div>:<Empty title="Chưa có nhật ký" detail="Nếu Dashboard chưa tải được, hãy mở Sức khỏe để chẩn đoán Firebase."/>}</section>}
         </section>}
         {!data && loading && tab!=='system' && tab!=='wedding' && <div className="loading-state"><RefreshCw size={24} className="spin"/> Đang tải dữ liệu Firebase…</div>}
-        {tab==='wedding'&&<WeddingWardrobe user={user} isAdmin={canAdmin}/>}
+        {tab==='wedding'&&<WeddingWardrobe user={user}/>}
         {data && tab!=='system' && tab!=='wedding' && <>
           {tab==='overview'&&<>
             <div className="welcome-band"><div><div className="welcome-kicker"><Sparkles size={14}/> ÉLIA MARIER · STUDIO WORKSPACE</div><h2>Tinh tế trong từng lịch hẹn.<br/><em>Chỉn chu ở mỗi bàn giao.</em></h2><p>Mọi lịch hẹn, khách hàng và sản phẩm bàn giao trong một không gian vận hành thanh lịch, rõ ràng.</p><button className="welcome-cta" onClick={()=>goTab('calendar')}>Xem lịch làm việc <ArrowRight size={16}/></button></div><div className="welcome-art"><div className="art-ring ring-one"/><div className="art-ring ring-two"/><div className="art-center">É<span>.</span></div></div></div>

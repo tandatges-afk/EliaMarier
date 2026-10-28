@@ -9,6 +9,7 @@ export type WeddingBooking = {
   endDate: string;
   status: WeddingRentalStatus;
   notes: string;
+  eventId?: string;
   createdAt: number;
   createdBy: string;
   updatedAt: number;
@@ -19,11 +20,13 @@ export type WeddingItem = {
   code: string;
   name: string;
   kind: 'wedding_dress'|'outfit';
+  folderId?: string;
   active: boolean;
   createdAt: number;
   createdBy: string;
   bookings: Record<string,WeddingBooking>;
 };
+export type WeddingFolder={id:string;name:string;createdAt:number;createdBy:string};
 export const WEDDING_STATUSES:WeddingRentalStatus[]=['reserved','picked_up','returned','cancelled'];
 const validCalendarDate=(s:string):boolean=>{
  if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return false;
