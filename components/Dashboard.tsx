@@ -19,6 +19,7 @@ import './v30.css';
 import './elia-luxe.css';
 import './elia-logo.css';
 import './elia-brand-refine.css';
+import './elia-uiux-v3.css';
 import {EliaBrandMini} from './EliaBrandMini';
 
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
@@ -287,15 +288,21 @@ export function Dashboard(){
     {menuOpen&&<button className="mobile-dimmer" aria-label="Đóng menu" onClick={()=>setMenuOpen(false)}/>}
     <aside className={`sidebar ${menuOpen?'sidebar-visible':''}`}>
       <div className="brand elia-brand-refined"><EliaBrandMini variant="sidebar" /><button onClick={()=>setMenuOpen(false)} className="sidebar-close" aria-label="Đóng menu"><X size={19}/></button></div>
-      <div className="sidebar-label">WORKSPACE</div><nav aria-label="Điều hướng chính" className="nav-items">{availablePages.map(p=>{
-        const Icon=p.icon; return <button key={p.key} onClick={()=>goTab(p.key)} className={`nav-item ${tab===p.key?'nav-active':''}`}><Icon size={19}/><span>{p.name}</span>{tab===p.key&&<i/>}</button>;
-      })}</nav>
+      <nav aria-label="Điều hướng chính" className="nav-items">{([
+        {heading:"ĐIỀU HÀNH",keys:["overview","calendar","wedding","delivery"]},
+        {heading:"QUẢN TRỊ",keys:["staff","payroll","analytics","system","accounts"]}
+      ] as const).map(group=><div className="elia-nav-group" key={group.heading}>
+        <div className="elia-nav-caption">{group.heading}</div>
+        {availablePages.filter(p=>(group.keys as readonly string[]).includes(p.key)).map(p=>{
+          const Icon=p.icon;return <button key={p.key} onClick={()=>goTab(p.key)} className={`nav-item ${tab===p.key?'nav-active':''}`} aria-current={tab===p.key?'page':undefined}><Icon size={19}/><span>{p.name}</span>{tab===p.key&&<i/>}</button>;
+        })}
+      </div>)}</nav>
       <div className="sidebar-bottom">
         <div className="user-identity"><EliaBrandMini variant="profile" /><div className="user-meta"><strong>{user.email?.split('@')[0]||'Admin'}</strong><span>{canAdmin?'Quản trị viên':'Lễ tân'}</span></div><button title="Đăng xuất" onClick={async()=>{await signOut(browserAuth());if('caches' in window)void caches.delete(THUMB_CACHE_NAME);}}><LogOut size={19}/></button></div>
       </div>
     </aside>
     <main className="content">
-      <header className="topbar"><div className="topbar-left"><button aria-label="Mở menu" className="menu-toggle" onClick={()=>setMenuOpen(true)}><Menu size={22}/></button><div className="breadcrumb">ÉLIA MARIER <span>/</span> {title?.name.toUpperCase()}</div></div><div className="topbar-right"><span className="live-dot"/><span className="topbar-time">{lastSynced?`Đồng bộ ${new Date(lastSynced).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}`:'Chưa đồng bộ'}</span><button aria-label="Tải lại" title="Làm mới" onClick={()=>setReload(x=>x+1)} className="top-icon"><RefreshCw size={18} className={loading?'spin':''}/></button><EliaBrandMini variant="topbar" /></div></header>
+      <header className="topbar"><div className="topbar-left"><button aria-label="Mở menu" className="menu-toggle" onClick={()=>setMenuOpen(true)}><Menu size={22}/></button><div className="breadcrumb">ÉLIA MARIER <span>/</span> {title?.name.toUpperCase()}</div></div><div className="topbar-right"><span className="elia-build-label" title="Élia Marier UI/UX phiên bản 3">UI 3.0</span><span className="live-dot"/><span className="topbar-time">{lastSynced?`Đồng bộ ${new Date(lastSynced).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}`:'Chưa đồng bộ'}</span><button aria-label="Tải lại" title="Làm mới" onClick={()=>setReload(x=>x+1)} className="top-icon"><RefreshCw size={18} className={loading?'spin':''}/></button><EliaBrandMini variant="topbar" /></div></header>
       <div className="content-inner">
         <div className="page-heading ops29-page-heading"><div><div className="eyebrow">ÉLIA MARIER · STUDIO WORKSPACE</div><h1>{title?.name}</h1><p>{title?.sub}{tab!=='system'?` · Tháng ${month.slice(5)}/${month.slice(0,4)}`:' · Chỉ tài khoản Admin'}</p></div><div className="heading-actions">{tab!=='system'&&tab!=='wedding'&&<><button className="secondary-button" onClick={()=>setReload(x=>x+1)} disabled={loading}><RefreshCw size={16} className={loading?'spin':''}/> Đồng bộ</button><button className="primary-button" onClick={()=>createBooking()}><Plus size={18}/> Tạo lịch mới</button></>}</div></div>
         
@@ -318,7 +325,7 @@ export function Dashboard(){
         {data && tab!=='system' && tab!=='wedding' && <>
           {tab==='overview'&&<>
 
-            <OperationsHub data={data} today={localToday()} onOpenEvent={setSelected} onNavigate={goTab}/>
+            <div className="elia-workspace-section-title"><div><h2>Tình hình studio</h2><p>Số liệu và công việc cần xử lý trong tháng</p></div></div>
             <div className="metrics-grid">
               {[
                 {label:'Tổng số lịch',value:stats?.total||0,hint:'Trong tháng được chọn',icon:CalendarDays,kind:'purple'},
@@ -327,6 +334,7 @@ export function Dashboard(){
                 {label:'Chưa thanh toán đủ',value:stats?.unpaid||0,hint:'Theo giá trị booking',icon:CircleDollarSign,kind:'green'}
               ].map(c=>{const Icon=c.icon;return <div className="metric" key={c.label}><div className={`metric-icon ${c.kind}`}><Icon size={19}/></div><span>{c.label}</span><strong>{c.value.toString().padStart(2,'0')}</strong><small>{c.hint}</small></div>;})}
             </div>
+            <OperationsHub data={data} today={localToday()} onOpenEvent={setSelected} onNavigate={goTab}/>
             <div className="dashboard-two"><section className="surface"><div className="surface-title"><div><span className="eyebrow">SẮP DIỄN RA</span><h3>Lịch làm việc tiếp theo</h3></div><button onClick={()=>goTab('calendar')} className="text-action">Xem tất cả <ArrowRight size={16}/></button></div>
               {nextEvents.length?<div className="upcoming-items">{nextEvents.map(e=><button className="upcoming-row" onClick={()=>setSelected(e.id)} key={e.id}><div className="upcoming-date"><b>{e.date.slice(-2)}</b><span>TH {Number(e.date.slice(5,7))}</span></div><div className="upcoming-info"><strong>{e.name}</strong><span>{e.start||'--:--'} · {e.eventType||'Khác'}</span></div><Status status={e.status}/><ChevronRight size={17}/></button>)}</div>:<Empty title="Chưa có lịch sắp tới" detail="Các sự kiện sắp diễn ra trong tháng sẽ xuất hiện tại đây."/>}</section>
               <section className="surface"><div className="surface-title"><div><span className="eyebrow">THÁNG NÀY</span><h3>Tổng hợp trạng thái</h3></div><button className="month-navigator" onClick={()=>setMonth(shiftMonth(month,-1))} title="Tháng trước"><ChevronLeft size={16}/></button><span className="month-chip">{month.slice(5)}/{month.slice(0,4)}</span><button className="month-navigator" onClick={()=>setMonth(shiftMonth(month,1))} title="Tháng sau"><ChevronRight size={16}/></button></div>
