@@ -1,6 +1,7 @@
 'use client';
 import {formatVnd} from '@/lib/domain/vietnam-money';
 
+import {OfficeAccountsManager} from './OfficeAccountsManager';
 import {PayrollManager} from '@/components/PayrollManager';
 import {DeliveryGrantManager} from '@/components/DeliveryGrantManager';
 import {DeliveryReviewManager} from '@/components/DeliveryReviewManager';
@@ -30,7 +31,8 @@ import { StaffManager } from './StaffManager';
 import { getMonthStats, monthEvents, shiftMonth, statusName } from '@/lib/domain/studio';
 import type { DashboardData, StudioEvent } from '@/lib/domain/types';
 
-type Tab = 'overview'|'calendar'|'staff'|'payroll'|'delivery'|'analytics'|'system';
+type Tab = 'overview'|'calendar'|'staff'|'payroll'|'delivery'|'analytics'|'system'|'accounts';
+type AccessRole='admin'|'sale'|'receptionist'|'guest'|'staff';
 type SystemSection='health'|'activity'|'data';
 const monthNow = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; };
 const localToday = () => { const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const take=(type:string)=>parts.find(p=>p.type===type)?.value||'';return `${take('year')}-${take('month')}-${take('day')}`; };
@@ -43,7 +45,8 @@ const pages: {key:Tab;name:string;sub:string;icon:typeof LayoutDashboard}[] = [
   {key:'payroll',name:'Lương thợ',sub:'Theo dõi thanh toán',icon:WalletCards},
   {key:'delivery',name:'Bàn giao sản phẩm',sub:'Ảnh, video, đánh giá',icon:FolderOpen},
   {key:'analytics',name:'Báo cáo',sub:'Thống kê vận hành',icon:ChartNoAxesCombined},
-  {key:'system',name:'Hệ thống',sub:'Hoạt động, sức khỏe và dữ liệu',icon:Settings2}
+  {key:'system',name:'Hệ thống',sub:'Hoạt động, sức khỏe và dữ liệu',icon:Settings2},
+  {key:'accounts',name:'Tài khoản nhân viên',sub:'Admin quản lý',icon:ShieldCheck}
 ];
 function Status({status}:{status:StudioEvent['status']}) {
   return <span className={`status status-${status}`}><i />{statusName(status)}</span>;
@@ -65,7 +68,7 @@ function Login({onLogin,error,loading}:{onLogin:(email:string,password:string)=>
     <div className="login-panel"><div className="login-box">
       <div className="login-lock"><LockKeyhole size={21}/></div>
       <div className="eyebrow">WORKSPACE LOGIN</div><h2>Chào mừng trở lại</h2>
-      <p>Đăng nhập bằng tài khoản Firebase Admin để quản lý studio.</p>
+      <p>Đăng nhập bằng tài khoản Élia Marier do Admin cấp.</p>
       <form onSubmit={e=>{e.preventDefault();onLogin(email,password);}}>
         <label htmlFor="email">Email</label><input id="email" type="email" autoComplete="username" placeholder="email@example.com" required value={email} onChange={e=>setEmail(e.target.value)}/>
         <label htmlFor="password">Mật khẩu</label><input id="password" type="password" autoComplete="current-password" placeholder="Nhập mật khẩu" required value={password} onChange={e=>setPassword(e.target.value)}/>
@@ -186,6 +189,7 @@ function DeliveryProductCard({event,product,user,info,onRefreshR2,onComplete}:{e
 
 export function Dashboard(){
   const [user,setUser]=useState<User|null>(null),[ready,setReady]=useState(false);
+  const [access,setAccess]=useState<AccessRole|null>(null),[accessError,setAccessError]=useState('');
   const [authError,setAuthError]=useState(''),[logging,setLogging]=useState(false);
   const [deliverySearch,setDeliverySearch]=useState('');
   const [month,setMonth]=useState(monthNow),[tab,setTab]=useState<Tab>('overview');
@@ -209,9 +213,19 @@ export function Dashboard(){
       setReady(true);setAuthError(error instanceof Error?error.message:'Thiếu cấu hình Firebase');
     }
   },[]);
+  useEffect(()=>{
+   if(!user){setAccess(null);setAccessError('');return;}
+   let alive=true;setAccess(null);setAccessError('');
+   void (async()=>{try{const token=await user.getIdToken();const response=await fetch('/api/access/me',{headers:{Authorization:`Bearer ${token}`},cache:'no-store'});const payload=await response.json();
+    if(!response.ok)throw Error(payload.error||'Không thể kiểm tra quyền truy cập');
+    if(alive)setAccess(payload.role as AccessRole);
+   }catch(e){if(alive)setAccessError(e instanceof Error?e.message:'Không thể tải quyền nhân viên');}})();
+   return()=>{alive=false;};
+  },[user]);
+  const canAdmin=access==='admin';
   const login=async (email:string,password:string)=>{setLogging(true);setAuthError('');try {await signInWithEmailAndPassword(browserAuth(),email,password);}catch{setAuthError('Đăng nhập không thành công. Kiểm tra email, mật khẩu và quyền Firebase.');}finally{setLogging(false);}};
   const load=useCallback(async (signal:AbortSignal)=>{
-    if(!user){setData(null);return;}
+    if(!user || !['admin','sale','receptionist'].includes(access||'')){setData(null);return;}
     setLoading(true);setRequestError('');
     // A previous month's data must never be displayed under a new month heading.
     setData(previous=>previous?.month===month?previous:null);
@@ -234,7 +248,7 @@ export function Dashboard(){
     }catch(error){
       if(!signal.aborted){setData(previous=>previous?.month===month?previous:null);setRequestError(error instanceof Error?error.message:'Không tải được dữ liệu');}
     }finally{if(!signal.aborted)setLoading(false);}
-  },[user,month]);
+  },[user,month,access]);
   useEffect(()=>{const controller=new AbortController();void load(controller.signal);return ()=>controller.abort();},[load,reload]);
   useEffect(()=>{if(!user)return;const interval=setInterval(()=>setReload(x=>x+1),60_000);return()=>clearInterval(interval);},[user]);
 
@@ -250,31 +264,39 @@ export function Dashboard(){
   },[data,deliverySearch]);
   const stats=data?getMonthStats(data.events,data.month):null;
   const nextEvents=useMemo(()=>filtered.filter(e=>e.date>=localToday()&&e.status!=='cancelled').slice(0,6),[filtered]);
+  const availablePages=pages.filter(p=>canAdmin||!['payroll','analytics','system','accounts'].includes(p.key));
   const title=pages.find(p=>p.key===tab);
-  const goTab=(next:Tab)=>{setTab(next);setSelected(null);setMenuOpen(false);};
+  const goTab=(next:Tab)=>{if(!canAdmin&&['payroll','analytics','system','accounts'].includes(next))return;setTab(next);setSelected(null);setMenuOpen(false);};
   const currentEvent=selected?data?.events.find(e=>e.id===selected):null;
 
   if(!ready)return <div className="boot-screen"><div className="brand-square">É<span>.</span></div><p>Đang kết nối Élia Marier…</p></div>;
   if(!user)return <Login onLogin={login} error={authError} loading={logging}/>;
+  if(accessError)return <div className="boot-screen"><p role="alert">{accessError}</p><button className="secondary-button" onClick={()=>void signOut(browserAuth())}>Đăng xuất</button></div>;
+  if(access===null)return <div className="boot-screen"><p>Đang kiểm tra quyền tài khoản…</p></div>;
+  if(!['admin','sale','receptionist'].includes(access))return <div className="boot-screen"><p>Không có quyền vào hệ thống sale/lễ tân. Liên hệ Admin.</p><button className="secondary-button" onClick={()=>void signOut(browserAuth())}>Đăng xuất</button></div>;
 
   return <div className="shell">
     {menuOpen&&<button className="mobile-dimmer" aria-label="Đóng menu" onClick={()=>setMenuOpen(false)}/>}
     <aside className={`sidebar ${menuOpen?'sidebar-visible':''}`}>
       <div className="brand"><div className="brand-square">É<span>.</span></div><div><div className="brand-word">ÉLIA<span> MARIER</span></div><small>CREATIVE MANAGEMENT</small></div><button onClick={()=>setMenuOpen(false)} className="sidebar-close" aria-label="Đóng menu"><X size={19}/></button></div>
-      <div className="sidebar-label">WORKSPACE</div><nav aria-label="Điều hướng chính" className="nav-items">{pages.map(p=>{
+      <div className="sidebar-label">WORKSPACE</div><nav aria-label="Điều hướng chính" className="nav-items">{availablePages.map(p=>{
         const Icon=p.icon; return <button key={p.key} onClick={()=>goTab(p.key)} className={`nav-item ${tab===p.key?'nav-active':''}`}><Icon size={19}/><span>{p.name}</span>{tab===p.key&&<i/>}</button>;
       })}</nav>
       <div className="sidebar-bottom">
-        <div className="user-identity"><div className="user-avatar">{(user.email||'A').slice(0,1).toUpperCase()}</div><div className="user-meta"><strong>{user.email?.split('@')[0]||'Admin'}</strong><span>Firebase Admin</span></div><button title="Đăng xuất" onClick={async()=>{await signOut(browserAuth());if('caches' in window)void caches.delete(THUMB_CACHE_NAME);}}><LogOut size={19}/></button></div>
+        <div className="user-identity"><div className="user-avatar">{(user.email||'A').slice(0,1).toUpperCase()}</div><div className="user-meta"><strong>{user.email?.split('@')[0]||'Admin'}</strong><span>{canAdmin?'Quản trị viên':access==='sale'?'Nhân viên Sale':'Lễ tân'}</span></div><button title="Đăng xuất" onClick={async()=>{await signOut(browserAuth());if('caches' in window)void caches.delete(THUMB_CACHE_NAME);}}><LogOut size={19}/></button></div>
       </div>
     </aside>
     <main className="content">
-      <header className="topbar"><div className="topbar-left"><button aria-label="Mở menu" className="menu-toggle" onClick={()=>setMenuOpen(true)}><Menu size={22}/></button><div className="breadcrumb">WORKSPACE <span>/</span> {title?.name.toUpperCase()}</div></div><div className="topbar-right"><span className="live-dot"/><span className="topbar-time">{lastSynced?`Đồng bộ ${new Date(lastSynced).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}`:'Chưa đồng bộ'}</span><button aria-label="Tải lại" title="Làm mới" onClick={()=>setReload(x=>x+1)} className="top-icon"><RefreshCw size={18} className={loading?'spin':''}/></button><div className="top-avatar">{(user.email||'A').slice(0,1).toUpperCase()}</div></div></header>
+      <header className="topbar"><div className="topbar-left"><button aria-label="Mở menu" className="menu-toggle" onClick={()=>setMenuOpen(true)}><Menu size={22}/></button><div className="breadcrumb">WORKSPACE <span>/</span> {title?.name.toUpperCase()}</div></div><div className="topbar-right">{canAdmin&&<a href="/admin/nhan-vien" title="Tài khoản Sale / Lễ tân" aria-label="Quản lý tài khoản nhân viên" className="top-icon" style={{display:"inline-flex",alignItems:"center",justifyContent:"center"}}><ShieldCheck size={19}/></a>}<span className="live-dot"/><span className="topbar-time">{lastSynced?`Đồng bộ ${new Date(lastSynced).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}`:'Chưa đồng bộ'}</span><button aria-label="Tải lại" title="Làm mới" onClick={()=>setReload(x=>x+1)} className="top-icon"><RefreshCw size={18} className={loading?'spin':''}/></button><div className="top-avatar">{(user.email||'A').slice(0,1).toUpperCase()}</div></div></header>
       <div className="content-inner">
         <div className="page-heading ops29-page-heading"><div><div className="eyebrow">ÉLIA MARIER / STUDIO OS 3.0</div><h1>{title?.name}</h1><p>{title?.sub}{tab!=='system'?` · Tháng ${month.slice(5)}/${month.slice(0,4)}`:' · Chỉ tài khoản Admin'}</p></div><div className="heading-actions">{tab!=='system'&&<><button className="secondary-button" onClick={()=>setReload(x=>x+1)} disabled={loading}><RefreshCw size={16} className={loading?'spin':''}/> Đồng bộ</button><button className="primary-button" onClick={()=>createBooking()}><Plus size={18}/> Tạo lịch mới</button></>}</div></div>
+        {canAdmin&&tab==='overview'&&<section className="surface" style={{padding:16,marginBottom:16,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
+          <div><strong style={{fontSize:15}}>Tài khoản Sale / Lễ tân</strong><p style={{margin:'4px 0 0',fontSize:12,color:'var(--muted)'}}>Tạo, chỉnh sửa và khóa tài khoản nhân viên (chỉ Admin)</p></div>
+          <a href="/admin/nhan-vien" className="primary-button" style={{display:'inline-flex',alignItems:'center',gap:8}}><ShieldCheck size={16}/> Thêm / quản lý nhân viên</a>
+        </section>}
         {requestError&&tab!=='system'&&<div className="alert error"><ShieldCheck size={18}/><div><strong>Không tải được dữ liệu quản trị</strong><p>{requestError}</p>{data?.month===month&&<p>Đang hiển thị dữ liệu tải thành công gần nhất của tháng này; hãy thử Đồng bộ lại.</p>}<button type="button" className="secondary-button" onClick={()=>{setSystemSection('health');goTab('system');}}><Settings2 size={15}/> Mở Hệ thống</button></div></div>}
         {data?.eventLimitReached&&<div className="alert notice">Dữ liệu tháng vượt giới hạn truy vấn 1001 bản ghi. Cần phân trang và index Firebase trước khi dùng báo cáo.</div>}
-        {tab==='system'&&<section className="ops30-system-panel">
+        {canAdmin&&tab==='system'&&<section className="ops30-system-panel">
           <div className="ops30-system-tabs" role="group" aria-label="Chức năng hệ thống">
             <button type="button" className={systemSection==='health'?'active':''} onClick={()=>setSystemSection('health')}><ShieldCheck size={16}/> Sức khỏe</button>
             <button type="button" className={systemSection==='activity'?'active':''} onClick={()=>setSystemSection('activity')}><Activity size={16}/> Hoạt động</button>
@@ -307,19 +329,20 @@ export function Dashboard(){
             <section className="surface"><div className="surface-title"><div><span className="eyebrow">BOOKING MANAGER</span><h3>Danh sách lịch trong tháng</h3></div><button onClick={()=>goTab('calendar')} className="text-action">Xem lịch tháng <ArrowRight size={16}/></button></div><EventTable events={filtered} staff={data.staff} compact onSelect={setSelected}/></section>
           </>}
           {tab==='calendar'&&<><div className="toolbar"><div className="search-input"><Search size={17}/><input placeholder="Tìm tên khách, loại dịch vụ, nhân sự..." value={search} onChange={e=>setSearch(e.target.value)} aria-label="Tìm kiếm lịch"/></div><div className="toolbar-right"><button className="month-navigator" onClick={()=>setMonth(shiftMonth(month,-1))}><ChevronLeft size={18}/></button><strong className="month-title">Tháng {month.slice(5)}/{month.slice(0,4)}</strong><button className="month-navigator" onClick={()=>setMonth(shiftMonth(month,1))}><ChevronRight size={18}/></button></div></div><CalendarPlanner data={data} filter={search} onSelect={setSelected} onCreate={createBooking}/><section className="surface"><div className="surface-title"><h3>Danh sách đặt lịch <span className="counter">{filtered.length}</span></h3><span className="text-xs text-slate-500">Chọn một lịch để chỉnh sửa trên web chính</span></div><EventTable events={filtered} staff={data.staff} onSelect={setSelected}/></section></>}
-          {tab==='staff'&&<StaffManager user={user} month={month} onChanged={()=>setReload(x=>x+1)}/>}
-          {tab==='payroll'&&<PayrollManager month={month} user={user}/>}
+          {tab==='staff'&&(canAdmin?<StaffManager user={user} month={month} onChanged={()=>setReload(x=>x+1)}/>:<section className="surface"><div className="surface-title"><h3>Danh sách nhân sự quay chụp</h3></div><div className="table-scroll"><table className="data-table"><thead><tr><th>Họ tên</th><th>Vị trí</th><th>Trạng thái</th></tr></thead><tbody>{data.staff.map(s=><tr key={s.id}><td>{s.name}</td><td>{s.role}</td><td>{s.active!==false?'Đang làm':'Ngưng hoạt động'}</td></tr>)}</tbody></table></div></section>)}
+          {canAdmin&&tab==='payroll'&&<PayrollManager month={month} user={user}/>}
           {tab==='delivery'&&<>
             <div className="delivery-browser-toolbar"><label className="search-input"><Search size={17}/><input aria-label="Tìm lịch hoặc sản phẩm bàn giao" placeholder="Tìm theo tên lịch, khách hàng hoặc sản phẩm..." value={deliverySearch} onChange={e=>setDeliverySearch(e.target.value)}/></label><button type="button" className="secondary-button" onClick={()=>{if(typeof window!=='undefined'&&'caches' in window)void caches.delete(THUMB_CACHE_NAME);setDriveRefresh(n=>n+1);}}><RefreshCw size={15}/> Làm mới Drive</button><span className="delivery-browser-hint">Metadata Drive được lưu đệm 15 phút</span></div>
             <div className="delivery-grid">{deliveryEvents.map(event=><DeliveryProductGroup key={`${event.id}:${driveRefresh}`} event={event} user={user} refresh={driveRefresh>0}/>)}</div>
             {!deliveryEvents.length&&<Empty title={deliverySearch?'Không tìm thấy sản phẩm phù hợp':'Không có bộ bàn giao đang mở'} detail="Các bộ đã hoàn thành vẫn có thể xem lại từ Quản lý lịch."/>}
           </>}
-          {tab==='analytics'&&<StudioAnalytics data={data} today={localToday()}/>}
+          {canAdmin&&tab==='analytics'&&<StudioAnalytics data={data} today={localToday()}/>}
         </>}
+        {canAdmin&&tab==='accounts'&&<OfficeAccountsManager user={user}/>}
       </div><footer className="footer">ÉLIA MARIER / STUDIO OS 3.0.1 <span>BUILT WITH NEXT.JS + TYPESCRIPT · {new Date().getFullYear()}</span></footer>
     </main>
-    <NewBookingDialog open={newBookingOpen} initialDate={newBookingDate} onClose={()=>setNewBookingOpen(false)} onCreated={()=>{setReload(x=>x+1);setTab('calendar');}} user={user} staff={data?.staff||[]}/>
-    <EventEditor id={editEventId} staff={data?.staff||[]} user={user} onClose={()=>setEditEventId(null)} onDataUpdated={()=>setReload(v=>v+1)} onChanged={(date)=>{setEditEventId(null);setSelected(null);if(date && date.slice(0,7)!==month)setMonth(date.slice(0,7));setReload(v=>v+1);}}/>
-    {currentEvent&&<BookingDetailPanel event={currentEvent} user={user} staff={data?.staff||[]} onClose={()=>setSelected(null)} onEdit={()=>{setEditEventId(currentEvent.id);setSelected(null);}}/>}
+    <NewBookingDialog isAdmin={canAdmin} open={newBookingOpen} initialDate={newBookingDate} onClose={()=>setNewBookingOpen(false)} onCreated={()=>{setReload(x=>x+1);setTab('calendar');}} user={user} staff={data?.staff||[]}/>
+    <EventEditor isAdmin={canAdmin} id={editEventId} staff={data?.staff||[]} user={user} onClose={()=>setEditEventId(null)} onDataUpdated={()=>setReload(v=>v+1)} onChanged={(date)=>{setEditEventId(null);setSelected(null);if(date && date.slice(0,7)!==month)setMonth(date.slice(0,7));setReload(v=>v+1);}}/>
+    {currentEvent&&<BookingDetailPanel isAdmin={canAdmin} event={currentEvent} user={user} staff={data?.staff||[]} onClose={()=>setSelected(null)} onEdit={()=>{setEditEventId(currentEvent.id);setSelected(null);}}/>}
   </div>;
 }
