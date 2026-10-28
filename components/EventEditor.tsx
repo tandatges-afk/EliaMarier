@@ -229,7 +229,7 @@ export function EventEditor({isAdmin,id,staff,user,onClose,onChanged,onDataUpdat
    finally{setBusy(false);}
  }
  return <div className="fixed inset-0 z-[130] flex justify-end bg-slate-950/65" onMouseDown={e=>{if(e.target===e.currentTarget&&!busy)onClose();}}>
-  <section role="dialog" aria-modal="true" aria-label="Chỉnh sửa lịch" className="flex h-full w-full max-w-2xl flex-col overflow-hidden bg-white shadow-2xl">
+  <section role="dialog" aria-modal="true" aria-label="Chỉnh sửa lịch" className="elia-editor-panel flex h-full w-full max-w-2xl flex-col overflow-hidden bg-white shadow-2xl">
    <header className="flex items-center justify-between border-b border-slate-200 px-5 py-4 sm:px-7"><div className="flex items-center gap-3"><CalendarClock className="text-indigo-600" size={23}/><div><h2 className="text-lg font-extrabold text-slate-900">Quản lý lịch</h2><p className="text-xs text-slate-500">Firebase · kiểm tra phiên bản trước khi ghi</p></div></div><button type="button" onClick={onClose} disabled={busy} className="rounded-xl p-2 hover:bg-slate-100" aria-label="Đóng"><X size={20}/></button></header>
    {loading?<p className="p-8 text-slate-500">Đang đọc chi tiết từ Firebase…</p>:!detail?<div className="p-7 text-red-700" role="alert">{error||'Không thể đọc lịch'}<button className="mt-4 block rounded-lg border px-3 py-2 text-sm" onClick={()=>setReloadKey(x=>x+1)}>Thử tải lại lịch</button></div>:<>
     <form id="edit-event-form" className="grid flex-1 grid-cols-1 content-start gap-4 overflow-y-auto p-5 sm:grid-cols-2 sm:p-7" onSubmit={save}>

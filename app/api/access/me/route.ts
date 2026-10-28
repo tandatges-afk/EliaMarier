@@ -8,7 +8,7 @@ export const dynamic='force-dynamic';
 export async function GET(request:Request){
   try {
     const token=await authenticatedUser(request);
-    let role:'admin'|'sale'|'receptionist'|'staff'|'guest'='guest';let staffId:string|null=null;
+    let role:'admin'|'receptionist'|'staff'|'guest'='guest';let staffId:string|null=null;
     if(isAdmin(token)){role='admin';}
     else {
       const office=await officeRole(token);

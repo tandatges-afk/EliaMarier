@@ -19,7 +19,7 @@ test('account management requires admin',()=>{
  assert.match(read('app/api/office-accounts/route.ts'),/authenticatedAdmin/);
  assert.match(read('app/api/office-accounts/[uid]/route.ts'),/authenticatedAdmin/);
 });
-test('sale and reception have interface without payroll and reports',()=>{
+test('receptionist has interface without payroll and reports',()=>{
  const dashboard=read('components/Dashboard.tsx');
  assert.match(dashboard,/availablePages=pages\.filter/);
  assert.match(dashboard,/OfficeAccountsManager/);

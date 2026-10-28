@@ -1,0 +1,276 @@
+/* ÉLIA MARIER · EDITORIAL LUXE SYSTEM · Oct 2026
+   Visual-only overrides. Existing route and workflow logic is unchanged.
+   Designed for mobile, keyboard, low motion, and dense operations. */
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
+:root{
+ --navy:#252521;--ink:#292720;--muted:#827c73;--line:#e9e2d7;
+ --base:#f8f6f1;--panel:#fffcf8;--blue:#816e57;--amber:#bd915b;
+ --green:#4e866a;--violet:#8f765c;
+ --shadow:0 6px 32px rgba(52,42,31,.038);
+ --elia-black:#24251f;--elia-gold:#b69868;--elia-gold-light:#e8d8ba;
+ --elia-paper:#fbfaf6;--elia-sand:#eee8de;--elia-muted:#817c73;
+}
+html{scroll-behavior:smooth}
+body{background:var(--base);color:var(--ink);font-family:'DM Sans',system-ui,sans-serif;font-size:14px}
+:where(button,input,textarea,select,a):focus-visible{outline:2px solid #b39465;outline-offset:3px}
+:where(input,select,textarea){accent-color:#8d7451}
+::selection{background:#e8d8ba;color:#292720}
+::-webkit-scrollbar-thumb{background:#cfc6b9}
+.shell{--ops-ink:#302e2a;--ops-mute:#827c73;--ops-line:#eae3d9;--ops-brand:#98805f;--ops-bg:#f8f6f1;background:var(--base)}
+/* Sidebar: deep espresso, restrained brass accents */
+.shell .sidebar{width:265px;min-width:265px;background:linear-gradient(168deg,#282921 0%,#20231e 64%,#191c19 100%);border-right:1px solid #434339;padding:32px 17px 20px}
+.shell .brand{gap:13px;padding:4px 11px 40px;border-bottom:1px solid #ffffff16;margin-bottom:24px}
+.shell .brand-square,.login-layout .brand-square{border-radius:50%;background:#efe5d4;color:#39372c;font:600 28px 'Cormorant Garamond',Georgia,serif;letter-spacing:-1px;box-shadow:inset 0 0 0 1px #ffffffb3}
+.shell .brand-square span,.login-layout .brand-square span{color:#a5845c}
+.shell .brand-word{font-size:13px;letter-spacing:.22em;font-weight:700;color:#f6f1e7}
+.shell .brand-word span{font-weight:500;color:#d0b995}
+.shell .brand small{font-size:9px;letter-spacing:.19em;color:#8e9a8e;font-weight:500}
+.shell .sidebar-label{color:#a89a82;font-size:9px;letter-spacing:.2em;font-weight:700;padding:0 17px;margin-bottom:14px}
+.shell .nav-items{gap:7px}
+.shell .nav-item{min-height:46px;padding:12px 14px;border-radius:11px;font-weight:500;font-size:12.5px;color:#c3c3b9;letter-spacing:.01em;transition:background .16s ease,color .16s ease,transform .16s ease}
+.shell .nav-item svg{color:#a6a89c;stroke-width:1.7}
+.shell .nav-item:hover{background:#fffefa12;color:#fff;transform:translateX(2px)}
+.shell .nav-item.nav-active{background:linear-gradient(100deg,#4a493d,#393c31);box-shadow:inset 2px 0 0 #d0b58a,0 9px 20px #00000012;color:#fff6e8}
+.shell .nav-item.nav-active svg{color:#e9d1a9}
+.shell .nav-item i{width:5px;height:5px;background:#cbb18c}
+.shell .user-identity{border-top:1px solid #ffffff24;margin-top:21px;padding:18px 4px 0}
+.shell .user-avatar{border-radius:50%;background:#cfb68e;color:#26231c}
+.shell .user-meta strong{color:#f2ede1}
+.shell .user-meta span{color:#baad99}
+.shell .user-identity button{color:#c6b9a2}
+.shell .migration-tile{background:#ffffff0b;border:1px solid #ffffff20;border-radius:16px;color:#d9d4c6}
+.shell .migration-tile strong{color:#f6f0e4}
+.shell .migration-tile p,.shell .migration-tile a{color:#c4baa5}
+/* Header & navigation */
+.shell .content{background:radial-gradient(ellipse at 100% 0,#f1ebe0 0,transparent 36%),var(--base)}
+.shell .topbar{background:#fffcf8ed;border-bottom:1px solid #e9e2d7;backdrop-filter:blur(14px);padding:0 clamp(18px,3.5vw,51px);height:76px;min-height:76px;position:sticky;top:0;z-index:21}
+.shell .breadcrumb{color:#756f64;letter-spacing:.17em;font-weight:700;font-size:10px}
+.shell .breadcrumb span{color:#b9a78b}
+.shell .topbar-right{color:#847e73;font-size:11px}
+.shell .topbar-right .live-dot{background:#648d6e;box-shadow:0 0 0 4px #e7f1e5}
+.shell .top-icon{border:1px solid #e6ddd0;background:#fffdf9;border-radius:11px;color:#827762}
+.shell .top-icon:hover{background:#f2eadc;border-color:#d4c2a6}
+.shell .top-avatar{background:#e9d8ba;border-radius:50%;color:#514330}
+.shell .content-inner{padding:32px clamp(17px,3.5vw,50px) 46px;max-width:1690px}
+.shell .ops29-page-heading{border-bottom:0;margin-bottom:26px;padding-bottom:0}
+.shell .page-heading .eyebrow,.elia-kicker{font-size:10px;letter-spacing:.22em;font-weight:700;color:#9a8060}
+.shell .page-heading h1{font-family:'Cormorant Garamond',Georgia,serif;font-size:clamp(31px,3.2vw,44px);line-height:1.06;font-weight:600;letter-spacing:-.018em;margin:8px 0}
+.shell .page-heading p{font-size:12px;color:#857e70}
+.shell .primary-button,.shell .secondary-button,.elia-accounts .primary-button,.elia-accounts .secondary-button{border-radius:11px;min-height:43px;padding:10px 17px;font-size:12px;letter-spacing:.01em;box-shadow:none}
+.primary-button,.elia-accounts .primary-button{background:#34372e;color:#fff;border:1px solid #34372e}
+.primary-button:hover,.elia-accounts .primary-button:hover{background:#4c5142;border-color:#4c5142;transform:translateY(-1px)}
+.secondary-button,.elia-accounts .secondary-button{background:#fffcf8;color:#615747;border:1px solid #e6ddce}
+.secondary-button:hover,.elia-accounts .secondary-button:hover{background:#f4eee4;border-color:#c6b59b}
+.shell .heading-actions{gap:9px}
+/* Hero as brand statement rather than an oversized admin banner */
+.shell .welcome-band{min-height:225px;padding:36px clamp(23px,3.5vw,49px);margin-bottom:18px;border:1px solid #5f5a47;border-radius:19px;background:radial-gradient(ellipse at 78% 40%,#66644e 0,#34372f 44%,#222821 100%);box-shadow:0 20px 44px #2b30281c}
+.shell .welcome-band .welcome-kicker{font-size:10px;color:#e6d2a9;letter-spacing:.21em}
+.shell .welcome-band .welcome-kicker svg{color:#dfc597}
+.shell .welcome-band h2{font:500 clamp(27px,3vw,40px)/1.12 'Cormorant Garamond',Georgia,serif;letter-spacing:-.01em;margin:18px 0 10px}
+.shell .welcome-band h2 em{color:#ead3a6;font-style:italic}
+.shell .welcome-band p{color:#ddd9cd;font-size:12px;max-width:490px;line-height:1.7}
+.shell .welcome-cta{display:inline-flex;align-items:center;gap:8px;color:#f5e5ca;font-size:12px;padding:4px 0;border-bottom:1px solid #dac59b}
+.shell .welcome-art{opacity:.58;right:6%;width:285px}
+.shell .art-ring{border-color:#e3cda944}.shell .ring-one{width:300px}.shell .ring-two{width:215px}
+.shell .art-center{border-radius:50%;background:linear-gradient(145deg,#797c68,#4b503f);box-shadow:0 20px 40px #00000038;border:1px solid #e7d5b95e;font-family:'Cormorant Garamond',serif;font-size:96px;font-weight:500;transform:none}
+/* Cards, numeric hierarchy, tables */
+.shell .metrics-grid{gap:15px;margin-bottom:20px}
+.shell .metric{border-radius:16px;min-height:156px;background:#fffcf8;border:1px solid #e9e1d7;box-shadow:0 5px 20px #54473507;padding:22px 23px;position:relative;overflow:hidden}
+.shell .metric::before{content:'';position:absolute;top:0;right:22px;width:32px;height:2px;background:#cbb48f}
+.shell .metric-icon{border-radius:50%;margin-bottom:15px;background:#f2ece3;color:#8b7350;width:37px;height:37px}
+.shell .metric>span{font-size:11px;color:#7c766b;font-weight:600}
+.shell .metric strong{font:600 35px/1.08 'Cormorant Garamond',Georgia,serif;letter-spacing:-.02em;color:#37332c;margin-top:7px}
+.shell .metric small{color:#aaa195}
+.shell .surface{background:#fffcf8;border:1px solid #eae2d7;box-shadow:var(--shadow);border-radius:17px}
+.shell .surface-title{border-color:#eee7dc;min-height:75px;padding:19px 22px}
+.shell .surface-title h3{font-family:'Cormorant Garamond',serif;font-size:23px;font-weight:600;letter-spacing:-.01em;color:#302f28}
+.shell .surface-title .eyebrow{color:#ab8e65}
+.shell .text-action{color:#8d714d;font-size:11px}
+.shell .text-action:hover{color:#55422d}
+.shell .upcoming-row{background:transparent;border-color:#f0e9de;padding:13px 2px}
+.shell .upcoming-row:hover{background:#f7f2e9}
+.shell .upcoming-date{background:#f2e9da;color:#756143;border-radius:11px}
+.shell .upcoming-date b{font:600 23px 'Cormorant Garamond',serif}
+.shell .upcoming-info strong{font-size:12px}
+.shell .data-table th{background:#faf6ee;color:#827360;letter-spacing:.06em}
+.shell .data-table td{border-color:#f0e9df}
+.shell .data-table tr:hover td{background:#fcf9f3}
+.shell .date-cell{color:#5a4c3a}
+.shell .type-pill{background:#f0eade;color:#705d43;border-color:#e2d6c2}
+.shell .month-chip,.shell .month-navigator{background:#fbf7f0;color:#6d5e4b;border-color:#e6dccd;border-radius:10px}
+.shell .progress-track{background:#f1e9dd}
+.shell .search-input{border-color:#e6ded2;background:#fffefa;border-radius:11px}
+.shell .search-input input{background:transparent;color:#343129}
+.shell .toolbar{gap:12px}
+.shell .status{font-weight:700}
+.shell .status-confirmed{background:#eef2ec;color:#467958}
+.shell .status-pending{background:#fcf4e4;color:#9b6d37}
+.shell .status-done{background:#eaf3e9;color:#457451}
+.shell .status-cancelled{background:#f1efeb;color:#77716a}
+.shell .empty-state{color:#8d8779}
+.shell .footer{color:#93887b;border-color:#ebe3d7}
+/* Operations hub and calendar: unify legacy blue controls */
+.shell .ops29-hub,.shell .ops29-calendar{border:1px solid #e8dfd2;border-radius:17px;background:#fffcf8;box-shadow:var(--shadow)}
+.shell .ops29-hub{padding:19px 20px;margin-bottom:18px}
+.shell .ops29-header h2{font:600 25px 'Cormorant Garamond',Georgia,serif;color:#39352e}
+.shell .ops29-header p{color:#82796e}
+.shell .ops29-status{background:#eaf3e7;color:#577c57;border-radius:9px}
+.shell .ops29-action{background:#faf6ef;border-color:#e9e0d5;border-radius:12px;color:#494138;min-height:80px}
+.shell .ops29-action:hover{background:#f3eadc;border-color:#c8b599}
+.shell .ops29-icon{background:#eee1cd;color:#896c47;border-radius:10px}
+.shell .ops29-copy strong{color:#4a4237}
+.shell .ops29-action>svg:last-child{color:#ae9574}
+.shell .ops29-queue{border-color:#eae0d1}
+.shell .ops29-queue-title{color:#725c40}
+.shell .ops29-queue-items button{background:#fffdf9;border-color:#eae2d5;color:#4d4439}
+.shell .ops29-queue-items button:hover{background:#f9f3e8}
+.shell .ops29-calendar-toolbar,.shell .ops29-week-navigation{border-color:#ece2d6}
+.shell .ops29-view-switch{background:#f1ebe2}
+.shell .ops29-view-switch button{color:#796e60}
+.shell .ops29-view-switch button.selected{background:#fffdf9;color:#675238}
+.shell .ops29-staff-filter{border-color:#e4dacd;color:#8b7f70}
+.shell .ops29-staff-filter select{color:#534a3c}
+.shell .ops29-day-headers b{background:#faf5ed;border-color:#e9dfd3;color:#877663}
+.shell .ops29-month-day{border-color:#eee6dd}
+.shell .ops29-month-day.outside{background:#faf8f4}
+.shell .ops29-month-day.today .ops325-solar-day{background:#86704e;color:#fff}
+.shell .ops29-event{background:#f3f0e8;border-color:#e7dbca;border-left-color:#95784d;color:#574c3c}
+.shell .ops29-event.s-pending{background:#fcf3e6;border-color:#f4dfbd;border-left-color:#b8894f;color:#8f6732}
+.shell .ops29-event.s-done{background:#eaf3ec;border-color:#d5e7d8;border-left-color:#6c9c76;color:#4b7256}
+.shell .ops29-event.s-cancelled{background:#f0eeeb;border-color:#e3ded8;border-left-color:#a9a29b;color:#857d75}
+.shell .ops29-month-day:hover,.shell .ops325-create-day:hover{background:#f9f3e8}
+.shell .ops29-list>button{border-color:#ece4da;color:#4c4134}
+.shell .ops29-list>button:hover{background:#faf4ea}
+.shell .ops29-date{color:#806c52}
+.shell .ops29-main small{color:#8b8176}
+/* Staff, delivery gallery and data system */
+.shell .staff-card,.shell .delivery-card,.shell .delivery-event-group{border-color:#eae1d5;background:#fffcf8;border-radius:16px;box-shadow:0 4px 20px #54473509}
+.shell .staff-avatar{background:#eee0cb;color:#705b3f}
+.shell .delivery-art{background:#eeeae3}
+.shell .delivery-project-owner{background:#f4eee5;color:#76654e}
+.shell .ops30-health-hero{background:linear-gradient(120deg,#fffcf8,#f4ede0);border-color:#e5d9c7}
+.shell .ops30-health-icon{background:#eee2cf;color:#92764d}
+.shell .ops30-health-hero h2,.shell .ops30-analytics-intro h2{color:#4b3d2c}
+.shell .ops30-health-metrics>div,.shell .ops30-health-item{background:#fffcf8;border-color:#e9dfd3}
+.shell .ops30-health-metrics strong{color:#755b3c}
+.shell .ops30-system-tabs{background:#f1e9de}
+.shell .ops30-system-tabs button{color:#756550}
+.shell .ops30-system-tabs button.active{color:#5d482e;background:#fffcf8}
+/* Client-side forms and modals: no horizontal clipping or hard blue visual accents */
+.shell :is(input:not([type=checkbox]):not([type=radio]),select,textarea),.elia-accounts :is(input,select,textarea){color:#343129}
+.shell :is(input:not([type=checkbox]):not([type=radio]),select,textarea):focus,.elia-accounts :is(input,select,textarea):focus{outline:2px solid #bba783;outline-offset:1px;border-color:#bba783}
+.shell .detail-panel{background:#fffcf8;border-color:#e9dfd2}
+.shell .detail-header{background:#faf6ef;border-color:#e9dfd2}
+.shell .alert.notice{background:#f7f0e1;border-color:#e7d8bc;color:#8b704d}
+/* Login: editorial calm and stronger readability */
+.login-layout{background:#f8f6f1}
+.login-layout .login-showcase{background:radial-gradient(ellipse at 70% 85%,#5c604e 0,transparent 50%),linear-gradient(147deg,#252b24,#1e231e);color:#f8f1e5}
+.login-layout .login-brand{letter-spacing:.14em;color:#fbf2e5}
+.login-layout .login-brand>span{letter-spacing:.2em}
+.login-layout .showcase-main .overline{color:#e1c89f;letter-spacing:.22em}
+.login-layout .showcase-main h1{font:500 clamp(42px,5.2vw,78px)/1.05 'Cormorant Garamond',Georgia,serif;letter-spacing:-.023em}
+.login-layout .showcase-main h1 em{color:#e5cfa7}
+.login-layout .showcase-main p{color:#ddd7c8;line-height:1.8}
+.login-layout .showcase-pills span{border-color:#d3c6ab48;background:#fff6e611;color:#e8ddc8}
+.login-layout .login-bottom{color:#d5c5a9;border-color:#ffffff29}
+.login-layout .login-panel{background:#faf8f3}
+.login-layout .login-box{max-width:430px}
+.login-layout .login-lock{color:#886d47;background:#f0e6d5;border-radius:50%}
+.login-layout .eyebrow{color:#95734e}
+.login-layout .login-box h2{font:600 clamp(35px,4vw,48px)/1.05 'Cormorant Garamond',Georgia,serif;color:#363229;letter-spacing:-.02em}
+.login-layout .login-box>p{color:#7e7568}
+.login-layout .login-box form label{color:#645847}
+.login-layout .login-box input{background:#fffefa;border:1px solid #e3d8c9;border-radius:12px;min-height:50px}
+.login-layout .login-box .primary-button{background:#30362c;border:1px solid #30362c;min-height:48px;color:#fff}
+.login-layout .login-foot{color:#847864}
+.login-layout .legacy-link{color:#867354}
+/* Dedicated receptionist page */
+.elia-accounts{color:#332f28;display:grid;gap:22px}
+.elia-accounts-intro{display:flex;align-items:center;justify-content:space-between;gap:23px;background:linear-gradient(118deg,#31362e,#4c503f);color:#fff;border-radius:19px;padding:28px 35px;box-shadow:0 16px 40px #20291e16}
+.elia-accounts-intro h2{font:500 clamp(30px,4.5vw,44px)/1.12 'Cormorant Garamond',Georgia,serif;margin:9px 0}
+.elia-accounts-intro p{max-width:640px;font-size:12px;color:#e5e0d3;line-height:1.7;margin:0}
+.elia-accounts-intro .elia-kicker{color:#e9d3aa}
+.elia-account-stats{border-left:1px solid #ffffff36;min-width:170px;display:grid;justify-items:center;gap:3px;padding:0 10px 0 26px;color:#e6d5b8}
+.elia-account-stats strong{font:600 46px/1 'Cormorant Garamond',serif;color:#fff}
+.elia-account-stats strong span{font:500 20px/1 'Cormorant Garamond',serif;color:#d2bea0}
+.elia-account-stats small{font-size:10px;color:#e3d8c6;text-align:center}
+.elia-accounts-grid{display:grid;grid-template-columns:minmax(280px,.92fr) minmax(0,1.35fr);gap:20px;align-items:start}
+.elia-form-card,.elia-list-card{background:#fffcf8;border:1px solid #e7ded1;border-radius:18px;padding:25px 26px;box-shadow:var(--shadow);min-width:0}
+.elia-section-heading{display:flex;gap:12px;align-items:center;margin-bottom:16px}
+.elia-section-icon{width:42px;height:42px;flex-shrink:0;display:grid;place-items:center;border-radius:13px;background:#eee3d1;color:#866d4b}
+.elia-section-heading h3{font:600 25px/1.1 'Cormorant Garamond',Georgia,serif;margin:5px 0 0}
+.elia-help{font-size:12px;color:#80766a;margin:0 0 23px;line-height:1.65}
+.elia-account-form{display:grid;gap:15px}
+.elia-account-form label{display:grid;gap:7px;font-size:12px;font-weight:700;color:#5f564a}
+.elia-account-form input{border:1px solid #dfd5c7;background:#fffefa;padding:12px 13px;border-radius:11px;width:100%;min-height:46px;font-size:13px;font-weight:400;outline-offset:2px}
+.elia-account-form input::placeholder{color:#b0a79b}
+.elia-permission-note{display:flex;gap:9px;align-items:flex-start;background:#f5efe4;border:1px solid #e9decc;color:#66563e;border-radius:10px;padding:12px;font-size:11px;line-height:1.5}
+.elia-permission-note svg{flex:0 0 auto}
+.elia-form-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:3px}
+.elia-success{color:#427956;font-size:12px;display:flex;gap:7px;align-items:center;margin:0}
+.elia-error{color:#b24e47;background:#fff0ec;border:1px solid #f0cec5;border-radius:8px;padding:10px;font-size:12px;margin:0}
+.elia-count{font:600 14px 'DM Sans',sans-serif;color:#7a654b;background:#f0e8db;padding:4px 8px;border-radius:100px;vertical-align:middle}
+.elia-account-list{display:grid;gap:10px}
+.elia-person{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:15px;border:1px solid #ebe3d8;background:#fffefb;border-radius:13px}
+.elia-person-avatar{width:45px;height:45px;flex:0 0 45px;border-radius:50%;display:grid;place-items:center;background:#e8d8bd;color:#675339;font:600 23px 'Cormorant Garamond',serif}
+.elia-person-info{display:grid;gap:5px;min-width:0;flex:1}
+.elia-person-info strong{font-size:12px;color:#40372e}
+.elia-person-info .elia-mail{font-size:11px;display:flex;gap:5px;align-items:center;min-width:0;color:#887d70;overflow-wrap:anywhere}
+.elia-account-active,.elia-account-locked{width:max-content;display:inline-flex;align-items:center;gap:5px;font-size:10px;color:#487650;font-weight:700}
+.elia-account-locked{color:#a15f4b}
+.elia-account-active i,.elia-account-locked i{width:6px;height:6px;border-radius:50%;background:currentColor}
+.elia-person-actions{display:flex;gap:5px;flex-wrap:wrap;margin-left:auto}
+.elia-person-actions button{border:1px solid #e4dacb;border-radius:9px;color:#65543f;background:#fcfaf5;min-height:36px;padding:8px 10px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:5px}
+.elia-person-actions button:hover{background:#efe4d2;border-color:#cbb693}
+.elia-person-actions button.elia-delete{color:#a25d4f;background:#fff8f4}
+.elia-account-empty{display:grid;place-items:center;gap:9px;padding:60px 18px;text-align:center;color:#98866d}
+.elia-account-empty strong{font:600 22px 'Cormorant Garamond',serif;color:#4b4034}
+.elia-account-empty p{font-size:12px;margin:0}
+/* Mobile and accessibility */
+@media(max-width:1230px){.elia-accounts-grid{grid-template-columns:1fr 1.15fr}.elia-person-actions{width:100%;padding-left:57px}}
+@media(max-width:1050px){.shell .sidebar{width:248px;min-width:248px}.shell .content-inner{padding:28px 25px 42px}.elia-accounts-grid{grid-template-columns:1fr}}
+@media(max-width:900px){.shell .sidebar{width:min(83vw,290px);min-width:0;box-shadow:10px 0 34px #0b0d0b34}.shell .topbar{padding:0 20px}.shell .content-inner{padding:23px 20px 44px}.shell .welcome-art{right:-25px;opacity:.3}.elia-accounts-intro{padding:22px}}
+@media(max-width:660px){
+ .shell .topbar{height:66px;min-height:66px;padding:0 16px}.shell .topbar-right{gap:9px}.shell .breadcrumb{font-size:9px;letter-spacing:.08em}
+ .shell .content-inner{padding:20px 14px 32px}.shell .page-heading{gap:13px;margin-bottom:20px}.shell .page-heading h1{font-size:33px}
+ .shell .heading-actions{width:100%;display:grid;grid-template-columns:1fr 1fr}.shell .heading-actions button{min-height:44px;padding:9px 10px;justify-content:center;white-space:normal}
+ .shell .welcome-band{min-height:0;padding:25px 23px 28px;border-radius:16px}.shell .welcome-band h2{font-size:32px;max-width:340px}.shell .welcome-band p{font-size:11px}.shell .welcome-art{display:none}
+ .shell .metrics-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.shell .metric{padding:14px 15px;min-height:145px}.shell .metric strong{font-size:31px}.shell .metric small{font-size:9px}
+ .shell .ops29-hub{padding:14px}.shell .ops29-action{min-height:70px}.shell .dashboard-two{grid-template-columns:1fr}.shell .surface-title{padding:14px 16px;min-height:68px}.shell .surface-title h3{font-size:21px}
+ .shell .table-scroll{overflow:auto;max-width:calc(100vw - 28px)}.shell .data-table{min-width:620px}
+ .elia-accounts-intro{display:block;padding:22px}.elia-account-stats{border-left:0;border-top:1px solid #ffffff36;margin-top:15px;padding:14px 0 0;display:flex;justify-content:center;align-items:center;gap:12px;min-width:0}.elia-account-stats strong{font-size:33px}
+ .elia-form-card,.elia-list-card{padding:17px 16px}.elia-person-actions{padding-left:0}.elia-person{gap:10px}
+}
+@media(max-width:420px){.shell .topbar-time{display:none}.shell .metric{min-height:132px}.shell .metric-icon{margin-bottom:9px}.elia-person-actions button{padding:8px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.shell .nav-item,.shell .primary-button,.shell .secondary-button{transition:none!important;transform:none!important}}
+
+/* Standalone Admin / Receptionist page */
+.elia-admin-accounts-page{max-width:1250px;margin:38px auto;padding:0 24px 55px}
+.elia-admin-page-header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:23px}
+.elia-admin-page-header h1{font:600 clamp(32px,5vw,47px)/1.08 'Cormorant Garamond',Georgia,serif;letter-spacing:-.02em;margin:7px 0}
+.elia-admin-page-header p{font-size:12px;color:#847a6d;margin:0}
+.elia-admin-page-header .secondary-button{min-height:44px}
+@media(max-width:620px){.elia-admin-accounts-page{margin:22px auto;padding:0 14px 35px}.elia-admin-page-header{align-items:flex-start}.elia-admin-page-header .secondary-button{width:100%}}
+
+/* Booking/edit workflows — visual polish without touching form logic */
+.elia-booking-dialog,.elia-editor-panel{background:#fffdfa!important;border:1px solid #e8dece;box-shadow:0 24px 90px #15171042!important}
+.elia-booking-dialog>header,.elia-editor-panel>header{background:#fbf8f2;border-bottom:1px solid #e9dfd2}
+.elia-booking-dialog>header h2,.elia-editor-panel>header h2{font:600 25px/1.1 'Cormorant Garamond',Georgia,serif;color:#3b352a}
+.elia-booking-dialog>header span:has(svg){background:#efe3cf;color:#826a49}
+.elia-booking-dialog form input:not([type=checkbox]),.elia-booking-dialog form textarea,.elia-booking-dialog form select,.elia-editor-panel input:not([type=checkbox]),.elia-editor-panel textarea,.elia-editor-panel select{background:#fffdf9;border-color:#ded4c6;color:#3d362d}
+.elia-booking-dialog form :is(input,textarea,select):focus-visible,.elia-editor-panel :is(input,textarea,select):focus-visible{outline:2px solid #ab8b60;outline-offset:1px}
+.elia-booking-dialog button[type=submit],.elia-editor-panel button[type=submit]{background:#353a30;color:white;border-radius:10px}
+.elia-booking-dialog form>div:first-child,.elia-booking-dialog fieldset{border-color:#e2d7c6;background:#f7f0e5}
+/* Crew mobile portal — share the Élia visual vocabulary */
+.elia-staff-portal{background:#f8f6f1!important;color:#3c362c!important}
+.elia-staff-portal .elia-staff-hero{background:linear-gradient(115deg,#272d25,#4d503f)!important;border:1px solid #635e4a;box-shadow:0 18px 32px #272b211c;padding:26px;border-radius:17px}
+.elia-staff-portal .elia-staff-hero h1{font:600 clamp(30px,4vw,39px) 'Cormorant Garamond',Georgia,serif;color:#fff5e4;letter-spacing:-.025em}
+.elia-staff-portal .elia-staff-hero p:first-child{color:#dbc59d;letter-spacing:.22em}
+.elia-staff-portal .elia-staff-section{background:#fffdfa;border:1px solid #e9e1d5;border-radius:17px;box-shadow:0 5px 22px #55463708}
+.elia-staff-portal .elia-staff-section h2{font:600 27px/1.14 'Cormorant Garamond',Georgia,serif;color:#42382a}
+.elia-staff-portal .elia-staff-section article{border-color:#e8e0d4;border-radius:12px;background:#fffefb}
+.elia-staff-portal .elia-staff-section article>div:first-child span{color:#8c7050}
+.elia-staff-portal .elia-staff-section a{color:#856d4e}
+.elia-staff-portal .elia-staff-section input{border-color:#e1d6c6;border-radius:9px}
+.elia-staff-portal .elia-staff-section button.bg-indigo-700{background:#3d4939!important;color:white}
+@media(max-width:600px){.elia-staff-portal .elia-staff-hero{padding:21px}.elia-booking-dialog,.elia-editor-panel{border-radius:14px}.elia-booking-dialog form{padding-left:15px;padding-right:15px}}

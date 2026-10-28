@@ -1,4 +1,5 @@
 'use client';
+import '@/components/elia-luxe.css';
 import {useEffect,useState} from 'react';
 import {onAuthStateChanged,type User} from 'firebase/auth';
 import {browserAuth} from '@/lib/firebase/client';
@@ -37,11 +38,11 @@ export default function OfficeAccountsPage(){
   },e=>{if(alive){setAccess('error');setError(e.message||'Lỗi đăng nhập Firebase');}});
   return()=>{alive=false;unsubscribe();};
  },[]);
- return <main style={{maxWidth:1100,margin:'24px auto',padding:'0 16px 40px'}}>
-  <header style={{display:'flex',flexWrap:'wrap',justifyContent:'space-between',alignItems:'center',gap:12,marginBottom:24}}>
-   <div><div style={{fontSize:11,fontWeight:700,letterSpacing:'0.13em',color:'var(--muted)'}}>ÉLIA MARIER / ADMIN</div>
-    <h1 style={{fontSize:'clamp(22px,4vw,28px)',fontWeight:800,margin:'6px 0'}}>Tài khoản nhân viên</h1>
-    <p style={{margin:0,color:'var(--muted)',fontSize:13}}>Thêm, sửa và khóa tài khoản Sale / Lễ tân</p></div>
+ return <main className="elia-admin-accounts-page">
+  <header className="elia-admin-page-header">
+   <div><div className="elia-kicker">ÉLIA MARIER / ADMIN</div>
+    <h1>Tài khoản lễ tân</h1>
+    <p>Thêm, cập nhật và khóa tài khoản lễ tân</p></div>
    <a href="/" className="secondary-button" style={{display:'inline-flex',padding:'10px 14px',borderRadius:10}}>Về trang quản trị</a>
   </header>
   {access==='checking'&&<section className="surface" style={{padding:24}}>Đang kiểm tra quyền quản trị…</section>}

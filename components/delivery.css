@@ -94,3 +94,36 @@
 .delivery-photos > .delivery-photo > .delivery-photo-footer > .delivery-photo-actions>button{
   min-height:34px;padding:6px 3px;
 }
+
+/* Élia Marier 2026 — guest-facing delivery aligned with the private studio identity */
+.client-delivery{background:#f8f5ef;color:#322f29}
+.client-delivery .delivery-hero{background:radial-gradient(ellipse at 85% 10%,#6d6b54 0,transparent 42%),linear-gradient(125deg,#242920,#34372c);padding-top:40px;padding-bottom:68px;border-bottom:2px solid #b99d72}
+.client-delivery .delivery-brand{font-weight:600;letter-spacing:.25em;color:#f5eddd}
+.client-delivery .delivery-brand span{color:#dcc49b;font-family:'Cormorant Garamond',Georgia,serif;font-size:30px}
+.client-delivery .delivery-brand b{color:#d4be98}
+.client-delivery .delivery-hero>p{letter-spacing:.26em;color:#d9c49f}
+.client-delivery .delivery-hero h1{font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;font-size:clamp(40px,6vw,72px);line-height:1.08;letter-spacing:-.025em}
+.client-delivery .delivery-hero-sub{color:#e5dbc8}
+.client-delivery .delivery-content{max-width:1390px}
+.client-delivery .delivery-product{background:#fffdfa;border-color:#e9dfd1;box-shadow:0 15px 40px #493e2f0a;border-radius:19px}
+.client-delivery .delivery-product-heading{border-color:#e9e1d5}
+.client-delivery .delivery-product-heading span{color:#987b54;letter-spacing:.18em}
+.client-delivery .delivery-product-heading h2{font:600 clamp(25px,3.6vw,35px)/1.1 'Cormorant Garamond',Georgia,serif;letter-spacing:0;color:#342f26}
+.client-delivery .delivery-review{background:#f8f4ed;border-color:#e9decd;border-radius:15px}
+.client-delivery .delivery-video-main h4,.client-delivery .delivery-review h4{font-family:'Cormorant Garamond',Georgia,serif;font-size:23px;font-weight:600;color:#3d362a}
+.client-delivery .delivery-comment{background:#fffdfa;border-color:#e8dfd2}
+.client-delivery .delivery-comment button{background:#ede2d0;color:#735939}
+.client-delivery .delivery-form input,.client-delivery .delivery-form textarea{border-color:#ded0bc;background:#fffdfa;border-radius:10px;color:#322f29}
+.client-delivery .delivery-form :is(input,textarea):focus-visible{outline:2px solid #ac8b5f;outline-offset:1px}
+.client-delivery .delivery-form button,.client-delivery .delivery-primary{background:#343c30!important;color:#fff!important;border-radius:9px}
+.client-delivery .delivery-photo-toolbar{background:#f5efe5;border-color:#e6daca;border-radius:11px}
+.client-delivery .delivery-photo-toolbar button{border-color:#e1d5c4;color:#65553d;background:#fffdfa}
+.client-delivery .delivery-photo-toolbar button.active{background:#e5d7c0;border-color:#cdb48d}
+.client-delivery .delivery-photo{border-color:#e9e0d3;border-radius:11px;background:#f5f0e8}
+.client-delivery .delivery-photo.is-selected{border-color:#9a7d55;box-shadow:0 0 0 1px #9a7d55}
+.client-delivery .delivery-photo-image{background:#e9e3d8}
+.client-delivery .delivery-photos>.delivery-photo>.delivery-photo-footer{background:#fffcf8}
+.client-delivery .delivery-photos>.delivery-photo>.delivery-photo-footer>.delivery-photo-actions>button{background:#f4ece0;border-color:#e3d6c6;color:#69553b}
+.client-delivery .delivery-photos>.delivery-photo.is-selected>.delivery-photo-footer>.delivery-photo-actions>.delivery-photo-select{background:#5b6e54;color:#fff;border-color:#5b6e54}
+.client-delivery .delivery-photos>.delivery-photo>.delivery-photo-footer>.delivery-photo-actions>.delivery-photo-download{background:#f3efe8;border-color:#e3d8c9;color:#685740}
+.client-delivery .delivery-footer{color:#97846a}

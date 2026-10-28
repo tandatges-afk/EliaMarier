@@ -49,7 +49,7 @@ async function handleGET(request:Request,{params}:{params:Promise<{id:string}>})
     const deliveryCompleted=Boolean((await adminDatabase().ref(`studioPlanner_v1/deliveryState/${id}`).once('value')).val()?.completedAt);
     const productState=(await adminDatabase().ref(`studioPlanner_v1/deliveryProductState/${id}`).once('value')).val()||{};
     const completedProductIds=Object.entries(productState as Record<string,{completedAt?:unknown}>).filter(([,value])=>Boolean(value?.completedAt)).map(([productId])=>productId);
-    return json({event:{...safeOfficeEvent(normaliseEvents([item.value])[0],isAdmin(user)?'admin':'sale'),deliveryCompleted,completedProductIds,phone:item.value.phone||'',note:item.value.note||'',isRuocDau:item.value.isRuocDau===true,
+    return json({event:{...safeOfficeEvent(normaliseEvents([item.value])[0],isAdmin(user)?'admin':'receptionist'),deliveryCompleted,completedProductIds,phone:item.value.phone||'',note:item.value.note||'',isRuocDau:item.value.isRuocDau===true,
     sourceLinks:Object.fromEntries(recordValues(item.value.assignments).filter(a=>a.id!=null).map(a=>[String(a.id),String(a.link||'')])),
     products:recordValues(item.value.products).map(p=>({id:String(p.id||''),name:String(p.name||''),url:String(p.url||''),mediaType:String(p.mediaType||'auto')})),
     startTrai:item.value.startTrai||'',startGai:item.value.startGai||'',locTrai:item.value.locTrai||'',locGai:item.value.locGai||'',phoneTrai:item.value.phoneTrai||'',phoneGai:item.value.phoneGai||''},version:item.version});

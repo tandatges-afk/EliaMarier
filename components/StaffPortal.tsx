@@ -1,4 +1,5 @@
 'use client';
+import './elia-luxe.css';
 import {useCallback,useEffect,useState} from 'react';
 import {CalendarDays,CalendarOff,RefreshCcw,ShieldCheck,Phone,Copy,MapPin,Users,Wallet,Link2,Send,ExternalLink} from 'lucide-react';
 import {formatVnd} from '@/lib/domain/vietnam-money';
@@ -58,16 +59,16 @@ export function StaffPortal(){
  },[staffId,token]);
  useEffect(()=>{void refresh();},[refresh,reload]);
  useEffect(()=>{if(!token)return;const timer=setInterval(()=>setReload(x=>x+1),60_000);return()=>clearInterval(timer);},[token]);
- return <main className="min-h-screen bg-slate-100 p-4 text-slate-900 md:p-8"><div className="mx-auto max-w-4xl space-y-5">
-  <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-slate-900 p-5 text-white"><div><p className="text-xs tracking-[0.18em] text-slate-400">ÉLIA MARIER · ĐỘI NGŨ</p><h1 className="text-xl font-bold">Lịch sắp tới của bạn</h1><p className="text-sm text-slate-300">{info?`${info.staff.name} · ${info.staff.role}`:'Link xem lịch nhân sự'}</p></div>
+ return <main className="elia-staff-portal min-h-screen bg-slate-100 p-4 text-slate-900 md:p-8"><div className="mx-auto max-w-4xl space-y-5">
+  <header className="elia-staff-hero flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-slate-900 p-5 text-white"><div><p className="text-xs tracking-[0.18em] text-slate-400">ÉLIA MARIER · ĐỘI NGŨ</p><h1 className="text-xl font-bold">Lịch sắp tới của bạn</h1><p className="text-sm text-slate-300">{info?`${info.staff.name} · ${info.staff.role}`:'Link xem lịch nhân sự'}</p></div>
    <button type="button" onClick={()=>setReload(x=>x+1)} className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-sm"><RefreshCcw size={17}/> Làm mới</button></header>
   {busy&&!info&&<div role="status" className="rounded-xl bg-white p-5 text-sm">Đang tải lịch mới nhất…</div>}
   {error&&<div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-5 text-sm font-semibold text-rose-800">{error}</div>}
   {info&&<>
-   <section className="rounded-2xl bg-white p-5 shadow-sm"><h2 className="mb-3 flex items-center gap-2 text-lg font-bold"><Wallet size={20}/> Lương nhân sự tháng {info.payroll?.month||info.payrollMonth}</h2>
+   <section className="elia-staff-section rounded-2xl bg-white p-5 shadow-sm"><h2 className="mb-3 flex items-center gap-2 text-lg font-bold"><Wallet size={20}/> Lương nhân sự tháng {info.payroll?.month||info.payrollMonth}</h2>
     {info.payroll?<><div className="grid grid-cols-2 gap-3 md:grid-cols-3">{([['Tiền công tháng',info.payroll.gross],['Nợ chuyển kỳ',info.payroll.opening],['Đã ứng',info.payroll.advance],['Đã thanh toán',info.payroll.paid],['Số dư còn lại',info.payroll.closing]] as [string,number][]).map(([label,amount])=><div key={label} className="rounded-xl bg-slate-50 p-3"><p className="text-xs text-slate-500">{label}</p><strong className="text-base">{formatVnd(amount)}</strong></div>)}</div><p className="mt-3 text-xs text-slate-500">{info.payroll.jobs} ca trong tháng · Lương tính theo chi phí được phân công cho chính bạn. Lịch hủy không được tính.</p></>:<p className="text-sm text-slate-500">{info.payrollError||'Chưa có dữ liệu lương của bạn.'}</p>}
    </section>
-   <section className="rounded-2xl bg-white p-5 shadow-sm"><h2 className="mb-4 flex items-center gap-2 text-lg font-bold"><CalendarDays size={20}/> Lịch làm việc (30 ngày qua và 90 ngày tới) · {info.events.length} ca</h2>
+   <section className="elia-staff-section rounded-2xl bg-white p-5 shadow-sm"><h2 className="mb-4 flex items-center gap-2 text-lg font-bold"><CalendarDays size={20}/> Lịch làm việc (30 ngày qua và 90 ngày tới) · {info.events.length} ca</h2>
     {info.events.length?<div className="space-y-3">{info.events.map(e=><article key={e.id} className="rounded-xl border p-4"><div className="flex flex-wrap justify-between gap-2"><strong>{e.name}</strong><span className="text-sm font-semibold text-indigo-700">{e.date} · {e.start||'--:--'} – {e.end||'--:--'}</span></div>
      <p className="mt-1 text-xs text-slate-500">{e.eventType}</p>
      <div className="mt-3 space-y-2 rounded-xl bg-slate-50 p-3"><Location value={e.location}/>{e.isRuocDau&&<><Location name="Nhà trai" value={e.locTrai}/><Location name="Nhà gái" value={e.locGai}/></>}
@@ -78,7 +79,7 @@ export function StaffPortal(){
      <SourceSubmit key={e.id} work={e} staffId={staffId} token={token} onSaved={()=>setReload(v=>v+1)}/>
     </article>)}</div>:<p className="rounded-xl bg-slate-50 p-6 text-center text-sm text-slate-500">Bạn chưa có lịch được phân công trong khoảng thời gian này.</p>}
    </section>
-   <section className="rounded-2xl bg-white p-5 shadow-sm"><h2 className="mb-3 flex items-center gap-2 text-lg font-bold"><CalendarOff size={20}/> Ngày nghỉ đã ghi nhận</h2>{info.blackouts.length?<div className="space-y-2">{info.blackouts.map(b=><p key={b.id} className="rounded-lg bg-slate-50 p-3 text-sm"><b>{b.date}</b> · {b.reason||'Nghỉ'}</p>)}</div>:<p className="text-sm text-slate-500">Chưa có ngày nghỉ trong khoảng thời gian này.</p>}
+   <section className="elia-staff-section rounded-2xl bg-white p-5 shadow-sm"><h2 className="mb-3 flex items-center gap-2 text-lg font-bold"><CalendarOff size={20}/> Ngày nghỉ đã ghi nhận</h2>{info.blackouts.length?<div className="space-y-2">{info.blackouts.map(b=><p key={b.id} className="rounded-lg bg-slate-50 p-3 text-sm"><b>{b.date}</b> · {b.reason||'Nghỉ'}</p>)}</div>:<p className="text-sm text-slate-500">Chưa có ngày nghỉ trong khoảng thời gian này.</p>}
     <p className="mt-3 text-xs text-slate-500">Để báo nghỉ hoặc chỉnh lịch, liên hệ quản lý. Bạn chỉ được cập nhật link Source của mình sau khi kết thúc ca.</p>
    </section>
    <p className="flex items-center justify-center gap-2 text-center text-xs text-slate-500"><ShieldCheck size={15}/> Link có thể thu hồi · Hết hạn {new Date(info.expiresAt).toLocaleDateString('vi-VN')}</p>

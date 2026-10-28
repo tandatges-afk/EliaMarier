@@ -13,6 +13,7 @@ import {SystemHealth} from './SystemHealth';
 import MigrationReadiness from './MigrationReadiness';
 import './v29.css';
 import './v30.css';
+import './elia-luxe.css';
 
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import type { User } from 'firebase/auth';
@@ -32,7 +33,7 @@ import { getMonthStats, monthEvents, shiftMonth, statusName } from '@/lib/domain
 import type { DashboardData, StudioEvent } from '@/lib/domain/types';
 
 type Tab = 'overview'|'calendar'|'staff'|'payroll'|'delivery'|'analytics'|'system'|'accounts';
-type AccessRole='admin'|'sale'|'receptionist'|'guest'|'staff';
+type AccessRole='admin'|'receptionist'|'guest'|'staff';
 type SystemSection='health'|'activity'|'data';
 const monthNow = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; };
 const localToday = () => { const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const take=(type:string)=>parts.find(p=>p.type===type)?.value||'';return `${take('year')}-${take('month')}-${take('day')}`; };
@@ -59,15 +60,15 @@ function Login({onLogin,error,loading}:{onLogin:(email:string,password:string)=>
   return <div className="login-layout">
     <div className="login-showcase">
       <div className="login-brand"><div className="brand-square">É<span>.</span></div><span>ÉLIA <strong>MARIER</strong></span></div>
-      <div className="showcase-main"><div className="overline">ÉLIA MARIER / STUDIO OS 3.0.1</div>
-        <h1>Mọi khoảnh khắc.<br/><em>Một hệ thống.</em></h1>
-        <p>Không gian điều hành từ lịch quay chụp, đội ngũ đến bàn giao sản phẩm — đồng nhất và hiệu quả hơn.</p>
-        <div className="showcase-pills"><span>Lịch thông minh</span><span>Đội ngũ</span><span>Gallery & Video</span></div>
-      </div><div className="login-bottom">CREATIVE OPERATIONS, REIMAGINED <span>© ÉLIA MARIER</span></div>
+      <div className="showcase-main"><div className="overline">ÉLIA MARIER · STUDIO WORKSPACE</div>
+        <h1>Chăm chút từng khoảnh khắc.<br/><em>Vẹn tròn từng trải nghiệm.</em></h1>
+        <p>Không gian điều hành dành riêng cho Élia Marier, nơi mỗi lịch hẹn và lần bàn giao đều được chăm chút.</p>
+        <div className="showcase-pills"><span>Lịch làm việc</span><span>Đội ngũ</span><span>Bàn giao ảnh & phim</span></div>
+      </div><div className="login-bottom">A MORE THOUGHTFUL STUDIO EXPERIENCE <span>© ÉLIA MARIER</span></div>
     </div>
     <div className="login-panel"><div className="login-box">
       <div className="login-lock"><LockKeyhole size={21}/></div>
-      <div className="eyebrow">WORKSPACE LOGIN</div><h2>Chào mừng trở lại</h2>
+      <div className="eyebrow">ĐĂNG NHẬP NỘI BỘ</div><h2>Chào mừng trở lại</h2>
       <p>Đăng nhập bằng tài khoản Élia Marier do Admin cấp.</p>
       <form onSubmit={e=>{e.preventDefault();onLogin(email,password);}}>
         <label htmlFor="email">Email</label><input id="email" type="email" autoComplete="username" placeholder="email@example.com" required value={email} onChange={e=>setEmail(e.target.value)}/>
@@ -225,7 +226,7 @@ export function Dashboard(){
   const canAdmin=access==='admin';
   const login=async (email:string,password:string)=>{setLogging(true);setAuthError('');try {await signInWithEmailAndPassword(browserAuth(),email,password);}catch{setAuthError('Đăng nhập không thành công. Kiểm tra email, mật khẩu và quyền Firebase.');}finally{setLogging(false);}};
   const load=useCallback(async (signal:AbortSignal)=>{
-    if(!user || !['admin','sale','receptionist'].includes(access||'')){setData(null);return;}
+    if(!user || !['admin','receptionist'].includes(access||'')){setData(null);return;}
     setLoading(true);setRequestError('');
     // A previous month's data must never be displayed under a new month heading.
     setData(previous=>previous?.month===month?previous:null);
@@ -273,25 +274,25 @@ export function Dashboard(){
   if(!user)return <Login onLogin={login} error={authError} loading={logging}/>;
   if(accessError)return <div className="boot-screen"><p role="alert">{accessError}</p><button className="secondary-button" onClick={()=>void signOut(browserAuth())}>Đăng xuất</button></div>;
   if(access===null)return <div className="boot-screen"><p>Đang kiểm tra quyền tài khoản…</p></div>;
-  if(!['admin','sale','receptionist'].includes(access))return <div className="boot-screen"><p>Không có quyền vào hệ thống sale/lễ tân. Liên hệ Admin.</p><button className="secondary-button" onClick={()=>void signOut(browserAuth())}>Đăng xuất</button></div>;
+  if(!['admin','receptionist'].includes(access))return <div className="boot-screen"><p>Không có quyền truy cập hệ thống. Liên hệ quản trị viên.</p><button className="secondary-button" onClick={()=>void signOut(browserAuth())}>Đăng xuất</button></div>;
 
   return <div className="shell">
     {menuOpen&&<button className="mobile-dimmer" aria-label="Đóng menu" onClick={()=>setMenuOpen(false)}/>}
     <aside className={`sidebar ${menuOpen?'sidebar-visible':''}`}>
-      <div className="brand"><div className="brand-square">É<span>.</span></div><div><div className="brand-word">ÉLIA<span> MARIER</span></div><small>CREATIVE MANAGEMENT</small></div><button onClick={()=>setMenuOpen(false)} className="sidebar-close" aria-label="Đóng menu"><X size={19}/></button></div>
+      <div className="brand"><div className="brand-square">É<span>.</span></div><div><div className="brand-word">ÉLIA<span> MARIER</span></div><small>STUDIO MANAGEMENT</small></div><button onClick={()=>setMenuOpen(false)} className="sidebar-close" aria-label="Đóng menu"><X size={19}/></button></div>
       <div className="sidebar-label">WORKSPACE</div><nav aria-label="Điều hướng chính" className="nav-items">{availablePages.map(p=>{
         const Icon=p.icon; return <button key={p.key} onClick={()=>goTab(p.key)} className={`nav-item ${tab===p.key?'nav-active':''}`}><Icon size={19}/><span>{p.name}</span>{tab===p.key&&<i/>}</button>;
       })}</nav>
       <div className="sidebar-bottom">
-        <div className="user-identity"><div className="user-avatar">{(user.email||'A').slice(0,1).toUpperCase()}</div><div className="user-meta"><strong>{user.email?.split('@')[0]||'Admin'}</strong><span>{canAdmin?'Quản trị viên':access==='sale'?'Nhân viên Sale':'Lễ tân'}</span></div><button title="Đăng xuất" onClick={async()=>{await signOut(browserAuth());if('caches' in window)void caches.delete(THUMB_CACHE_NAME);}}><LogOut size={19}/></button></div>
+        <div className="user-identity"><div className="user-avatar">{(user.email||'A').slice(0,1).toUpperCase()}</div><div className="user-meta"><strong>{user.email?.split('@')[0]||'Admin'}</strong><span>{canAdmin?'Quản trị viên':'Lễ tân'}</span></div><button title="Đăng xuất" onClick={async()=>{await signOut(browserAuth());if('caches' in window)void caches.delete(THUMB_CACHE_NAME);}}><LogOut size={19}/></button></div>
       </div>
     </aside>
     <main className="content">
-      <header className="topbar"><div className="topbar-left"><button aria-label="Mở menu" className="menu-toggle" onClick={()=>setMenuOpen(true)}><Menu size={22}/></button><div className="breadcrumb">WORKSPACE <span>/</span> {title?.name.toUpperCase()}</div></div><div className="topbar-right">{canAdmin&&<a href="/admin/nhan-vien" title="Tài khoản Sale / Lễ tân" aria-label="Quản lý tài khoản nhân viên" className="top-icon" style={{display:"inline-flex",alignItems:"center",justifyContent:"center"}}><ShieldCheck size={19}/></a>}<span className="live-dot"/><span className="topbar-time">{lastSynced?`Đồng bộ ${new Date(lastSynced).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}`:'Chưa đồng bộ'}</span><button aria-label="Tải lại" title="Làm mới" onClick={()=>setReload(x=>x+1)} className="top-icon"><RefreshCw size={18} className={loading?'spin':''}/></button><div className="top-avatar">{(user.email||'A').slice(0,1).toUpperCase()}</div></div></header>
+      <header className="topbar"><div className="topbar-left"><button aria-label="Mở menu" className="menu-toggle" onClick={()=>setMenuOpen(true)}><Menu size={22}/></button><div className="breadcrumb">ÉLIA MARIER <span>/</span> {title?.name.toUpperCase()}</div></div><div className="topbar-right">{canAdmin&&<a href="/admin/nhan-vien" title="Tài khoản lễ tân" aria-label="Quản lý tài khoản nhân viên" className="top-icon" style={{display:"inline-flex",alignItems:"center",justifyContent:"center"}}><ShieldCheck size={19}/></a>}<span className="live-dot"/><span className="topbar-time">{lastSynced?`Đồng bộ ${new Date(lastSynced).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}`:'Chưa đồng bộ'}</span><button aria-label="Tải lại" title="Làm mới" onClick={()=>setReload(x=>x+1)} className="top-icon"><RefreshCw size={18} className={loading?'spin':''}/></button><div className="top-avatar">{(user.email||'A').slice(0,1).toUpperCase()}</div></div></header>
       <div className="content-inner">
-        <div className="page-heading ops29-page-heading"><div><div className="eyebrow">ÉLIA MARIER / STUDIO OS 3.0</div><h1>{title?.name}</h1><p>{title?.sub}{tab!=='system'?` · Tháng ${month.slice(5)}/${month.slice(0,4)}`:' · Chỉ tài khoản Admin'}</p></div><div className="heading-actions">{tab!=='system'&&<><button className="secondary-button" onClick={()=>setReload(x=>x+1)} disabled={loading}><RefreshCw size={16} className={loading?'spin':''}/> Đồng bộ</button><button className="primary-button" onClick={()=>createBooking()}><Plus size={18}/> Tạo lịch mới</button></>}</div></div>
+        <div className="page-heading ops29-page-heading"><div><div className="eyebrow">ÉLIA MARIER · STUDIO WORKSPACE</div><h1>{title?.name}</h1><p>{title?.sub}{tab!=='system'?` · Tháng ${month.slice(5)}/${month.slice(0,4)}`:' · Chỉ tài khoản Admin'}</p></div><div className="heading-actions">{tab!=='system'&&<><button className="secondary-button" onClick={()=>setReload(x=>x+1)} disabled={loading}><RefreshCw size={16} className={loading?'spin':''}/> Đồng bộ</button><button className="primary-button" onClick={()=>createBooking()}><Plus size={18}/> Tạo lịch mới</button></>}</div></div>
         {canAdmin&&tab==='overview'&&<section className="surface" style={{padding:16,marginBottom:16,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
-          <div><strong style={{fontSize:15}}>Tài khoản Sale / Lễ tân</strong><p style={{margin:'4px 0 0',fontSize:12,color:'var(--muted)'}}>Tạo, chỉnh sửa và khóa tài khoản nhân viên (chỉ Admin)</p></div>
+          <div><strong style={{fontSize:15}}>Tài khoản lễ tân</strong><p style={{margin:'4px 0 0',fontSize:12,color:'var(--muted)'}}>Tạo, cập nhật và khóa tài khoản lễ tân (chỉ Admin)</p></div>
           <a href="/admin/nhan-vien" className="primary-button" style={{display:'inline-flex',alignItems:'center',gap:8}}><ShieldCheck size={16}/> Thêm / quản lý nhân viên</a>
         </section>}
         {requestError&&tab!=='system'&&<div className="alert error"><ShieldCheck size={18}/><div><strong>Không tải được dữ liệu quản trị</strong><p>{requestError}</p>{data?.month===month&&<p>Đang hiển thị dữ liệu tải thành công gần nhất của tháng này; hãy thử Đồng bộ lại.</p>}<button type="button" className="secondary-button" onClick={()=>{setSystemSection('health');goTab('system');}}><Settings2 size={15}/> Mở Hệ thống</button></div></div>}
@@ -309,8 +310,8 @@ export function Dashboard(){
         {!data && loading && tab!=='system' && <div className="loading-state"><RefreshCw size={24} className="spin"/> Đang tải dữ liệu Firebase…</div>}
         {data && tab!=='system' && <>
           {tab==='overview'&&<>
+            <div className="welcome-band"><div><div className="welcome-kicker"><Sparkles size={14}/> ÉLIA MARIER · STUDIO WORKSPACE</div><h2>Tinh tế trong từng lịch hẹn.<br/><em>Chỉn chu ở mỗi bàn giao.</em></h2><p>Mọi lịch hẹn, khách hàng và sản phẩm bàn giao trong một không gian vận hành thanh lịch, rõ ràng.</p><button className="welcome-cta" onClick={()=>goTab('calendar')}>Xem lịch làm việc <ArrowRight size={16}/></button></div><div className="welcome-art"><div className="art-ring ring-one"/><div className="art-ring ring-two"/><div className="art-center">É<span>.</span></div></div></div>
             <OperationsHub data={data} today={localToday()} onOpenEvent={setSelected} onNavigate={goTab}/>
-            <div className="welcome-band"><div><div className="welcome-kicker"><Sparkles size={14}/> STUDIO CONTROL CENTER</div><h2>Một nơi để quản lý<br/><em>mọi dự án sáng tạo.</em></h2><p>Lịch, nhân sự, tài chính và bàn giao sản phẩm trong một giao diện thống nhất.</p><button className="welcome-cta" onClick={()=>goTab('calendar')}>Xem lịch làm việc <ArrowRight size={16}/></button></div><div className="welcome-art"><div className="art-ring ring-one"/><div className="art-ring ring-two"/><div className="art-center">É<span>.</span></div></div></div>
             <div className="metrics-grid">
               {[
                 {label:'Tổng số lịch',value:stats?.total||0,hint:'Trong tháng được chọn',icon:CalendarDays,kind:'purple'},
@@ -321,12 +322,12 @@ export function Dashboard(){
             </div>
             <div className="dashboard-two"><section className="surface"><div className="surface-title"><div><span className="eyebrow">SẮP DIỄN RA</span><h3>Lịch làm việc tiếp theo</h3></div><button onClick={()=>goTab('calendar')} className="text-action">Xem tất cả <ArrowRight size={16}/></button></div>
               {nextEvents.length?<div className="upcoming-items">{nextEvents.map(e=><button className="upcoming-row" onClick={()=>setSelected(e.id)} key={e.id}><div className="upcoming-date"><b>{e.date.slice(-2)}</b><span>TH {Number(e.date.slice(5,7))}</span></div><div className="upcoming-info"><strong>{e.name}</strong><span>{e.start||'--:--'} · {e.eventType||'Khác'}</span></div><Status status={e.status}/><ChevronRight size={17}/></button>)}</div>:<Empty title="Chưa có lịch sắp tới" detail="Các sự kiện sắp diễn ra trong tháng sẽ xuất hiện tại đây."/>}</section>
-              <section className="surface"><div className="surface-title"><div><span className="eyebrow">MONTHLY PULSE</span><h3>Tổng hợp trạng thái</h3></div><button className="month-navigator" onClick={()=>setMonth(shiftMonth(month,-1))} title="Tháng trước"><ChevronLeft size={16}/></button><span className="month-chip">{month.slice(5)}/{month.slice(0,4)}</span><button className="month-navigator" onClick={()=>setMonth(shiftMonth(month,1))} title="Tháng sau"><ChevronRight size={16}/></button></div>
+              <section className="surface"><div className="surface-title"><div><span className="eyebrow">THÁNG NÀY</span><h3>Tổng hợp trạng thái</h3></div><button className="month-navigator" onClick={()=>setMonth(shiftMonth(month,-1))} title="Tháng trước"><ChevronLeft size={16}/></button><span className="month-chip">{month.slice(5)}/{month.slice(0,4)}</span><button className="month-navigator" onClick={()=>setMonth(shiftMonth(month,1))} title="Tháng sau"><ChevronRight size={16}/></button></div>
                 <div className="status-breakdown">{[
                   ['Đã chốt',stats?.confirmed||0,'var(--blue)'],['Chờ xác nhận',stats?.pending||0,'var(--amber)'],['Hoàn thành',stats?.done||0,'var(--green)']
                 ].map(([name,count,color])=><div className="breakdown-row" key={String(name)}><div className="breakdown-copy"><span>{name}</span><strong>{count}</strong></div><div className="progress-track"><div style={{width:`${stats?.total?Number(count)/stats.total*100:0}%`,background:String(color)}}/></div></div>)}<div className="breakdown-foot"><span>Nhân sự hoạt động</span><strong>{data.staff.length} thành viên</strong></div></div>
               </section></div>
-            <section className="surface"><div className="surface-title"><div><span className="eyebrow">BOOKING MANAGER</span><h3>Danh sách lịch trong tháng</h3></div><button onClick={()=>goTab('calendar')} className="text-action">Xem lịch tháng <ArrowRight size={16}/></button></div><EventTable events={filtered} staff={data.staff} compact onSelect={setSelected}/></section>
+            <section className="surface"><div className="surface-title"><div><span className="eyebrow">DANH SÁCH LỊCH HẸN</span><h3>Danh sách lịch trong tháng</h3></div><button onClick={()=>goTab('calendar')} className="text-action">Xem lịch tháng <ArrowRight size={16}/></button></div><EventTable events={filtered} staff={data.staff} compact onSelect={setSelected}/></section>
           </>}
           {tab==='calendar'&&<><div className="toolbar"><div className="search-input"><Search size={17}/><input placeholder="Tìm tên khách, loại dịch vụ, nhân sự..." value={search} onChange={e=>setSearch(e.target.value)} aria-label="Tìm kiếm lịch"/></div><div className="toolbar-right"><button className="month-navigator" onClick={()=>setMonth(shiftMonth(month,-1))}><ChevronLeft size={18}/></button><strong className="month-title">Tháng {month.slice(5)}/{month.slice(0,4)}</strong><button className="month-navigator" onClick={()=>setMonth(shiftMonth(month,1))}><ChevronRight size={18}/></button></div></div><CalendarPlanner data={data} filter={search} onSelect={setSelected} onCreate={createBooking}/><section className="surface"><div className="surface-title"><h3>Danh sách đặt lịch <span className="counter">{filtered.length}</span></h3><span className="text-xs text-slate-500">Chọn một lịch để chỉnh sửa trên web chính</span></div><EventTable events={filtered} staff={data.staff} onSelect={setSelected}/></section></>}
           {tab==='staff'&&(canAdmin?<StaffManager user={user} month={month} onChanged={()=>setReload(x=>x+1)}/>:<section className="surface"><div className="surface-title"><h3>Danh sách nhân sự quay chụp</h3></div><div className="table-scroll"><table className="data-table"><thead><tr><th>Họ tên</th><th>Vị trí</th><th>Trạng thái</th></tr></thead><tbody>{data.staff.map(s=><tr key={s.id}><td>{s.name}</td><td>{s.role}</td><td>{s.active!==false?'Đang làm':'Ngưng hoạt động'}</td></tr>)}</tbody></table></div></section>)}
@@ -339,7 +340,7 @@ export function Dashboard(){
           {canAdmin&&tab==='analytics'&&<StudioAnalytics data={data} today={localToday()}/>}
         </>}
         {canAdmin&&tab==='accounts'&&<OfficeAccountsManager user={user}/>}
-      </div><footer className="footer">ÉLIA MARIER / STUDIO OS 3.0.1 <span>BUILT WITH NEXT.JS + TYPESCRIPT · {new Date().getFullYear()}</span></footer>
+      </div><footer className="footer">ÉLIA MARIER · STUDIO WORKSPACE <span>ÉLIA MARIER · {new Date().getFullYear()}</span></footer>
     </main>
     <NewBookingDialog isAdmin={canAdmin} open={newBookingOpen} initialDate={newBookingDate} onClose={()=>setNewBookingOpen(false)} onCreated={()=>{setReload(x=>x+1);setTab('calendar');}} user={user} staff={data?.staff||[]}/>
     <EventEditor isAdmin={canAdmin} id={editEventId} staff={data?.staff||[]} user={user} onClose={()=>setEditEventId(null)} onDataUpdated={()=>setReload(v=>v+1)} onChanged={(date)=>{setEditEventId(null);setSelected(null);if(date && date.slice(0,7)!==month)setMonth(date.slice(0,7));setReload(v=>v+1);}}/>

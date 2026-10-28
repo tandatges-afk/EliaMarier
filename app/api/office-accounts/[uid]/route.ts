@@ -31,15 +31,14 @@ export async function PATCH(request:Request,{params}:{params:Promise<{uid:string
  const db=adminDatabase().ref('studioPlanner_v1/officeAccounts').child(uid);
  const old=(await db.once('value')).val();if(!old)return json({error:'Không tìm thấy tài khoản'},404);
  const guard=await adminTargetGuard(uid,'Không thể thay đổi tài khoản Admin');if(guard)return guard;
- const role=data.role===undefined?old.role:data.role;
- const name=data.name===undefined?old.name:String(data.name||'').trim();
+  const name=data.name===undefined?old.name:String(data.name||'').trim();
  const email=data.email===undefined?String(old.email):String(data.email||'').trim().toLowerCase();
  const active=data.active===undefined?old.active===true:data.active===true;
  const password=data.password===undefined?'':String(data.password);
- if(!['sale','receptionist'].includes(role)||typeof name!=='string'||name.length<2||name.length>100||!/^\S+@\S+\.\S+$/.test(email)||(password&&password.length<8))return json({error:'Thông tin không hợp lệ'},422);
+ if(typeof name!=='string'||name.length<2||name.length>100||!/^\S+@\S+\.\S+$/.test(email)||(password&&password.length<8))return json({error:'Thông tin không hợp lệ'},422);
  try{
    await getAuth(firebaseAdminApp()).updateUser(uid,{displayName:name,email,disabled:!active,...(password?{password}:{})});
-   await db.update({name,email,role,active,updatedAt:Date.now(),updatedBy:actor.uid});
+   await db.update({name,email,role:'receptionist',active,updatedAt:Date.now(),updatedBy:actor.uid});
    if(!active||password||email!==old.email)await getAuth(firebaseAdminApp()).revokeRefreshTokens(uid);
    await audit(actor,'OFFICE_ACCOUNT_UPDATED',uid).catch(()=>{});
    return json({success:true});
