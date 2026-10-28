@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import '@/components/elia-uiux-v2.css';
 
 export const metadata: Metadata = {
   title: 'Élia Marier',

@@ -135,15 +135,6 @@ export function WeddingCatalogManager({user}:{user:User}) {
   };
 
   return <section className="elia-wardrobe-admin" aria-label="Quản lý kho trang phục Élia Marier">
-    <header className="ewc-hero">
-      <div className="ewc-hero-copy">
-        <span className="ewc-kicker"><span className="ewc-kicker-rule"/> ÉLIA MARIER · WARDROBE COLLECTION</span>
-        <h2>Kho <em>trang phục.</em></h2>
-        <p>Tổ chức từng mã váy thật ngăn nắp. Sẵn sàng kết nối cùng lịch thuê của Élia Marier.</p>
-      </div>
-      <button type="button" className="ewc-refresh" onClick={()=>void reload()} disabled={loading||busy} title="Tải lại danh mục"><RefreshCw size={17} className={loading?'ewc-spinning':''}/> <span>Làm mới</span></button>
-      <span className="ewc-hero-watermark" aria-hidden="true">É</span>
-    </header>
 
     <div className="ewc-overview" aria-label="Tổng quan kho trang phục">
       <div className="ewc-stat"><span>MÃ TRANG PHỤC</span><strong>{items.length}</strong><small>Tổng mã trong kho</small></div>
@@ -177,7 +168,7 @@ export function WeddingCatalogManager({user}:{user:User}) {
       <div className="ewc-content">
         <div className="ewc-toolbar">
           <div className="ewc-toolbar-title"><span className="ewc-eyebrow">WARDROBE INVENTORY</span><h3>Danh sách mã <small>{visible.length}</small></h3></div>
-          <div className="ewc-toolbar-actions"><label className="ewc-search"><Search size={18}/><input type="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Tìm nhanh theo mã…" aria-label="Tìm mã trang phục"/></label><button type="button" className="ewc-primary ewc-add-button" onClick={openCreate} disabled={busy}><Plus size={18}/> Thêm mã</button></div>
+          <div className="ewc-toolbar-actions"><button type="button" className="ewc-refresh" onClick={()=>void reload()} disabled={loading||busy} aria-label="Làm mới kho trang phục" title="Làm mới"><RefreshCw size={17} className={loading?'ewc-spinning':''}/></button><label className="ewc-search"><Search size={18}/><input type="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Tìm nhanh theo mã…" aria-label="Tìm mã trang phục"/></label><button type="button" className="ewc-primary ewc-add-button" onClick={openCreate} disabled={busy}><Plus size={18}/> Thêm mã</button></div>
         </div>
 
         {showEditor&&<div className="ewc-add-panel"><div className="ewc-add-panel-header"><div><span className="ewc-eyebrow">QUẢN LÝ DANH MỤC</span><h4>{editing?'Chỉnh sửa mã trang phục':'Thêm mã trang phục'}</h4></div><button type="button" onClick={closeEditor} title="Đóng" aria-label="Đóng biểu mẫu"><X size={19}/></button></div>

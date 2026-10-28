@@ -91,8 +91,8 @@ export function WeddingWardrobe({user}:{user:User}){
  const countBusy=items.filter(i=>i.active&&Boolean(weddingConflict(i.bookings,selectedDay,selectedDay))).length;
  const monthBooked=bookings.filter(b=>b.status!=='cancelled'&&b.startDate<=`${month}-31`&&b.endDate>=`${month}-01`).length;
  return <div className="elia-wedding">
-  <section className="elia-wedding-hero"><div><div className="elia-wedding-kicker"><Heart size={14}/> ÉLIA MARIER · BRIDAL WARDROBE</div><h2>Lịch váy cưới <em>& trang phục</em></h2><p>Chọn mã · chọn ngày · giữ lịch, nhanh và chính xác.</p></div><button type="button" className="elia-wedding-hero-add" onClick={()=>{setMonth(today.slice(0,7));chooseDay(today);document.getElementById('elia-wedding-booking-form')?.scrollIntoView({behavior:'smooth',block:'center'});}}><CalendarDays size={17}/> Đặt lịch nhanh</button></section>
   <div className="elia-wedding-metrics"><div><span>Mã trang phục</span><strong>{items.length}</strong><small>Đã tạo trong danh mục</small></div><div><span>Đang có lịch · {weddingDateLabel(selectedDay)}</span><strong>{countBusy}</strong><small>Mã đã được giữ trong ngày</small></div><div><span>Lịch thuê trong tháng</span><strong>{monthBooked}</strong><small>Không tính lịch đã hủy</small></div></div>
+  <div className="elia-wedding-actions"><button type="button" className="elia-wedding-action-primary" onClick={()=>document.getElementById('elia-wedding-booking-form')?.scrollIntoView({behavior:'smooth',block:'start'})}><CalendarDays size={16}/> Tạo lịch thuê</button></div>
   {error&&<div role="alert" className="elia-wedding-message error">{error}</div>}
   {notice&&<div role="status" className="elia-wedding-message success"><CheckCircle2 size={16}/>{notice}</div>}
   <div className="elia-wedding-main">

@@ -1,0 +1,277 @@
+/* ÉLIA MARIER — Unified UI / October 2026
+   Visual-system layer only. No permissions, Firebase or rental business logic changed.
+   Loaded through app/layout.tsx so all screens share consistent primitives. */
+:root{
+  --elia-canvas:#f7f5f1;
+  --elia-surface:#fffdfa;
+  --elia-surface-subtle:#f5f0e9;
+  --elia-border:#e7ded1;
+  --elia-border-strong:#d6c7b3;
+  --elia-text:#30352e;
+  --elia-subtext:#686b61;
+  --elia-caption:#817e72;
+  --elia-forest:#303b32;
+  --elia-forest-hover:#445144;
+  --elia-champagne:#a78b67;
+  --elia-focus:#96774b;
+  --elia-ok:#37714d;
+  --elia-warn:#946222;
+  --elia-danger:#a24741;
+  --elia-soft-shadow:0 8px 28px rgba(47,42,32,.045);
+  --elia-elevated-shadow:0 14px 40px rgba(47,42,32,.08);
+  --elia-radius:14px;
+  --elia-radius-sm:10px;
+  --elia-control-height:42px;
+  --navy:#303b32;--ink:#30352e;--muted:#686b61;--line:#e7ded1;
+  --base:#f7f5f1;--panel:#fffdfa;--blue:#a78b67;--amber:#b28b52;
+  --green:#37714d;--shadow:var(--elia-soft-shadow);
+}
+html{scroll-behavior:smooth}body{background:var(--elia-canvas);color:var(--elia-text)}
+:where(button,a,input,textarea,select,[role="button"]):focus-visible{outline:2px solid var(--elia-focus)!important;outline-offset:3px}
+:where(button,input,textarea,select){touch-action:manipulation}
+:where(button){-webkit-tap-highlight-color:transparent}
+:where(button:disabled){cursor:not-allowed;opacity:.56}
+:where(input,textarea,select){min-width:0}
+::selection{background:#e7d5b8;color:#242c25}
+
+/* Application shell: stable hierarchy, less decoration, more content */
+.shell{background:var(--elia-canvas)}
+.shell .sidebar{background:#252d27;border-right:1px solid #485047;padding-top:23px}
+.shell .brand{padding-bottom:22px;margin-bottom:16px}
+.shell .sidebar-label{color:#b5ad99}
+.shell .nav-items{gap:3px}
+.shell .nav-item{min-height:44px;padding:10px 13px;border-radius:10px;font-size:12.5px;transition:background-color .16s,color .16s}
+.shell .nav-item:hover{background:#ffffff10;transform:none}
+.shell .nav-item.nav-active{background:#414b3f;box-shadow:inset 3px 0 #d4b991;color:#fff9ed}
+.shell .nav-item:focus-visible{outline-color:#dfc8a0!important}
+.shell .user-identity{border-color:#ffffff23}
+.shell .content{background:var(--elia-canvas)}
+.shell .topbar{min-height:67px;height:67px;background:rgba(255,253,248,.94);border-color:var(--elia-border);padding-inline:clamp(18px,3vw,42px)}
+.shell .topbar-right{gap:12px}
+.shell .topbar-time{color:var(--elia-subtext)}
+.shell .breadcrumb{color:#777365;letter-spacing:.11em;font-weight:700}
+.shell .content-inner{max-width:1560px;padding:25px clamp(16px,3vw,40px) 44px}
+.shell .page-heading{margin-bottom:19px;padding-bottom:0;align-items:flex-end}
+.shell .page-heading h1{font:600 clamp(29px,3.1vw,41px)/1.13 'Cormorant Garamond',Georgia,serif;letter-spacing:-.02em;color:var(--elia-text);margin:6px 0}
+.shell .page-heading p{font-size:12px;color:var(--elia-subtext);line-height:1.55}
+.shell .page-heading .eyebrow{color:var(--elia-champagne);font-size:9px;letter-spacing:.17em}
+.shell .heading-actions{gap:8px}
+.shell .primary-button,.shell .secondary-button,.elia-accounts .primary-button,.elia-accounts .secondary-button{
+  min-height:var(--elia-control-height);padding:10px 15px;border-radius:10px;font-size:12px;font-weight:700;
+  transition:background-color .16s,border-color .16s,color .16s;box-shadow:none;transform:none;
+}
+.shell .primary-button,.elia-accounts .primary-button{background:var(--elia-forest);border-color:var(--elia-forest);color:#fff}
+.shell .primary-button:hover,.elia-accounts .primary-button:hover{background:var(--elia-forest-hover);transform:none}
+.shell .secondary-button,.elia-accounts .secondary-button{background:var(--elia-surface);border-color:var(--elia-border);color:var(--elia-text)}
+.shell .secondary-button:hover,.elia-accounts .secondary-button:hover{background:var(--elia-surface-subtle);border-color:var(--elia-border-strong)}
+.shell .top-icon,.shell .month-navigator{border:1px solid var(--elia-border);background:var(--elia-surface);color:var(--elia-text);border-radius:10px;min-height:40px;min-width:40px;display:inline-grid;place-items:center}
+.shell .top-icon:hover,.shell .month-navigator:hover{background:var(--elia-surface-subtle)}
+.shell .surface,.shell .metric,.shell .ops29-hub,.shell .ops29-calendar{
+  border:1px solid var(--elia-border);background:var(--elia-surface);border-radius:var(--elia-radius);box-shadow:var(--elia-soft-shadow);
+}
+.shell .surface-title{padding:16px 19px;min-height:64px;border-color:var(--elia-border);gap:10px}
+.shell .surface-title h3{font:600 22px/1.2 'Cormorant Garamond',Georgia,serif;color:var(--elia-text);margin:3px 0 0}
+.shell .metrics-grid{gap:11px;margin-bottom:15px}
+.shell .metric{min-height:135px;padding:17px 18px}
+.shell .metric::before{background:#bca47c}
+.shell .metric-icon{width:33px;height:33px;margin-bottom:10px;border-radius:9px}
+.shell .metric strong{font:600 32px/1.1 'Cormorant Garamond',Georgia,serif;color:var(--elia-text)}
+.shell .metric small,.shell .metric>span{color:var(--elia-subtext)}
+.shell .dashboard-two{gap:12px;margin-bottom:15px}
+.shell .data-table{width:100%}
+.shell .data-table th{background:#f7f2ea;color:#706b60;font-size:10px;letter-spacing:.08em}
+.shell .data-table td{border-color:#eee8de;vertical-align:middle}
+.shell .data-table tr:hover td{background:#fcfaf5}
+.shell .status{font-weight:650}
+.shell .empty-state{padding:30px 15px;color:var(--elia-caption)}
+.shell .empty-state b{color:var(--elia-text)}
+.shell .toolbar{gap:12px;align-items:center}
+.shell .toolbar-right{gap:8px;flex-wrap:wrap}
+.shell .search-input{background:#fffdfa;border:1px solid var(--elia-border);border-radius:10px;min-height:42px}
+.shell .search-input input{background:transparent}
+.shell :is(.detail-panel,.staff-card,.delivery-card,.delivery-event-group){border-color:var(--elia-border);border-radius:var(--elia-radius);box-shadow:var(--elia-soft-shadow)}
+.shell .ops29-action{min-height:72px;border-radius:12px}
+.shell .ops29-month-day{min-height:86px}
+.shell .ops29-event{border-radius:7px;font-weight:600}
+.shell :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea),.elia-accounts :is(input,select,textarea){border-color:var(--elia-border);border-radius:10px;background:#fffefc;color:var(--elia-text);max-width:100%}
+.shell :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea):focus,.elia-accounts :is(input,select,textarea):focus{outline:2px solid #bf9c6f;outline-offset:1px;border-color:#bf9c6f}
+.shell :is(.alert.notice,.alert.success){background:#f1f6ef;border:1px solid #d8e7d6;color:#406c49}
+.shell .alert.error{background:#fff4f0;color:#99483b;border-color:#ebd0c5}
+.shell .footer{color:#847f72}
+
+/* Wedding calendar: no decorative hero, fast scan and clear availability */
+.elia-wedding{display:grid;gap:12px;min-width:0;color:var(--elia-text)}
+.elia-wedding .elia-wedding-metrics{gap:10px;margin:0}
+.elia-wedding .elia-wedding-metrics>div{background:var(--elia-surface);border:1px solid var(--elia-border);border-radius:12px;padding:12px 17px;gap:3px;min-height:94px;box-shadow:none}
+.elia-wedding .elia-wedding-metrics span{font-size:11px;color:var(--elia-subtext);line-height:1.4}
+.elia-wedding .elia-wedding-metrics strong{font:600 29px/1.05 'Cormorant Garamond',Georgia,serif;color:var(--elia-text)}
+.elia-wedding .elia-wedding-metrics small{font-size:10px;color:var(--elia-caption);line-height:1.35}
+.elia-wedding-actions{display:flex;justify-content:flex-end;align-items:center;min-height:44px}
+.elia-wedding .elia-wedding-action-primary{display:inline-flex;gap:8px;align-items:center;justify-content:center;min-height:42px;padding:10px 16px;border:1px solid var(--elia-forest);border-radius:10px;background:var(--elia-forest);color:#fff;font-size:12px;font-weight:700}
+.elia-wedding .elia-wedding-action-primary:hover{background:var(--elia-forest-hover)}
+.elia-wedding .elia-wedding-main,.elia-wedding .elia-wedding-lower{gap:12px}
+.elia-wedding .elia-wedding-main{grid-template-columns:minmax(265px,.85fr) minmax(0,1.2fr)}
+.elia-wedding .elia-wedding-lower{grid-template-columns:minmax(0,1fr) minmax(0,.85fr)}
+.elia-wedding .elia-wedding-panel{background:var(--elia-surface);border:1px solid var(--elia-border);border-radius:var(--elia-radius);box-shadow:var(--elia-soft-shadow);overflow:hidden}
+.elia-wedding .elia-wedding-panel-head{padding:16px 18px 13px;min-height:72px;border-bottom:1px solid #eee7dc;gap:10px}
+.elia-wedding .elia-wedding-panel-head h3{font:600 23px/1.17 'Cormorant Garamond',Georgia,serif;margin:4px 0 0;color:var(--elia-text)}
+.elia-wedding .elia-wedding-eyebrow{font-size:9px;color:#a38965;letter-spacing:.14em}
+.elia-wedding .elia-wedding-quickfilter{padding:12px 15px;gap:8px}
+.elia-wedding .elia-wedding-quickfilter :is(input,select){background:#fffefa;border:1px solid var(--elia-border);color:var(--elia-text);border-radius:9px;min-height:39px;font-size:12px}
+.elia-wedding .elia-wedding-search{border-radius:9px;border-color:var(--elia-border);min-width:0}
+.elia-wedding .elia-wedding-items{max-height:380px;overflow:auto}
+.elia-wedding .elia-wedding-item-main{min-height:57px;padding-block:9px}
+.elia-wedding .elia-wedding-item.selected{background:#edf1eb}
+.elia-wedding .elia-wedding-item-copy strong{color:var(--elia-text);font-weight:750}
+.elia-wedding .elia-wedding-legend{padding-block:11px}
+.elia-wedding .elia-wedding-calendar .elia-wedding-weekdays,.elia-wedding .elia-wedding-calendar .elia-wedding-grid{margin-inline:14px;gap:5px}
+.elia-wedding .elia-wedding-day{min-height:53px;padding:8px 9px;gap:4px;border:1px solid #e8e1d7;background:#fcfaf6;border-radius:9px;color:var(--elia-text);transition:background-color .15s,border-color .15s}
+.elia-wedding .elia-wedding-day:hover{background:#f1eadf;border-color:#bba483}
+.elia-wedding .elia-wedding-day.has-rental{background:#fbf0e3;border-color:#e2c7a7}
+.elia-wedding .elia-wedding-day.selected{background:#39483b;border-color:#39483b;color:#fff}
+.elia-wedding .elia-wedding-day.selected small{color:#f3e1c6}
+.elia-wedding .elia-wedding-day.blank{border:0;background:transparent}
+.elia-wedding .elia-wedding-calendar-foot{padding:12px 16px;margin-top:13px;gap:9px;font-size:11px}
+.elia-wedding .elia-wedding-month{gap:6px;display:flex;align-items:center;min-width:0}
+.elia-wedding .elia-wedding-month strong{font-size:12px;color:var(--elia-text);white-space:nowrap}
+.elia-wedding .elia-wedding-month button,.elia-wedding .elia-wedding-icon{width:36px;height:36px;min-width:36px;min-height:36px;border-radius:9px;color:var(--elia-text);background:var(--elia-surface);border:1px solid var(--elia-border)}
+.elia-wedding .elia-wedding-month button:hover,.elia-wedding .elia-wedding-icon:hover{background:var(--elia-surface-subtle)}
+.elia-wedding .elia-wedding-form form{padding:16px 18px 18px}
+.elia-wedding .elia-wedding-form label{font-size:11px;font-weight:700;gap:7px;color:#605d53}
+.elia-wedding .elia-wedding-form :is(input:not([type="checkbox"]),select,textarea){width:100%;min-height:42px;background:#fffefa;border:1px solid var(--elia-border);border-radius:9px;padding:10px 11px;color:var(--elia-text);font-size:12px}
+.elia-wedding .elia-wedding-form textarea{min-height:72px;resize:vertical}
+.elia-wedding .elia-wedding-dark-btn{background:var(--elia-forest);color:#fff;border:1px solid var(--elia-forest);border-radius:9px;min-height:43px}
+.elia-wedding .elia-wedding-dark-btn:hover{background:var(--elia-forest-hover)}
+.elia-wedding .elia-wedding-secondary-btn{background:#fffcf7;border-color:var(--elia-border);color:var(--elia-subtext);border-radius:9px}
+.elia-wedding .elia-wedding-booking{border-color:var(--elia-border);border-radius:11px}
+.elia-wedding .elia-wedding-availability.clear{color:var(--elia-ok);background:#edf4ed;border-color:#d7e7d7}
+.elia-wedding .elia-wedding-availability.occupied{color:var(--elia-danger);background:#fff2ee;border-color:#edd4ca}
+.elia-wedding .elia-wedding-message.error{background:#fff3ef;border-color:#eacbc0;color:#994c3b}
+.elia-wedding .elia-wedding-message.success{background:#edf6ed;border-color:#d8e8d7;color:#416e4b}
+
+/* Wardrobe inventory: compact statistics and responsive, clearly separated controls */
+.elia-wardrobe-admin{gap:12px;color:var(--elia-text)}
+.elia-wardrobe-admin .ewc-overview{gap:10px}
+.elia-wardrobe-admin .ewc-stat{background:var(--elia-surface);border:1px solid var(--elia-border);border-radius:12px;min-height:92px;padding:14px 17px;box-shadow:none}
+.elia-wardrobe-admin .ewc-stat>span{color:var(--elia-subtext);font-size:10px;letter-spacing:.10em}
+.elia-wardrobe-admin .ewc-stat strong{font:600 31px/1 'Cormorant Garamond',Georgia,serif;color:var(--elia-text)}
+.elia-wardrobe-admin .ewc-stat small{color:var(--elia-caption);font-size:10px}
+.elia-wardrobe-admin .ewc-workspace{gap:12px;grid-template-columns:minmax(205px,225px) minmax(0,1fr)}
+.elia-wardrobe-admin :is(.ewc-sidebar,.ewc-content){border:1px solid var(--elia-border);background:var(--elia-surface);border-radius:var(--elia-radius);box-shadow:var(--elia-soft-shadow)}
+.elia-wardrobe-admin .ewc-sidebar{padding:16px 12px}
+.elia-wardrobe-admin .ewc-sidebar-head h3,.elia-wardrobe-admin .ewc-toolbar-title h3{font:600 23px/1.2 'Cormorant Garamond',Georgia,serif;color:var(--elia-text)}
+.elia-wardrobe-admin .ewc-folder-item{min-height:42px;padding:10px 11px}
+.elia-wardrobe-admin .ewc-folder-item.is-active{background:#f0ece3;border-color:#e5d6c5;color:var(--elia-text)}
+.elia-wardrobe-admin .ewc-toolbar{padding:16px 18px;gap:10px}
+.elia-wardrobe-admin .ewc-toolbar-actions{gap:7px}
+.elia-wardrobe-admin .ewc-refresh{display:inline-grid!important;place-items:center;border:1px solid var(--elia-border)!important;background:var(--elia-surface)!important;color:var(--elia-text)!important;border-radius:9px;min-width:40px;height:40px;min-height:40px;padding:0 10px;font-size:12px;box-shadow:none}
+.elia-wardrobe-admin .ewc-refresh:hover{background:var(--elia-surface-subtle)!important}
+.elia-wardrobe-admin .ewc-search{height:40px;border-color:var(--elia-border);background:#fffefb;border-radius:9px}
+.elia-wardrobe-admin .ewc-primary{background:var(--elia-forest);border-color:var(--elia-forest);color:#fff;min-height:40px;border-radius:9px;padding:10px 14px}
+.elia-wardrobe-admin .ewc-primary:hover{background:var(--elia-forest-hover);border-color:var(--elia-forest-hover)}
+.elia-wardrobe-admin .ewc-subtle{border-color:var(--elia-border);color:var(--elia-subtext);border-radius:9px}
+.elia-wardrobe-admin .ewc-add-panel{background:#fbf8f2;padding:17px 19px 18px;border-color:var(--elia-border)}
+.elia-wardrobe-admin .ewc-add-panel-header h4{font:600 24px 'Cormorant Garamond',Georgia,serif;color:var(--elia-text)}
+.elia-wardrobe-admin .ewc-add-form{gap:11px}
+.elia-wardrobe-admin .ewc-add-form>label{font-size:11px;color:var(--elia-subtext)}
+.elia-wardrobe-admin :is(.ewc-add-form input,.ewc-add-form select,.ewc-folder-editor input){background:#fffefa;min-height:42px;border-color:var(--elia-border);color:var(--elia-text)}
+.elia-wardrobe-admin .ewc-table-head{background:#f8f4ee;border-color:var(--elia-border);padding:11px 18px}
+.elia-wardrobe-admin .ewc-table-row{min-height:65px;padding:11px 18px;border-color:#efe8de}
+.elia-wardrobe-admin .ewc-table-row:hover{background:#fbf8f3}
+.elia-wardrobe-admin .ewc-item-icon{background:#f2ede3;border-radius:9px;width:38px;height:38px;color:#947550}
+.elia-wardrobe-admin .ewc-code-cell strong{font-size:13px;color:var(--elia-text)}
+.elia-wardrobe-admin .ewc-status.is-active{color:#3f7250;background:#ecf5ec;border-color:#dbeadb}
+.elia-wardrobe-admin .ewc-status.is-paused{color:#836b4d;background:#f5eee3;border-color:#eadfcf}
+.elia-wardrobe-admin .ewc-content-footer{background:#fbf8f2;border-color:var(--elia-border)}
+.elia-wardrobe-admin .ewc-alert-error{background:#fff3ef;border-color:#eed4cb;color:#9c493e}
+.elia-wardrobe-admin .ewc-alert-success{background:#edf5ed;border-color:#d6e6d6;color:#3e754d}
+
+/* Accounts, staff, delivery screens inherit the same editorial cards */
+.elia-accounts :is(.surface,.office-account-card),.elia-staff-portal :is(.surface,.staff-card),.client-delivery .delivery-product{border-radius:var(--elia-radius);border-color:var(--elia-border)}
+.elia-accounts :is(button,input,select){min-height:40px}
+.elia-accounts :is(input,select){background:#fffefa;border-color:var(--elia-border)}
+.client-delivery .delivery-hero{border-bottom:1px solid #9f896a;background:linear-gradient(125deg,#29342e,#42483b)}
+.client-delivery .delivery-content{background:var(--elia-canvas)}
+.client-delivery .delivery-product{background:var(--elia-surface);box-shadow:var(--elia-soft-shadow)}
+.client-delivery .delivery-review{border-color:var(--elia-border)}
+
+@media(max-width:1200px){
+ .elia-wardrobe-admin .ewc-workspace{grid-template-columns:minmax(180px,215px) minmax(0,1fr)}
+ .elia-wedding .elia-wedding-main{grid-template-columns:minmax(225px,.85fr) minmax(0,1.15fr)}
+ .elia-wedding .elia-wedding-lower{grid-template-columns:1fr}
+}
+@media(max-width:950px){
+ .shell .content-inner{padding:21px 20px 36px}
+ .shell .metrics-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .elia-wedding .elia-wedding-main{grid-template-columns:1fr}
+ .elia-wedding .elia-wedding-items{max-height:260px}
+ .elia-wardrobe-admin .ewc-workspace{grid-template-columns:1fr}
+ .elia-wardrobe-admin .ewc-folder-nav{display:flex;flex-wrap:wrap;gap:5px}
+ .elia-wardrobe-admin .ewc-sidebar-foot{display:none}
+}
+@media(max-width:620px){
+ html{scroll-padding-top:80px}
+ .shell .topbar{height:60px;min-height:60px;padding-inline:14px}
+ .shell .topbar-right{gap:7px}
+ .shell .content-inner{padding:17px 13px 30px}
+ .shell .page-heading{align-items:flex-start;gap:12px;margin-bottom:16px}
+ .shell .page-heading h1{font-size:32px}
+ .shell .heading-actions{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .shell .heading-actions>button{width:100%;justify-content:center;padding:10px 9px;min-width:0}
+ .shell .metrics-grid{gap:9px}
+ .shell .metric{padding:14px;min-height:121px}
+ .shell .metric strong{font-size:27px}
+ .shell .metric>span{line-height:1.3}
+ .shell .surface-title{padding:13px 14px;min-height:58px}
+ .shell .surface-title h3{font-size:21px}
+ .shell .dashboard-two{grid-template-columns:1fr}
+ .shell .toolbar{flex-wrap:wrap}
+ .shell .toolbar-right{width:100%;justify-content:center}
+ .elia-wedding .elia-wedding-metrics{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+ .elia-wedding .elia-wedding-metrics>div{min-height:82px;padding:10px;gap:4px}
+ .elia-wedding .elia-wedding-metrics strong{font-size:27px}
+ .elia-wedding .elia-wedding-metrics small{display:none}
+ .elia-wedding .elia-wedding-metrics span{font-size:10px;overflow-wrap:anywhere}
+ .elia-wedding .elia-wedding-panel-head{padding:13px;min-height:65px}
+ .elia-wedding .elia-wedding-panel-head h3{font-size:22px}
+ .elia-wedding .elia-wedding-quickfilter{padding:10px;gap:7px}
+ .elia-wedding .elia-wedding-quickfilter select{max-width:100%}
+ .elia-wedding .elia-wedding-calendar .elia-wedding-weekdays,.elia-wedding .elia-wedding-calendar .elia-wedding-grid{margin-inline:8px;gap:3px}
+ .elia-wedding .elia-wedding-day{min-height:46px;padding:6px 4px;gap:3px;align-items:center}
+ .elia-wedding .elia-wedding-day span{font-size:12px}
+ .elia-wedding .elia-wedding-day small{font-size:9px;line-height:1.2;white-space:normal;text-align:center}
+ .elia-wedding .elia-wedding-month button{min-width:32px;width:32px;min-height:34px;height:34px}
+ .elia-wedding .elia-wedding-form form{padding:12px}
+ .elia-wedding .elia-wedding-two{grid-template-columns:1fr}
+ .elia-wedding .elia-wedding-action-primary{width:100%}
+ .elia-wardrobe-admin .ewc-overview{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+ .elia-wardrobe-admin .ewc-stat{padding:11px;min-height:82px}
+ .elia-wardrobe-admin .ewc-stat strong{font-size:27px}
+ .elia-wardrobe-admin .ewc-stat small{display:none}
+ .elia-wardrobe-admin .ewc-stat>span{font-size:9px}
+ .elia-wardrobe-admin .ewc-toolbar{padding:13px 12px;flex-wrap:wrap}
+ .elia-wardrobe-admin .ewc-toolbar-actions{flex-basis:100%;justify-content:stretch;flex-wrap:wrap}
+ .elia-wardrobe-admin .ewc-search{flex:1 1 140px;max-width:none}
+ .elia-wardrobe-admin .ewc-add-button{flex:0 0 auto}
+ .elia-wardrobe-admin .ewc-add-form{grid-template-columns:1fr}
+ .elia-wardrobe-admin .ewc-add-form>label:first-child{grid-column:auto}
+ .elia-wardrobe-admin .ewc-form-footer{align-items:stretch;flex-direction:column;gap:11px}
+ .elia-wardrobe-admin .ewc-form-footer>div{justify-content:flex-end}
+ .elia-wardrobe-admin .ewc-table-row{padding:12px;gap:8px}
+ .elia-wardrobe-admin .ewc-table-row .ewc-row-actions button{min-width:36px;min-height:36px}
+ .elia-wardrobe-admin .ewc-content-footer{flex-wrap:wrap;padding:11px 12px}
+}
+@media(prefers-reduced-motion:reduce){
+ html{scroll-behavior:auto}
+ :where(*, *::before, *::after){animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+/* Media: maintain imagery quality and avoid overflow without cropping original delivery files */
+.shell img,.client-delivery img,.login-layout img{max-width:100%}
+.shell .delivery-art img{width:100%;height:100%;object-fit:cover}
+.shell .staff-avatar img{width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.login-layout .elia-brand-login{height:auto;object-fit:contain}
+@media(max-width:620px){
+ .shell .delivery-card{min-width:0;overflow:hidden}
+ .shell .delivery-details{min-width:0}
+ .shell :is(.data-table,.delivery-product-action-row){overflow-wrap:anywhere}
+}
