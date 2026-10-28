@@ -1,4 +1,5 @@
 'use client';
+import Image from 'next/image';
 import {formatVnd} from '@/lib/domain/vietnam-money';
 
 import {OfficeAccountsManager} from './OfficeAccountsManager';
@@ -16,6 +17,7 @@ import MigrationReadiness from './MigrationReadiness';
 import './v29.css';
 import './v30.css';
 import './elia-luxe.css';
+import './elia-logo.css';
 
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import type { User } from 'firebase/auth';
@@ -62,7 +64,7 @@ function Login({onLogin,error,loading}:{onLogin:(email:string,password:string)=>
   const [email,setEmail]=useState(''); const [password,setPassword]=useState('');
   return <div className="login-layout">
     <div className="login-showcase">
-      <div className="login-brand"><div className="brand-square">É<span>.</span></div><span>ÉLIA <strong>MARIER</strong></span></div>
+      <div className="login-brand"><Image className="elia-brand-login" src="/logo.png" alt="Élia Marier" width={2048} height={2452} priority unoptimized /></div>
       <div className="showcase-main"><div className="overline">ÉLIA MARIER · STUDIO WORKSPACE</div>
         <h1>Chăm chút từng khoảnh khắc.<br/><em>Vẹn tròn từng trải nghiệm.</em></h1>
         <p>Không gian điều hành dành riêng cho Élia Marier, nơi mỗi lịch hẹn và lần bàn giao đều được chăm chút.</p>
@@ -273,7 +275,7 @@ export function Dashboard(){
   const goTab=(next:Tab)=>{if(!canAdmin&&['payroll','analytics','system','accounts'].includes(next))return;setTab(next);setSelected(null);setMenuOpen(false);};
   const currentEvent=selected?data?.events.find(e=>e.id===selected):null;
 
-  if(!ready)return <div className="boot-screen"><div className="brand-square">É<span>.</span></div><p>Đang kết nối Élia Marier…</p></div>;
+  if(!ready)return <div className="boot-screen"><Image className="elia-brand-boot" src="/logo.png" alt="Élia Marier" width={2048} height={2452} priority unoptimized /><p>Đang kết nối Élia Marier…</p></div>;
   if(!user)return <Login onLogin={login} error={authError} loading={logging}/>;
   if(accessError)return <div className="boot-screen"><p role="alert">{accessError}</p><button className="secondary-button" onClick={()=>void signOut(browserAuth())}>Đăng xuất</button></div>;
   if(access===null)return <div className="boot-screen"><p>Đang kiểm tra quyền tài khoản…</p></div>;
@@ -282,7 +284,7 @@ export function Dashboard(){
   return <div className="shell">
     {menuOpen&&<button className="mobile-dimmer" aria-label="Đóng menu" onClick={()=>setMenuOpen(false)}/>}
     <aside className={`sidebar ${menuOpen?'sidebar-visible':''}`}>
-      <div className="brand"><div className="brand-square">É<span>.</span></div><div><div className="brand-word">ÉLIA<span> MARIER</span></div><small>STUDIO MANAGEMENT</small></div><button onClick={()=>setMenuOpen(false)} className="sidebar-close" aria-label="Đóng menu"><X size={19}/></button></div>
+      <div className="brand"><span className="elia-brandmark-shell"><Image className="elia-brandmark" src="/logo-mark.png" alt="Biểu tượng Élia Marier" width={1024} height={1024} priority unoptimized /></span><div><div className="brand-word">ÉLIA<span> MARIER</span></div><small>STUDIO MANAGEMENT</small></div><button onClick={()=>setMenuOpen(false)} className="sidebar-close" aria-label="Đóng menu"><X size={19}/></button></div>
       <div className="sidebar-label">WORKSPACE</div><nav aria-label="Điều hướng chính" className="nav-items">{availablePages.map(p=>{
         const Icon=p.icon; return <button key={p.key} onClick={()=>goTab(p.key)} className={`nav-item ${tab===p.key?'nav-active':''}`}><Icon size={19}/><span>{p.name}</span>{tab===p.key&&<i/>}</button>;
       })}</nav>
@@ -291,7 +293,7 @@ export function Dashboard(){
       </div>
     </aside>
     <main className="content">
-      <header className="topbar"><div className="topbar-left"><button aria-label="Mở menu" className="menu-toggle" onClick={()=>setMenuOpen(true)}><Menu size={22}/></button><div className="breadcrumb">ÉLIA MARIER <span>/</span> {title?.name.toUpperCase()}</div></div><div className="topbar-right">{canAdmin&&<a href="/admin/nhan-vien" title="Tài khoản lễ tân" aria-label="Quản lý tài khoản nhân viên" className="top-icon" style={{display:"inline-flex",alignItems:"center",justifyContent:"center"}}><ShieldCheck size={19}/></a>}<span className="live-dot"/><span className="topbar-time">{lastSynced?`Đồng bộ ${new Date(lastSynced).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}`:'Chưa đồng bộ'}</span><button aria-label="Tải lại" title="Làm mới" onClick={()=>setReload(x=>x+1)} className="top-icon"><RefreshCw size={18} className={loading?'spin':''}/></button><div className="top-avatar">{(user.email||'A').slice(0,1).toUpperCase()}</div></div></header>
+      <header className="topbar"><div className="topbar-left"><button aria-label="Mở menu" className="menu-toggle" onClick={()=>setMenuOpen(true)}><Menu size={22}/></button><span className="elia-topbar-logo"><Image src="/logo-mark.png" alt="" width={1024} height={1024} aria-hidden="true" unoptimized /></span><div className="breadcrumb">ÉLIA MARIER <span>/</span> {title?.name.toUpperCase()}</div></div><div className="topbar-right">{canAdmin&&<a href="/admin/nhan-vien" title="Tài khoản lễ tân" aria-label="Quản lý tài khoản nhân viên" className="top-icon" style={{display:"inline-flex",alignItems:"center",justifyContent:"center"}}><ShieldCheck size={19}/></a>}<span className="live-dot"/><span className="topbar-time">{lastSynced?`Đồng bộ ${new Date(lastSynced).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}`:'Chưa đồng bộ'}</span><button aria-label="Tải lại" title="Làm mới" onClick={()=>setReload(x=>x+1)} className="top-icon"><RefreshCw size={18} className={loading?'spin':''}/></button><div className="top-avatar">{(user.email||'A').slice(0,1).toUpperCase()}</div></div></header>
       <div className="content-inner">
         <div className="page-heading ops29-page-heading"><div><div className="eyebrow">ÉLIA MARIER · STUDIO WORKSPACE</div><h1>{title?.name}</h1><p>{title?.sub}{tab!=='system'?` · Tháng ${month.slice(5)}/${month.slice(0,4)}`:' · Chỉ tài khoản Admin'}</p></div><div className="heading-actions">{tab!=='system'&&tab!=='wedding'&&<><button className="secondary-button" onClick={()=>setReload(x=>x+1)} disabled={loading}><RefreshCw size={16} className={loading?'spin':''}/> Đồng bộ</button><button className="primary-button" onClick={()=>createBooking()}><Plus size={18}/> Tạo lịch mới</button></>}</div></div>
         {canAdmin&&tab==='overview'&&<section className="surface" style={{padding:16,marginBottom:16,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
@@ -316,7 +318,7 @@ export function Dashboard(){
         {tab==='wedding'&&<WeddingWardrobe user={user}/>}
         {data && tab!=='system' && tab!=='wedding' && <>
           {tab==='overview'&&<>
-            <div className="welcome-band"><div><div className="welcome-kicker"><Sparkles size={14}/> ÉLIA MARIER · STUDIO WORKSPACE</div><h2>Tinh tế trong từng lịch hẹn.<br/><em>Chỉn chu ở mỗi bàn giao.</em></h2><p>Mọi lịch hẹn, khách hàng và sản phẩm bàn giao trong một không gian vận hành thanh lịch, rõ ràng.</p><button className="welcome-cta" onClick={()=>goTab('calendar')}>Xem lịch làm việc <ArrowRight size={16}/></button></div><div className="welcome-art"><div className="art-ring ring-one"/><div className="art-ring ring-two"/><div className="art-center">É<span>.</span></div></div></div>
+            <div className="welcome-band"><div><div className="welcome-kicker"><Sparkles size={14}/> ÉLIA MARIER · STUDIO WORKSPACE</div><h2>Tinh tế trong từng lịch hẹn.<br/><em>Chỉn chu ở mỗi bàn giao.</em></h2><p>Mọi lịch hẹn, khách hàng và sản phẩm bàn giao trong một không gian vận hành thanh lịch, rõ ràng.</p><button className="welcome-cta" onClick={()=>goTab('calendar')}>Xem lịch làm việc <ArrowRight size={16}/></button></div><div className="welcome-art"><div className="art-ring ring-one"/><div className="art-ring ring-two"/><div className="art-center elia-art-emblem"><Image src="/logo-mark.png" width={1024} height={1024} alt="" aria-hidden="true" unoptimized /></div></div></div>
             <OperationsHub data={data} today={localToday()} onOpenEvent={setSelected} onNavigate={goTab}/>
             <div className="metrics-grid">
               {[

@@ -3,6 +3,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'Élia Marier',
+  icons: { icon: '/logo-mark.png', apple: '/logo-mark.png' },
   description: 'Điều hành lịch quay chụp, đội ngũ, sản phẩm và hoạt động studio.',
 };
 export const viewport: Viewport = { width: 'device-width', initialScale: 1 };
