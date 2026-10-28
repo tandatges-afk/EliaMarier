@@ -2,6 +2,7 @@
 import {formatVnd} from '@/lib/domain/vietnam-money';
 
 import {OfficeAccountsManager} from './OfficeAccountsManager';
+import {WeddingWardrobe} from './WeddingWardrobe';
 import {PayrollManager} from '@/components/PayrollManager';
 import {DeliveryGrantManager} from '@/components/DeliveryGrantManager';
 import {DeliveryReviewManager} from '@/components/DeliveryReviewManager';
@@ -22,7 +23,7 @@ import {
   Activity, ArrowRight, BadgeCheck, CalendarDays, ChevronLeft, ChevronRight, Copy,
   CircleDollarSign, Clock3, Download, Film, FolderOpen, Images, LayoutDashboard, ChartNoAxesCombined,
   LockKeyhole, LogOut, Menu, Plus, RefreshCw, Search, Settings2, ShieldCheck,
-  Sparkles, Users, WalletCards, X
+  Sparkles, Users, WalletCards, Shirt, X
 } from 'lucide-react';
 import { browserAuth } from '@/lib/firebase/client';
 import { NewBookingDialog } from './NewBookingDialog';
@@ -32,7 +33,7 @@ import { StaffManager } from './StaffManager';
 import { getMonthStats, monthEvents, shiftMonth, statusName } from '@/lib/domain/studio';
 import type { DashboardData, StudioEvent } from '@/lib/domain/types';
 
-type Tab = 'overview'|'calendar'|'staff'|'payroll'|'delivery'|'analytics'|'system'|'accounts';
+type Tab = 'overview'|'calendar'|'wedding'|'staff'|'payroll'|'delivery'|'analytics'|'system'|'accounts';
 type AccessRole='admin'|'receptionist'|'guest'|'staff';
 type SystemSection='health'|'activity'|'data';
 const monthNow = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; };
@@ -42,6 +43,7 @@ const dateDisplay = (s:string) => /^\d{4}-\d{2}-\d{2}$/.test(s) ? `${s.slice(8,1
 const pages: {key:Tab;name:string;sub:string;icon:typeof LayoutDashboard}[] = [
   {key:'overview',name:'Tổng quan',sub:'Tình hình vận hành',icon:LayoutDashboard},
   {key:'calendar',name:'Lịch quay & chụp',sub:'Lịch và công việc',icon:CalendarDays},
+  {key:'wedding',name:'Lịch váy cưới',sub:'Thuê váy & kiểm tra mã trống',icon:Shirt},
   {key:'staff',name:'Đội ngũ',sub:'Nhân sự, phân công',icon:Users},
   {key:'payroll',name:'Lương thợ',sub:'Theo dõi thanh toán',icon:WalletCards},
   {key:'delivery',name:'Bàn giao sản phẩm',sub:'Ảnh, video, đánh giá',icon:FolderOpen},
@@ -290,12 +292,12 @@ export function Dashboard(){
     <main className="content">
       <header className="topbar"><div className="topbar-left"><button aria-label="Mở menu" className="menu-toggle" onClick={()=>setMenuOpen(true)}><Menu size={22}/></button><div className="breadcrumb">ÉLIA MARIER <span>/</span> {title?.name.toUpperCase()}</div></div><div className="topbar-right">{canAdmin&&<a href="/admin/nhan-vien" title="Tài khoản lễ tân" aria-label="Quản lý tài khoản nhân viên" className="top-icon" style={{display:"inline-flex",alignItems:"center",justifyContent:"center"}}><ShieldCheck size={19}/></a>}<span className="live-dot"/><span className="topbar-time">{lastSynced?`Đồng bộ ${new Date(lastSynced).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}`:'Chưa đồng bộ'}</span><button aria-label="Tải lại" title="Làm mới" onClick={()=>setReload(x=>x+1)} className="top-icon"><RefreshCw size={18} className={loading?'spin':''}/></button><div className="top-avatar">{(user.email||'A').slice(0,1).toUpperCase()}</div></div></header>
       <div className="content-inner">
-        <div className="page-heading ops29-page-heading"><div><div className="eyebrow">ÉLIA MARIER · STUDIO WORKSPACE</div><h1>{title?.name}</h1><p>{title?.sub}{tab!=='system'?` · Tháng ${month.slice(5)}/${month.slice(0,4)}`:' · Chỉ tài khoản Admin'}</p></div><div className="heading-actions">{tab!=='system'&&<><button className="secondary-button" onClick={()=>setReload(x=>x+1)} disabled={loading}><RefreshCw size={16} className={loading?'spin':''}/> Đồng bộ</button><button className="primary-button" onClick={()=>createBooking()}><Plus size={18}/> Tạo lịch mới</button></>}</div></div>
+        <div className="page-heading ops29-page-heading"><div><div className="eyebrow">ÉLIA MARIER · STUDIO WORKSPACE</div><h1>{title?.name}</h1><p>{title?.sub}{tab!=='system'?` · Tháng ${month.slice(5)}/${month.slice(0,4)}`:' · Chỉ tài khoản Admin'}</p></div><div className="heading-actions">{tab!=='system'&&tab!=='wedding'&&<><button className="secondary-button" onClick={()=>setReload(x=>x+1)} disabled={loading}><RefreshCw size={16} className={loading?'spin':''}/> Đồng bộ</button><button className="primary-button" onClick={()=>createBooking()}><Plus size={18}/> Tạo lịch mới</button></>}</div></div>
         {canAdmin&&tab==='overview'&&<section className="surface" style={{padding:16,marginBottom:16,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
           <div><strong style={{fontSize:15}}>Tài khoản lễ tân</strong><p style={{margin:'4px 0 0',fontSize:12,color:'var(--muted)'}}>Tạo, cập nhật và khóa tài khoản lễ tân (chỉ Admin)</p></div>
           <a href="/admin/nhan-vien" className="primary-button" style={{display:'inline-flex',alignItems:'center',gap:8}}><ShieldCheck size={16}/> Thêm / quản lý nhân viên</a>
         </section>}
-        {requestError&&tab!=='system'&&<div className="alert error"><ShieldCheck size={18}/><div><strong>Không tải được dữ liệu quản trị</strong><p>{requestError}</p>{data?.month===month&&<p>Đang hiển thị dữ liệu tải thành công gần nhất của tháng này; hãy thử Đồng bộ lại.</p>}<button type="button" className="secondary-button" onClick={()=>{setSystemSection('health');goTab('system');}}><Settings2 size={15}/> Mở Hệ thống</button></div></div>}
+        {requestError&&tab!=='system'&&tab!=='wedding'&&<div className="alert error"><ShieldCheck size={18}/><div><strong>Không tải được dữ liệu quản trị</strong><p>{requestError}</p>{data?.month===month&&<p>Đang hiển thị dữ liệu tải thành công gần nhất của tháng này; hãy thử Đồng bộ lại.</p>}<button type="button" className="secondary-button" onClick={()=>{setSystemSection('health');goTab('system');}}><Settings2 size={15}/> Mở Hệ thống</button></div></div>}
         {data?.eventLimitReached&&<div className="alert notice">Dữ liệu tháng vượt giới hạn truy vấn 1001 bản ghi. Cần phân trang và index Firebase trước khi dùng báo cáo.</div>}
         {canAdmin&&tab==='system'&&<section className="ops30-system-panel">
           <div className="ops30-system-tabs" role="group" aria-label="Chức năng hệ thống">
@@ -307,8 +309,9 @@ export function Dashboard(){
           {systemSection==='data'&&<MigrationReadiness embedded/>}
           {systemSection==='activity'&&<section className="surface"><div className="surface-title"><h3>Nhật ký hoạt động gần đây</h3></div>{data?.audit.length?<div className="activity-list">{data.audit.map((a,i)=><div key={a.id||i} className="activity-item"><div className="activity-symbol"><Activity size={17}/></div><div><strong>{a.message||a.action||'Hoạt động'}</strong><p>{a.action} · {a.createdAt?new Date(a.createdAt<1e12?a.createdAt*1000:a.createdAt).toLocaleString('vi-VN'):'Chưa xác định'}</p></div></div>)}</div>:<Empty title="Chưa có nhật ký" detail="Nếu Dashboard chưa tải được, hãy mở Sức khỏe để chẩn đoán Firebase."/>}</section>}
         </section>}
-        {!data && loading && tab!=='system' && <div className="loading-state"><RefreshCw size={24} className="spin"/> Đang tải dữ liệu Firebase…</div>}
-        {data && tab!=='system' && <>
+        {!data && loading && tab!=='system' && tab!=='wedding' && <div className="loading-state"><RefreshCw size={24} className="spin"/> Đang tải dữ liệu Firebase…</div>}
+        {tab==='wedding'&&<WeddingWardrobe user={user} isAdmin={canAdmin}/>}
+        {data && tab!=='system' && tab!=='wedding' && <>
           {tab==='overview'&&<>
             <div className="welcome-band"><div><div className="welcome-kicker"><Sparkles size={14}/> ÉLIA MARIER · STUDIO WORKSPACE</div><h2>Tinh tế trong từng lịch hẹn.<br/><em>Chỉn chu ở mỗi bàn giao.</em></h2><p>Mọi lịch hẹn, khách hàng và sản phẩm bàn giao trong một không gian vận hành thanh lịch, rõ ràng.</p><button className="welcome-cta" onClick={()=>goTab('calendar')}>Xem lịch làm việc <ArrowRight size={16}/></button></div><div className="welcome-art"><div className="art-ring ring-one"/><div className="art-ring ring-two"/><div className="art-center">É<span>.</span></div></div></div>
             <OperationsHub data={data} today={localToday()} onOpenEvent={setSelected} onNavigate={goTab}/>
