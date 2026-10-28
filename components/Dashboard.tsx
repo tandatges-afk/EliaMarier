@@ -18,6 +18,8 @@ import './v29.css';
 import './v30.css';
 import './elia-luxe.css';
 import './elia-logo.css';
+import './elia-brand-refine.css';
+import {EliaBrandMini} from './EliaBrandMini';
 
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import type { User } from 'firebase/auth';
@@ -284,22 +286,19 @@ export function Dashboard(){
   return <div className="shell">
     {menuOpen&&<button className="mobile-dimmer" aria-label="Đóng menu" onClick={()=>setMenuOpen(false)}/>}
     <aside className={`sidebar ${menuOpen?'sidebar-visible':''}`}>
-      <div className="brand"><span className="elia-brandmark-shell"><Image className="elia-brandmark" src="/logo-mark.png" alt="Biểu tượng Élia Marier" width={1024} height={1024} priority unoptimized /></span><div><div className="brand-word">ÉLIA<span> MARIER</span></div><small>STUDIO MANAGEMENT</small></div><button onClick={()=>setMenuOpen(false)} className="sidebar-close" aria-label="Đóng menu"><X size={19}/></button></div>
+      <div className="brand elia-brand-refined"><EliaBrandMini variant="sidebar" /><button onClick={()=>setMenuOpen(false)} className="sidebar-close" aria-label="Đóng menu"><X size={19}/></button></div>
       <div className="sidebar-label">WORKSPACE</div><nav aria-label="Điều hướng chính" className="nav-items">{availablePages.map(p=>{
         const Icon=p.icon; return <button key={p.key} onClick={()=>goTab(p.key)} className={`nav-item ${tab===p.key?'nav-active':''}`}><Icon size={19}/><span>{p.name}</span>{tab===p.key&&<i/>}</button>;
       })}</nav>
       <div className="sidebar-bottom">
-        <div className="user-identity"><div className="user-avatar">{(user.email||'A').slice(0,1).toUpperCase()}</div><div className="user-meta"><strong>{user.email?.split('@')[0]||'Admin'}</strong><span>{canAdmin?'Quản trị viên':'Lễ tân'}</span></div><button title="Đăng xuất" onClick={async()=>{await signOut(browserAuth());if('caches' in window)void caches.delete(THUMB_CACHE_NAME);}}><LogOut size={19}/></button></div>
+        <div className="user-identity"><EliaBrandMini variant="profile" /><div className="user-meta"><strong>{user.email?.split('@')[0]||'Admin'}</strong><span>{canAdmin?'Quản trị viên':'Lễ tân'}</span></div><button title="Đăng xuất" onClick={async()=>{await signOut(browserAuth());if('caches' in window)void caches.delete(THUMB_CACHE_NAME);}}><LogOut size={19}/></button></div>
       </div>
     </aside>
     <main className="content">
-      <header className="topbar"><div className="topbar-left"><button aria-label="Mở menu" className="menu-toggle" onClick={()=>setMenuOpen(true)}><Menu size={22}/></button><span className="elia-topbar-logo"><Image src="/logo-mark.png" alt="" width={1024} height={1024} aria-hidden="true" unoptimized /></span><div className="breadcrumb">ÉLIA MARIER <span>/</span> {title?.name.toUpperCase()}</div></div><div className="topbar-right">{canAdmin&&<a href="/admin/nhan-vien" title="Tài khoản lễ tân" aria-label="Quản lý tài khoản nhân viên" className="top-icon" style={{display:"inline-flex",alignItems:"center",justifyContent:"center"}}><ShieldCheck size={19}/></a>}<span className="live-dot"/><span className="topbar-time">{lastSynced?`Đồng bộ ${new Date(lastSynced).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}`:'Chưa đồng bộ'}</span><button aria-label="Tải lại" title="Làm mới" onClick={()=>setReload(x=>x+1)} className="top-icon"><RefreshCw size={18} className={loading?'spin':''}/></button><div className="top-avatar">{(user.email||'A').slice(0,1).toUpperCase()}</div></div></header>
+      <header className="topbar"><div className="topbar-left"><button aria-label="Mở menu" className="menu-toggle" onClick={()=>setMenuOpen(true)}><Menu size={22}/></button><div className="breadcrumb">ÉLIA MARIER <span>/</span> {title?.name.toUpperCase()}</div></div><div className="topbar-right"><span className="live-dot"/><span className="topbar-time">{lastSynced?`Đồng bộ ${new Date(lastSynced).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}`:'Chưa đồng bộ'}</span><button aria-label="Tải lại" title="Làm mới" onClick={()=>setReload(x=>x+1)} className="top-icon"><RefreshCw size={18} className={loading?'spin':''}/></button><EliaBrandMini variant="topbar" /></div></header>
       <div className="content-inner">
         <div className="page-heading ops29-page-heading"><div><div className="eyebrow">ÉLIA MARIER · STUDIO WORKSPACE</div><h1>{title?.name}</h1><p>{title?.sub}{tab!=='system'?` · Tháng ${month.slice(5)}/${month.slice(0,4)}`:' · Chỉ tài khoản Admin'}</p></div><div className="heading-actions">{tab!=='system'&&tab!=='wedding'&&<><button className="secondary-button" onClick={()=>setReload(x=>x+1)} disabled={loading}><RefreshCw size={16} className={loading?'spin':''}/> Đồng bộ</button><button className="primary-button" onClick={()=>createBooking()}><Plus size={18}/> Tạo lịch mới</button></>}</div></div>
-        {canAdmin&&tab==='overview'&&<section className="surface" style={{padding:16,marginBottom:16,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
-          <div><strong style={{fontSize:15}}>Tài khoản lễ tân</strong><p style={{margin:'4px 0 0',fontSize:12,color:'var(--muted)'}}>Tạo, cập nhật và khóa tài khoản lễ tân (chỉ Admin)</p></div>
-          <a href="/admin/nhan-vien" className="primary-button" style={{display:'inline-flex',alignItems:'center',gap:8}}><ShieldCheck size={16}/> Thêm / quản lý nhân viên</a>
-        </section>}
+        
         {requestError&&tab!=='system'&&tab!=='wedding'&&<div className="alert error"><ShieldCheck size={18}/><div><strong>Không tải được dữ liệu quản trị</strong><p>{requestError}</p>{data?.month===month&&<p>Đang hiển thị dữ liệu tải thành công gần nhất của tháng này; hãy thử Đồng bộ lại.</p>}<button type="button" className="secondary-button" onClick={()=>{setSystemSection('health');goTab('system');}}><Settings2 size={15}/> Mở Hệ thống</button></div></div>}
         {data?.eventLimitReached&&<div className="alert notice">Dữ liệu tháng vượt giới hạn truy vấn 1001 bản ghi. Cần phân trang và index Firebase trước khi dùng báo cáo.</div>}
         {canAdmin&&tab==='system'&&<section className="ops30-system-panel">
@@ -318,7 +317,7 @@ export function Dashboard(){
         {tab==='wedding'&&<WeddingWardrobe user={user}/>}
         {data && tab!=='system' && tab!=='wedding' && <>
           {tab==='overview'&&<>
-            <div className="welcome-band"><div><div className="welcome-kicker"><Sparkles size={14}/> ÉLIA MARIER · STUDIO WORKSPACE</div><h2>Tinh tế trong từng lịch hẹn.<br/><em>Chỉn chu ở mỗi bàn giao.</em></h2><p>Mọi lịch hẹn, khách hàng và sản phẩm bàn giao trong một không gian vận hành thanh lịch, rõ ràng.</p><button className="welcome-cta" onClick={()=>goTab('calendar')}>Xem lịch làm việc <ArrowRight size={16}/></button></div><div className="welcome-art"><div className="art-ring ring-one"/><div className="art-ring ring-two"/><div className="art-center elia-art-emblem"><Image src="/logo-mark.png" width={1024} height={1024} alt="" aria-hidden="true" unoptimized /></div></div></div>
+
             <OperationsHub data={data} today={localToday()} onOpenEvent={setSelected} onNavigate={goTab}/>
             <div className="metrics-grid">
               {[
