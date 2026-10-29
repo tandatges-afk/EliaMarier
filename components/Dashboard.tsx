@@ -20,6 +20,7 @@ import './elia-luxe.css';
 import './elia-logo.css';
 import './elia-brand-refine.css';
 import './elia-uiux-v3.css';
+import './elia-uiux-v4.css';
 import {EliaBrandMini} from './EliaBrandMini';
 
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
@@ -302,7 +303,7 @@ export function Dashboard(){
       </div>
     </aside>
     <main className="content">
-      <header className="topbar"><div className="topbar-left"><button aria-label="Mở menu" className="menu-toggle" onClick={()=>setMenuOpen(true)}><Menu size={22}/></button><div className="breadcrumb">ÉLIA MARIER <span>/</span> {title?.name.toUpperCase()}</div></div><div className="topbar-right"><span className="elia-build-label" title="Élia Marier UI/UX phiên bản 3">UI 3.0</span><span className="live-dot"/><span className="topbar-time">{lastSynced?`Đồng bộ ${new Date(lastSynced).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}`:'Chưa đồng bộ'}</span><button aria-label="Tải lại" title="Làm mới" onClick={()=>setReload(x=>x+1)} className="top-icon"><RefreshCw size={18} className={loading?'spin':''}/></button><EliaBrandMini variant="topbar" /></div></header>
+      <header className="topbar"><div className="topbar-left"><button aria-label="Mở menu" className="menu-toggle" onClick={()=>setMenuOpen(true)}><Menu size={22}/></button><div className="breadcrumb">ÉLIA MARIER <span>/</span> {title?.name.toUpperCase()}</div></div><div className="topbar-right"><span className="elia-build-label" title="Élia Marier UI/UX phiên bản 3">UI 4.0</span><span className="live-dot"/><span className="topbar-time">{lastSynced?`Đồng bộ ${new Date(lastSynced).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}`:'Chưa đồng bộ'}</span><button aria-label="Tải lại" title="Làm mới" onClick={()=>setReload(x=>x+1)} className="top-icon"><RefreshCw size={18} className={loading?'spin':''}/></button><EliaBrandMini variant="topbar" /></div></header>
       <div className="content-inner">
         <div className="page-heading ops29-page-heading"><div><div className="eyebrow">ÉLIA MARIER · STUDIO WORKSPACE</div><h1>{title?.name}</h1><p>{title?.sub}{tab!=='system'?` · Tháng ${month.slice(5)}/${month.slice(0,4)}`:' · Chỉ tài khoản Admin'}</p></div><div className="heading-actions">{tab!=='system'&&tab!=='wedding'&&<><button className="secondary-button" onClick={()=>setReload(x=>x+1)} disabled={loading}><RefreshCw size={16} className={loading?'spin':''}/> Đồng bộ</button><button className="primary-button" onClick={()=>createBooking()}><Plus size={18}/> Tạo lịch mới</button></>}</div></div>
         
