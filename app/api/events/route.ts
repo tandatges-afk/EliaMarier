@@ -58,7 +58,7 @@ async function handlePOST(request: Request) {
   } catch (error) {
     if(error instanceof ScheduleError)return NextResponse.json({error:error.message,code:error.code},{status:error.status,headers});
     console.error('[events] create failed',{kind:error instanceof Error?error.name:'unknown'});
-    return NextResponse.json({error:'Không thể tạo lịch trên Firebase, hãy kiểm tra kết nối và cấu hình'},{status:503,headers});
+    return NextResponse.json({error:'Không thể tạo lịch trên PostgreSQL, hãy kiểm tra kết nối và cấu hình'},{status:503,headers});
   }
 }
 

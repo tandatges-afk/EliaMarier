@@ -1,0 +1,15 @@
+[Unit]
+Description=Elia local Drive-to-VPS video sync worker
+After=network-online.target postgresql.service
+[Service]
+Type=oneshot
+User=elia
+Group=elia
+EnvironmentFile=/etc/elia/elia.env
+WorkingDirectory=/srv/elia/app/current
+ExecStart=/usr/bin/flock -n /run/lock/elia-sync-queue.lock /usr/bin/node vps/process-sync-queue.mjs
+NoNewPrivileges=true
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/srv/elia/media /srv/elia/sync-queue /run/lock
+TimeoutStartSec=1200

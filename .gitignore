@@ -40,3 +40,4 @@ tmp/
 *service-account*.json
 *service_account*.json
 *google-credentials*.json
+!.env.vps.example

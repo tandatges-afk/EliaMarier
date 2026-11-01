@@ -37,7 +37,7 @@ export function asWeddingItem(raw:unknown):WeddingItem|null{
  if(!raw||typeof raw!=='object')return null;
  const a=raw as Partial<WeddingItem>;
  if(typeof a.id!=='string'||typeof a.code!=='string')return null;
- return {id:a.id,code:a.code,name:String(a.name||a.code),kind:a.kind==='outfit'?'outfit':'wedding_dress',folderId:typeof a.folderId==='string'?a.folderId:'',active:a.active!==false,createdAt:Number(a.createdAt||0),createdBy:String(a.createdBy||''),bookings:(a.bookings && typeof a.bookings==='object')?a.bookings:{}};
+ return {id:a.id,code:a.code,name:String(a.name||a.code),kind:a.kind==='outfit'?'outfit':'wedding_dress',folderId:typeof a.folderId==='string'?a.folderId:'',photos:Array.isArray(a.photos)?a.photos.filter((p):p is string=>typeof p==='string'&&/^[0-9a-f-]{36}\.(jpg|png|webp)$/.test(p)).slice(0,8):[],active:a.active!==false,createdAt:Number(a.createdAt||0),createdBy:String(a.createdBy||''),bookings:(a.bookings && typeof a.bookings==='object')?a.bookings:{}};
 }
 export async function weddingAudit(actor:{uid:string;email?:string},action:string,itemId:string,detail:string){
  try {const id=randomUUID();await adminDatabase().ref('studioPlanner_v1/auditLogs').child(id).set({id,action,actionLabel:detail,category:'wedding-rental',severity:'info',actorId:actor.uid,actorName:actor.email||'Nhân viên',timestamp:Date.now(),targetType:'wedding-item',targetId:itemId,message:detail});}

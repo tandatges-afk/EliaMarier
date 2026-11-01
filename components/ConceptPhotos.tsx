@@ -2,7 +2,7 @@ import {WardrobeEventCodes,officeWardrobeRequest} from './WardrobeEventCodes';
 'use client';
 import {useEffect,useState, type ChangeEvent} from 'react';
 import {ImagePlus,Trash2,X,RefreshCw,Image as ImageIcon} from 'lucide-react';
-import type {User} from 'firebase/auth';
+import type {User} from '@/lib/auth/client';
 
 export const MAX_CONCEPT_PHOTOS=6;
 export type ConceptPhoto={id:string;name:string;size:number;createdAt:number;url:string};
@@ -33,7 +33,7 @@ export async function uploadConceptPhoto(user:User,eventId:string,file:File){
 
 /** Legacy compatibility only. All new wardrobe reservations use WardrobeEventCodes. */
 export function ConceptPhotoDraft(_props:{files:File[];onChange:(files:File[])=>void;disabled?:boolean}){
- return <aside className="elia-concept-retired rounded-xl border border-[#e2d5bb] bg-[#fbf7ee] p-4 sm:col-span-2"><strong className="text-sm text-[#343a30]">Mã trang phục · Ngày lấy/trả</strong><p className="mt-1 text-xs text-[#75674f]">Không cần tải hình. Hãy chọn mã trang phục và kiểm tra lịch trước/sau 2 ngày trong mục Lịch váy cưới được liên kết với lịch này.</p></aside>;
+ return <aside className="elia-concept-retired rounded-xl border border-[#e2d5bb] bg-[#fbf7ee] p-4 sm:col-span-2"><strong className="text-sm text-[#343a30]">Mã trang phục · Ngày lấy/trả</strong><p className="mt-1 text-xs text-[#75674f]">Không cần tải hình. Hãy chọn mã trang phục và kiểm tra lịch trước/sau 2 ngày trong mục Lịch trang phục được liên kết với lịch này.</p></aside>;
 }
 
 /** Backwards-compatible mount for old Studio screens that still render ConceptPhotoGallery.

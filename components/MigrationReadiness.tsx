@@ -1,6 +1,6 @@
 'use client';
 import {useEffect,useState} from 'react';
-import {onAuthStateChanged,type User} from 'firebase/auth';
+import {onAuthStateChanged,type User} from '@/lib/auth/client';
 import {browserAuth} from '@/lib/firebase/client';
 import {authorizedFetch,decodeResult} from '@/lib/firebase/authorized-fetch';
 import Link from 'next/link';
@@ -10,7 +10,7 @@ type Diagnostics={events:CollectionSummary;staff:CollectionSummary;blackouts:Col
   legacyAdminWrites:'compat'|'read-only';rulesStatus:string;deliveryWritesMigrated:boolean;videoReviewsMigrated:boolean;generatedAt:string};
 export default function MigrationReadiness({embedded=false}:{embedded?:boolean}){
   const [user,setUser]=useState<User|null>(null),[ready,setReady]=useState(false),[data,setData]=useState<Diagnostics|null>(null),[error,setError]=useState(''),[loading,setLoading]=useState(false);
-  useEffect(()=>{try{return onAuthStateChanged(browserAuth(),u=>{setUser(u);setReady(true);});}catch{setReady(true);setError('Thiếu cấu hình Firebase frontend');}},[]);
+  useEffect(()=>{try{return onAuthStateChanged(browserAuth(),u=>{setUser(u);setReady(true);});}catch{setReady(true);setError('Không kiểm tra được phiên đăng nhập');}},[]);
   async function refresh(){if(!user)return;setLoading(true);setError('');try{const r=await authorizedFetch(user,'/api/migration/diagnostics');setData(await decodeResult(r) as Diagnostics);}catch(e){setData(null);setError(e instanceof Error?e.message:'Không đọc được dữ liệu');}finally{setLoading(false);}}
   useEffect(()=>{if(user)void refresh();},[user]); // fetch only when authentication changes
   const exportDrafts=()=>{
@@ -50,7 +50,7 @@ export default function MigrationReadiness({embedded=false}:{embedded?:boolean})
             <li>Lựa chọn ảnh: <strong>API mới xác thực quyền và kiểm tra nguồn Drive</strong></li>
             <li>Bình luận video: <strong>API mới hỗ trợ timeline; cần kiểm tra các link cũ trước khi đóng chuyển đổi</strong></li>
           </ul>
-          <p style={{fontSize:13,color:'#92400e',marginTop:16}}>Đã gỡ giao diện /studio. Không thay Security Rules trên Production trước khi thử link cũ, Firebase staging và các luồng ghi hiện tại.</p>
+          <p style={{fontSize:13,color:'#92400e',marginTop:16}}>Đã gỡ giao diện /studio. Không thay cấu hình production trước khi thử link cũ, PostgreSQL staging và các luồng ghi hiện tại.</p>
         </section>
       </>}
       <section style={{background:'#fff',border:'1px solid #e2e8f0',padding:24,borderRadius:18,marginTop:20}}>

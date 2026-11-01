@@ -12,19 +12,14 @@ export type R2ProductStatus={
   readyCount:number;totalCount:number;message:string;checkedAt:number;
 };
 type FileState='ready'|'pending'|'invalid'|'error';
-const R2_ENV=()=>({
-  R2_ACCOUNT_ID:process.env.R2_ACCOUNT_ID,
-  R2_BUCKET:process.env.R2_BUCKET,
-  R2_ACCESS_KEY_ID:process.env.R2_ACCESS_KEY_ID,
-  R2_SECRET_ACCESS_KEY:process.env.R2_SECRET_ACCESS_KEY,
-});
+
 async function checkFile(id:string):Promise<FileState>{
   try{
     const meta=await readCurrentDriveR2Metadata(id);
     if(!checkDrive1080(meta).ok)return 'invalid';
     const key=videoObjectKeys(id,meta)[0]?.key;
     if(!key)return 'error';
-    const video=await headR2Video(key,R2_ENV(),{timeoutMs:6500});
+    const video=await headR2Video(key);
     return video?'ready':'pending';
   }catch(error){
     // Fail closed: a Drive/R2 outage must never produce a green badge.

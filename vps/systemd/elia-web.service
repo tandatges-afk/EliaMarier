@@ -1,0 +1,24 @@
+[Unit]
+Description=Elia Marier self hosted Next.js
+After=network-online.target postgresql.service
+Wants=network-online.target
+[Service]
+Type=simple
+User=elia
+Group=elia
+WorkingDirectory=/srv/elia/app/current
+EnvironmentFile=/etc/elia/elia.env
+Environment=NODE_ENV=production
+Environment=PORT=3401
+Environment=HOSTNAME=127.0.0.1
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/elia/media /srv/elia/sync-queue
+TimeoutStopSec=25
+[Install]
+WantedBy=multi-user.target

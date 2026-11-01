@@ -22,5 +22,5 @@ export async function GET(request:Request){
       legacyAdminWrites:legacyAdminWriteMode(process.env.AMORRI_LEGACY_ADMIN_WRITES),
       rulesStatus:'not_verified',deliveryWritesMigrated:false, videoReviewsMigrated:false, generatedAt:new Date().toISOString()};
     return NextResponse.json(summary,{headers:{'Cache-Control':'private, no-store'}});
-  }catch(err){console.error('[migration diagnostics]',err);return NextResponse.json({error:'Không thể kiểm tra Firebase'}, {status:503});}
+  }catch(err){console.error('[migration diagnostics]',err);return NextResponse.json({error:'Không thể kiểm tra PostgreSQL'}, {status:503});}
 }

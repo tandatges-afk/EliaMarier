@@ -2,6 +2,7 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  output: 'standalone',
   async headers() {
     return [
       { source: '/assets/:path*', headers: [{ key: 'X-Content-Type-Options', value: 'nosniff' }] },

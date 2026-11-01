@@ -1,6 +1,6 @@
 'use client';
 import { useCallback,useEffect,useState } from 'react';
-import type { User } from 'firebase/auth';
+import type { User } from '@/lib/auth/client';
 import { authorizedFetch,decodeResult } from '@/lib/firebase/authorized-fetch';
 import { CalendarOff, Save, UserPlus, RotateCw, UserX, Copy } from 'lucide-react';
 
@@ -26,7 +26,7 @@ export function StaffManager({user,month,onChanged}:{user:User;month:string;onCh
   void authorizedFetch(user,`/api/staff/agenda?staffId=${encodeURIComponent(agendaId)}`).then(decodeResult).then(v=>{if(active)setAgenda(v);}).catch(e=>{if(active)setError(e.message);});
   return()=>{active=false;};
  },[agendaId,user]);
- async function run(fn:()=>Promise<void>){setBusy(true);setError('');setSuccess('');try{await fn();await load();onChanged();setSuccess('Đã đồng bộ Firebase.');}catch(e){setError(e instanceof Error?e.message:'Thao tác thất bại');}finally{setBusy(false);}}
+ async function run(fn:()=>Promise<void>){setBusy(true);setError('');setSuccess('');try{await fn();await load();onChanged();setSuccess('Đã lưu vào VPS.');}catch(e){setError(e instanceof Error?e.message:'Thao tác thất bại');}finally{setBusy(false);}}
  const blank=()=>setForm({id:'',name:'',role:'Quay',authUid:'',active:true});
  const copyShare=async(staffId:string)=>{
    if(busy)return;

@@ -16,7 +16,7 @@ const yyyyMM = /^\d{4}-(0[1-9]|1[0-2])$/;
 export async function GET(request: Request) {
   const requestId=randomUUID();
   let permitted = null;
-  try { permitted = await authenticatedOffice(request); }
+  try { permitted = await authenticatedOffice(request,['admin','sale','leader_photo']); }
   catch (err) {
     const failure = publicAuthFailure(err);
     console.warn('[dashboard]',{requestId,code:failure.code});
@@ -29,23 +29,6 @@ export async function GET(request: Request) {
   const fallbackMonth = `${vnParts.find(p=>p.type==='year')?.value}-${vnParts.find(p=>p.type==='month')?.value}`;
   const month = url.searchParams.get('month') || fallbackMonth;
   if (!yyyyMM.test(month)) return errorResponse({error:'Tháng không hợp lệ',code:'INVALID_MONTH'},400,requestId);
-  // The front-end and server must point to the SAME RTDB instance.
-  // Do not print the URLs: query strings or usernames could contain secrets.
-  const serverUrl=process.env.FIREBASE_DATABASE_URL?.trim();
-  const clientUrl=process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL?.trim();
-  if (serverUrl && clientUrl) {
-    try {
-      const server=new URL(serverUrl);
-      const client=new URL(clientUrl);
-      if (server.origin !== client.origin || server.pathname.replace(/\/+$/,'') !== client.pathname.replace(/\/+$/,'')) {
-        console.error('[dashboard]',{requestId,code:'DASHBOARD_DATABASE_MISMATCH'});
-        return errorResponse({error:'FIREBASE_DATABASE_URL khác NEXT_PUBLIC_FIREBASE_DATABASE_URL. Cần dùng cùng URL Realtime Database.',code:'DASHBOARD_DATABASE_MISMATCH'},503,requestId);
-      }
-    } catch {
-      console.error('[dashboard]',{requestId,code:'DASHBOARD_DATABASE_URL_INVALID'});
-      return errorResponse({error:'Định dạng URL Realtime Database không hợp lệ. Hãy kiểm tra các biến FIREBASE_DATABASE_URL.',code:'DASHBOARD_DATABASE_URL_INVALID'},503,requestId);
-    }
-  }
   try {
     const base = adminDatabase().ref('studioPlanner_v1');
     const labels=['events','staff','payroll','auditLogs','deliveryState','deliveryProductState'] as const;
@@ -55,8 +38,8 @@ export async function GET(request: Request) {
       base.child('staff').once('value'),
       actorRole==='admin'?base.child('payroll').child(month).once('value'):Promise.resolve({val:()=>null}),
       actorRole==='admin'?base.child('auditLogs').limitToLast(20).once('value'):Promise.resolve({val:()=>null}),
-      base.child('deliveryState').once('value'),
-      base.child('deliveryProductState').once('value')
+      actorRole==='leader_photo'?Promise.resolve({val:()=>null}):base.child('deliveryState').once('value'),
+      actorRole==='leader_photo'?Promise.resolve({val:()=>null}):base.child('deliveryProductState').once('value')
     ]);
     const errors=settled.flatMap((result,index)=>result.status==='rejected'
       ? [{source:labels[index],reason:classifyFirebaseError(result.reason)}]
@@ -65,7 +48,7 @@ export async function GET(request: Request) {
       // Static branch names and classification only. Never log raw SDK errors or data.
       console.error('[dashboard-read]',{requestId,failures:errors});
       return errorResponse({
-        error:`Không thể đọc Firebase tại: ${errors.map(x=>x.source).join(', ')} (${errors.map(x=>x.reason).join(', ')}). Kiểm tra database URL, IAM hoặc index theo loại lỗi.`,
+        error:`Không thể đọc PostgreSQL tại: ${errors.map(x=>x.source).join(', ')} (${errors.map(x=>x.reason).join(', ')}). Kiểm tra PostgreSQL, dữ liệu và chỉ mục.`,
         code:'DASHBOARD_READ_FAILED'
       },503,requestId);
     }
@@ -83,18 +66,18 @@ export async function GET(request: Request) {
         completedProductIds:Object.entries(productState[event.id]||{}).filter(([,v])=>Boolean(v?.completedAt)).map(([id])=>id)
       }));
       const payload: DashboardData = {
-        month, events:events.map(event=>safeOfficeEvent(event,actorRole)), staff: normaliseStaff(snapshot(1).val()),
+        month, events:events.map(event=>actorRole==='leader_photo'?{...safeOfficeEvent(event,actorRole),price:0,deposit:0,products:[]}:safeOfficeEvent(event,actorRole)), staff: actorRole==='leader_photo'?[]:normaliseStaff(snapshot(1).val()),
         payroll:actorRole==='admin'?normalisePayroll(snapshot(2).val()):{}, audit:actorRole==='admin'?normaliseAudit(snapshot(3).val()):[],
         eventLimitReached: events.length >= 1001, generatedAt: new Date().toISOString()
       };
       return NextResponse.json(payload,{headers:{...NO_CACHE,'X-Amorri-Request-Id':requestId}});
     } catch(err) {
       console.error('[dashboard-parse]',{requestId,code:'DASHBOARD_DATA_INVALID',kind:err instanceof Error?err.name:'unknown'});
-      return errorResponse({error:'Đã đọc Firebase nhưng không xử lý được dữ liệu Dashboard. Kiểm tra cấu trúc bản ghi.',code:'DASHBOARD_DATA_INVALID'},503,requestId);
+      return errorResponse({error:'Đã đọc PostgreSQL nhưng không xử lý được dữ liệu Dashboard. Kiểm tra cấu trúc bản ghi.',code:'DASHBOARD_DATA_INVALID'},503,requestId);
     }
   } catch(err) {
     console.error('[dashboard-init]',{requestId,code:'DASHBOARD_CONNECTION_FAILED',reason:classifyFirebaseError(err)});
-    return errorResponse({error:'Không khởi tạo được kết nối Firebase Realtime Database. Kiểm tra cấu hình và quyền service account.',code:'DASHBOARD_CONNECTION_FAILED'},503,requestId);
+    return errorResponse({error:'Không kết nối được PostgreSQL trên VPS.',code:'DASHBOARD_CONNECTION_FAILED'},503,requestId);
   }
 }
 

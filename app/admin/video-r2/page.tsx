@@ -1,6 +1,6 @@
 'use client';
 import {useEffect,useState} from 'react';
-import {onAuthStateChanged,type User} from 'firebase/auth';
+import {onAuthStateChanged,type User} from '@/lib/auth/client';
 import {browserAuth} from '@/lib/firebase/client';
 import {VideoSyncMonitor} from '@/components/VideoSyncMonitor';
 
@@ -15,11 +15,11 @@ export default function AdminVideoR2Page(){
         setError(err.message||'Không thể xác thực');setLoading(false);
       });
       return ()=>unsub();
-    }catch(err){setError(err instanceof Error?err.message:'Lỗi Firebase');setLoading(false);}
+    }catch(err){setError(err instanceof Error?err.message:'Lỗi xác thực');setLoading(false);}
   },[]);
   return <main style={{maxWidth:1120,margin:'40px auto',padding:'0 20px'}}>
     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,marginBottom:22,flexWrap:'wrap'}}>
-      <h1 style={{fontSize:'1.5rem',fontWeight:700}}>Hệ thống / Video R2</h1>
+      <h1 style={{fontSize:'1.5rem',fontWeight:700}}>Hệ thống / Video VPS</h1>
       <a href="/" style={{textDecoration:'underline'}}>Về trang quản trị</a>
     </div>
     {loading?<p>Đang kiểm tra đăng nhập…</p>:

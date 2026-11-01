@@ -1,7 +1,7 @@
 'use client';
 
 import {useCallback, useEffect, useMemo, useRef, useState, type FormEvent} from 'react';
-import type {User} from 'firebase/auth';
+import type {User} from '@/lib/auth/client';
 import {
   Archive, Check, CircleAlert, Folder, FolderPlus, LayoutGrid,
   LoaderCircle, PackageOpen, Plus, RefreshCw, RotateCcw,
@@ -9,14 +9,15 @@ import {
 } from 'lucide-react';
 import type {WeddingFolder, WeddingItem} from '@/lib/domain/wedding-rental';
 import './wedding-catalog-luxe.css';
+import {WardrobePhotoEditor} from './WardrobePhotoEditor';
 
-type Draft = {code: string; kind: 'wedding_dress'|'outfit'; folderId: string};
+type Draft = {code: string; folderId: string};
 type CatalogResponse = {items: WeddingItem[]};
 type FoldersResponse = {folders: WeddingFolder[]};
-const emptyDraft = (): Draft => ({code:'',kind:'wedding_dress',folderId:''});
+const emptyDraft = (): Draft => ({code:'',folderId:''});
 
 function readableFailure(status:number, contentType:string, body:unknown, endpoint:string):string {
-  if(status===404) return `Chưa tìm thấy API ${endpoint} trên Vercel (404). Hãy push đủ thư mục app/api/wedding-wardrobe và deploy lại.`;
+  if(status===404) return `Chưa tìm thấy API ${endpoint} trên VPS (404). Hãy kiểm tra bản build và dịch vụ Next.js.`;
   if(contentType.includes('application/json') && body && typeof body==='object' && 'error' in body && typeof body.error==='string') return body.error;
   if(status===401) return 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.';
   if(status===403) return 'Tài khoản không có quyền thực hiện thao tác này.';
@@ -84,7 +85,7 @@ export function WeddingCatalogManager({user}:{user:User}) {
   const activeCount=items.filter(i=>i.active).length;
 
   const openCreate=()=>{setDraft({...emptyDraft(),folderId:folderFilter==='all'||folderFilter==='none'?'':folderFilter});setEditing(null);setShowEditor(true);setError('');};
-  const openEdit=(item:WeddingItem)=>{setDraft({code:item.code,kind:item.kind,folderId:item.folderId||''});setEditing(item);setShowEditor(true);setError('');};
+  const openEdit=(item:WeddingItem)=>{setDraft({code:item.code,folderId:item.folderId||''});setEditing(item);setShowEditor(true);setError('');};
   const closeEditor=()=>{setDraft(emptyDraft());setEditing(null);setShowEditor(false);};
   const openFolder=(folder:WeddingFolder|null)=>{setEditingFolder(folder);setFolderName(folder?.name||'');setShowFolderEditor(true);setError('');};
 
@@ -93,9 +94,12 @@ export function WeddingCatalogManager({user}:{user:User}) {
     setBusy(true);setError('');setNotice('');
     try {
       const code=draft.code.trim();
-      const payload=editing?{code,kind:draft.kind,folderId:draft.folderId,name:editing.name===editing.code?code:editing.name}:{code,kind:draft.kind,folderId:draft.folderId};
-      await call(`/api/wedding-wardrobe/items${editing?`/${editing.id}`:''}`,{method:editing?'PATCH':'POST',body:JSON.stringify(payload)});
-      closeEditor();setNotice(editing?'Đã cập nhật mã trang phục.':'Đã thêm mã trang phục mới.');
+      const payload=editing?{code,folderId:draft.folderId,name:editing.name===editing.code?code:editing.name}:{code,folderId:draft.folderId};
+      const saved=await call<{item:WeddingItem}>(`/api/wedding-wardrobe/items${editing?`/${editing.id}`:''}`,{method:editing?'PATCH':'POST',body:JSON.stringify(payload)});
+      if(!editing){
+        setEditing(saved.item);setDraft({code:saved.item.code,folderId:saved.item.folderId||''});
+        setNotice('Đã thêm mã. Bây giờ có thể tải lên tối đa 8 ảnh bên dưới.');
+      }else{closeEditor();setNotice('Đã cập nhật mã trang phục.');}
       await reload();
     } catch(err) {setError(err instanceof Error?err.message:'Không lưu được mã trang phục.');}
     finally {setBusy(false);}
@@ -150,7 +154,7 @@ export function WeddingCatalogManager({user}:{user:User}) {
         <div className="ewc-sidebar-head"><div><span className="ewc-eyebrow">COLLECTIONS</span><h3>Thư mục</h3></div><button type="button" title="Thêm thư mục" aria-label="Thêm thư mục" onClick={()=>openFolder(null)}><FolderPlus size={18}/></button></div>
         <nav className="ewc-folder-nav" aria-label="Lọc mã trang phục theo thư mục">
           <button type="button" className={`ewc-folder-item ${folderFilter==='all'?'is-active':''}`} onClick={()=>setFolderFilter('all')}><LayoutGrid size={17}/><span>Tất cả trang phục</span><small>{countFor('all')}</small></button>
-          <button type="button" className={`ewc-folder-item ${folderFilter==='none'?'is-active':''}`} onClick={()=>setFolderFilter('none')}><Folder size={17}/><span>Chưa phân loại</span><small>{countFor('none')}</small></button>
+          <button type="button" className={`ewc-folder-item ${folderFilter==='none'?'is-active':''}`} onClick={()=>setFolderFilter('none')}><Folder size={17}/><span>Chưa vào thư mục</span><small>{countFor('none')}</small></button>
           {folders.length>0&&<div className="ewc-folder-divider"/>}
           {folders.map(folder=><div className="ewc-folder-entry" key={folder.id}>
             <button type="button" className={`ewc-folder-item ${folderFilter===folder.id?'is-active':''}`} onClick={()=>setFolderFilter(folder.id)}><Folder size={17}/><span title={folder.name}>{folder.name}</span><small>{countFor(folder.id)}</small></button>
@@ -162,7 +166,7 @@ export function WeddingCatalogManager({user}:{user:User}) {
           <input id="elia-folder-name" maxLength={60} required placeholder="Ví dụ: Váy cưới trắng" value={folderName} onChange={e=>setFolderName(e.target.value)}/>
           <div className="ewc-folder-editor-actions"><button disabled={busy||!folderName.trim()} className="ewc-primary" type="submit">{busy?<LoaderCircle className="ewc-spinning" size={15}/>:<Check size={15}/>} Lưu</button><button className="ewc-subtle" type="button" onClick={()=>setShowFolderEditor(false)}>Hủy</button></div>
         </form>}
-        <div className="ewc-sidebar-foot"><Shirt size={16}/><span>Trang phục được liên kết tự động với Lịch váy cưới.</span></div>
+        <div className="ewc-sidebar-foot"><Shirt size={16}/><span>Trang phục được liên kết tự động với Lịch trang phục.</span></div>
       </aside>
 
       <div className="ewc-content">
@@ -174,17 +178,17 @@ export function WeddingCatalogManager({user}:{user:User}) {
         {showEditor&&<div className="ewc-add-panel"><div className="ewc-add-panel-header"><div><span className="ewc-eyebrow">QUẢN LÝ DANH MỤC</span><h4>{editing?'Chỉnh sửa mã trang phục':'Thêm mã trang phục'}</h4></div><button type="button" onClick={closeEditor} title="Đóng" aria-label="Đóng biểu mẫu"><X size={19}/></button></div>
           <form className="ewc-add-form" onSubmit={e=>void saveItem(e)}>
             <label>Mã trang phục <span>*</span><input ref={codeInput} required maxLength={36} value={draft.code} placeholder="VD: VC-001" onChange={e=>setDraft(d=>({...d,code:e.target.value}))}/></label>
-            <label>Phân loại<select value={draft.kind} onChange={e=>setDraft(d=>({...d,kind:e.target.value as Draft['kind']}))}><option value="wedding_dress">Váy cưới</option><option value="outfit">Trang phục khác</option></select></label>
-            <label>Thư mục<select value={draft.folderId} onChange={e=>setDraft(d=>({...d,folderId:e.target.value}))}><option value="">Chưa phân loại</option>{folders.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select></label>
-            <div className="ewc-form-footer"><p>Không cần hình ảnh hoặc mô tả. Mỗi mã được kiểm tra trùng trước khi lưu.</p><div><button type="button" className="ewc-subtle" onClick={closeEditor}>Hủy</button><button type="submit" className="ewc-primary" disabled={busy||!draft.code.trim()}>{busy?<LoaderCircle size={16} className="ewc-spinning"/>:<Check size={16}/>} {editing?'Lưu thay đổi':'Thêm vào kho'}</button></div></div>
+            <label>Thư mục<select value={draft.folderId} onChange={e=>setDraft(d=>({...d,folderId:e.target.value}))}><option value="">Chưa vào thư mục</option>{folders.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select></label>
+            <div className="ewc-form-footer"><p>Sau khi lưu mã, có thể thêm tối đa 8 ảnh trang phục.</p><div><button type="button" className="ewc-subtle" onClick={closeEditor}>Hủy</button><button type="submit" className="ewc-primary" disabled={busy||!draft.code.trim()}>{busy?<LoaderCircle size={16} className="ewc-spinning"/>:<Check size={16}/>} {editing?'Lưu thay đổi':'Thêm vào kho'}</button></div></div>
           </form>
+          {editing&&<WardrobePhotoEditor user={user} item={items.find(x=>x.id===editing.id)||editing} onChanged={()=>void reload()}/>}
         </div>}
 
         <div className="ewc-table" role="table" aria-label="Mã trang phục">
-          <div className="ewc-table-head" role="row"><span role="columnheader">MÃ TRANG PHỤC</span><span role="columnheader">THƯ MỤC / LOẠI</span><span role="columnheader">TRẠNG THÁI</span><span role="columnheader">THAO TÁC</span></div>
+          <div className="ewc-table-head" role="row"><span role="columnheader">MÃ TRANG PHỤC</span><span role="columnheader">THƯ MỤC</span><span role="columnheader">TRẠNG THÁI</span><span role="columnheader">THAO TÁC</span></div>
           {visible.map(item=><div role="row" className="ewc-table-row" key={item.id}>
-            <div role="cell" className="ewc-code-cell"><span className="ewc-item-icon"><Shirt size={19}/></span><div><strong>{item.code}</strong>{item.name!==item.code&&<small>{item.name}</small>}</div></div>
-            <div role="cell" className="ewc-meta-cell"><b>{folders.find(f=>f.id===item.folderId)?.name||'Chưa phân loại'}</b><small>{item.kind==='wedding_dress'?'Váy cưới':'Trang phục khác'}</small></div>
+            <div role="cell" className="ewc-code-cell"><span className="ewc-item-icon">{item.photos?.length?<img src={`/api/office-uploads?kind=wardrobe&id=${encodeURIComponent(item.id)}&file=${encodeURIComponent(item.photos[0])}`} alt="" style={{width:40,height:40,objectFit:"cover",borderRadius:8}}/>:<Shirt size={19}/>}</span><div><strong>{item.code}</strong>{item.name!==item.code&&<small>{item.name}</small>}</div></div>
+            <div role="cell" className="ewc-meta-cell"><b>{folders.find(f=>f.id===item.folderId)?.name||'Chưa vào thư mục'}</b><small>{item.photos?.length||0}/8 ảnh</small></div>
             <div role="cell"><span className={`ewc-status ${item.active?'is-active':'is-paused'}`}><span className="ewc-status-dot"/>{item.active?'Đang nhận lịch':'Tạm ngừng'}</span></div>
             <div role="cell" className="ewc-row-actions"><button type="button" onClick={()=>openEdit(item)} title="Sửa mã" aria-label={`Sửa mã ${item.code}`}><SquarePen size={17}/></button><button type="button" onClick={()=>void changeItem(item,'toggle')} disabled={busy} title={item.active?'Ngừng nhận lịch':'Mở lại'} aria-label={`${item.active?'Ngừng nhận lịch':'Mở lại'} ${item.code}`}>{item.active?<Archive size={17}/>:<RotateCcw size={17}/>}</button><button className="is-danger" type="button" onClick={()=>void changeItem(item,'delete')} disabled={busy} title="Xóa mã" aria-label={`Xóa mã ${item.code}`}><Trash2 size={17}/></button></div>
           </div>)}
