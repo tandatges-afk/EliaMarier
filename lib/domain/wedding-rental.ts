@@ -21,6 +21,7 @@ export type WeddingItem = {
   name: string;
   kind: 'wedding_dress'|'outfit';
   folderId?: string;
+  photos?: string[];
   active: boolean;
   createdAt: number;
   createdBy: string;

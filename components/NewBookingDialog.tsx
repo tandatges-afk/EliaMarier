@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, type FormEvent } from 'react';
 import { X, CalendarPlus, CheckCircle2 } from 'lucide-react';
-import type { User } from 'firebase/auth';
+import type { User } from '@/lib/auth/client';
 import type { Staff,Assignment } from '@/lib/domain/types';
 import { validateBooking, type BookingInput } from '@/lib/domain/booking';
 import {defaultStaffTask, taskOptionsFor} from '@/lib/domain/staff-task';
@@ -23,7 +23,7 @@ export function NewBookingDialog({isAdmin,open,onClose,onCreated,user,staff,init
  const [eventType,setEventType]=useState('Cưới'),[location,setLocation]=useState(''),[phone,setPhone]=useState(''),[note,setNote]=useState('');
  const [step,setStep]=useState<'main'|'wedding'|'form'>('main');
  const [weddingSubtype,setWeddingSubtype]=useState('');
- const mainTypes=[['🎓','Tốt nghiệp','Tốt nghiệp'],['✨','Concept','Concept'],['💍','Cưới','Cưới'],['🖼️','Chụp cổng - Prewedding','Pre-wedding'],['🎉','Sự kiện','Sự kiện'],['🧧','Tết','Tết']] as const;
+ const mainTypes=[['✨','Concept','Concept'],['💍','Cưới','Cưới'],['🖼️','Chụp cổng - Prewedding','Pre-wedding'],['🎉','Sự kiện','Sự kiện'],['🧧','Tết','Tết']] as const;
  const weddingTypes=['Dạm Ngõ','Đám Nối','Vu Quy','Rước Dâu','Xuất Giá'] as const;
  const [status,setStatus]=useState<BookingInput['status']>('pending'),[price,setPrice]=useState('0'),[deposit,setDeposit]=useState('0');
  const [busy,setBusy]=useState(false),[error,setError]=useState('');

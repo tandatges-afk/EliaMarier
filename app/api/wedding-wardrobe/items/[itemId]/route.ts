@@ -5,7 +5,7 @@ import {asWeddingItem,publicWeddingError,weddingAudit,weddingItemsRef,weddingFol
 import {normalizeWeddingCode} from '@/lib/domain/wedding-rental';
 export const runtime='nodejs';export const dynamic='force-dynamic';
 const json=(data:object,status=200)=>NextResponse.json(data,{status,headers:{'Cache-Control':'private, no-store'}});
-async function admin(request:Request){const actor=await authenticatedOffice(request);if(!actor||actor.role!=='admin')throw new WeddingFault(403,'Chỉ Admin được sửa/xóa mã trang phục.','ADMIN_ONLY');return actor;}
+async function admin(request:Request){const actor=await authenticatedOffice(request);if(!actor||!['admin','sale'].includes(actor.role))throw new WeddingFault(403,'Chỉ Admin được sửa/xóa mã trang phục.','ADMIN_ONLY');return actor;}
 const idOk=(id:string)=>/^[a-f0-9]{64}$/.test(id);
 export async function PATCH(request:Request,{params}:{params:Promise<{itemId:string}>}){
  try{
@@ -34,7 +34,8 @@ export async function PATCH(request:Request,{params}:{params:Promise<{itemId:str
   },undefined,false);
   if(!tx.committed)throw new WeddingFault(denied==='NOT_FOUND'?404:409,denied==='CODE_EXISTS'?'Mã trang phục đã tồn tại.':'Không tìm thấy mã trang phục. ',denied||'UPDATE_FAILED');
   await weddingAudit(actor.token,'WEDDING_ITEM_UPDATED',itemId,'Sửa mã trang phục');
-  return json({item:asWeddingItem(tx.snapshot.child(itemId).val())});
+  const updatedItems=tx.snapshot.val() as Record<string,unknown>|null;
+  return json({item:asWeddingItem(updatedItems?.[itemId])});
  }catch(e){if(e instanceof AdminAuthFailure){const failure=publicAuthFailure(e);return json(failure,failure.status);}const f=publicWeddingError(e);return json(f,f.status);}
 }
 export async function DELETE(request:Request,{params}:{params:Promise<{itemId:string}>}){
@@ -45,9 +46,10 @@ export async function DELETE(request:Request,{params}:{params:Promise<{itemId:st
   const tx=await weddingItemsRef().child(itemId).transaction(raw=>{
     const item=asWeddingItem(raw);if(!item){denied='NOT_FOUND';return;}
     if(Object.keys(item.bookings).length){denied='HAS_HISTORY';return;}
+    if(item.photos?.length){denied='HAS_PHOTOS';return;}
     denied='';return null;
   },undefined,false);
-  if(!tx.committed)throw new WeddingFault(denied==='NOT_FOUND'?404:409,denied==='HAS_HISTORY'?'Mã đã có lịch sử thuê. Hãy ngừng sử dụng thay vì xóa.':'Không tìm thấy mã.',denied||'DELETE_FAILED');
+  if(!tx.committed)throw new WeddingFault(denied==='NOT_FOUND'?404:409,denied==='HAS_HISTORY'?'Mã đã có lịch sử thuê. Hãy ngừng sử dụng thay vì xóa.':denied==='HAS_PHOTOS'?'Hãy xóa các hình trước khi xóa trang phục.':'Không tìm thấy mã.',denied||'DELETE_FAILED');
   await weddingAudit(actor.token,'WEDDING_ITEM_DELETED',itemId,'Xóa mã chưa có lịch thuê');
   return json({success:true});
  }catch(e){if(e instanceof AdminAuthFailure){const failure=publicAuthFailure(e);return json(failure,failure.status);}const f=publicWeddingError(e);return json(f,f.status);}

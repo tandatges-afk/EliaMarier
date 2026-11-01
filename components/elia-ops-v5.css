@@ -1,0 +1,85 @@
+/* Élia operations V5: isolated styles, responsive and keyboard-accessible. */
+.elia-v5-heading{display:flex;justify-content:space-between;align-items:center;gap:20px;margin:10px 0 23px;flex-wrap:wrap}
+.elia-v5-heading h2{font-family:inherit;font-size:clamp(22px,3vw,30px);color:#302c29;font-weight:700;margin:4px 0 7px}
+.elia-v5-heading p{color:#766f66;font-size:13px;line-height:1.65}
+.elia-v5-heading-actions{display:flex;gap:8px;flex-wrap:wrap}
+.elia-v5-filter{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:20px}
+.elia-v5-filter label{display:flex;gap:9px;align-items:center;border:1px solid #dfd9cf;background:white;padding:10px 12px;border-radius:12px;flex:1;min-width:200px;font-size:13px}
+.elia-v5-filter input{border:0;outline:none;min-width:0;flex:1;background:none;color:#34312c}
+.elia-v5-filter select{border:1px solid #dfd9cf;background:white;border-radius:12px;padding:12px;max-width:240px;color:#39342e}
+.elia-v5-filter>span{color:#80776b;font-size:13px}
+.elia-v5-subtabs{display:flex;gap:8px;margin:0 0 18px;padding:6px;background:#f1ece3;border-radius:13px;width:max-content;max-width:100%;flex-wrap:wrap}
+.elia-v5-subtabs button{display:flex;align-items:center;gap:8px;border-radius:9px;padding:11px 16px;font-size:13px;font-weight:650;color:#6a5e50;min-height:44px}
+.elia-v5-subtabs button.active{color:#fff;background:#37342e;box-shadow:0 3px 12px #312b2220}
+.elia-v5-showroom-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px}
+.elia-v5-product{display:flex;flex-direction:column;align-items:flex-start;text-align:left;border:1px solid #e8e0d3;background:#fff;border-radius:15px;overflow:hidden;padding:0 0 15px;transition:transform .16s,box-shadow .16s;min-width:0}
+.elia-v5-product:hover,.elia-v5-product:focus-visible{transform:translateY(-2px);box-shadow:0 10px 30px #30201015;outline-offset:2px}
+.elia-v5-product-photo{width:100%;aspect-ratio:4/5;background:#f5f1ec;display:grid;place-items:center;color:#b0a18e;overflow:hidden}
+.elia-v5-product-photo img{width:100%;height:100%;object-fit:cover}
+.elia-v5-product>strong{padding:12px 12px 2px;font-size:15px;color:#383329}
+.elia-v5-product>span{padding:0 12px;font-size:12px;color:#77716a;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:100%}
+.elia-v5-product>small{padding:8px 12px 0;font-size:11px;color:#9b8b76}
+.elia-v5-modal-backdrop{position:fixed;z-index:1500;inset:0;background:#171511b8;display:grid;place-items:center;padding:16px;overflow-y:auto}
+.elia-v5-showroom-dialog,.elia-v5-customer-modal{background:#fcfaf7;border-radius:20px;width:min(1050px,100%);max-height:min(92vh,950px);overflow:auto;box-shadow:0 25px 75px #0004;color:#302d28}
+.elia-v5-showroom-dialog>header,.elia-v5-customer-modal>header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 24px;border-bottom:1px solid #e9e0d4}
+.elia-v5-showroom-dialog header h3,.elia-v5-customer-modal header h2{font-size:25px;font-weight:750;line-height:1.3;margin:3px 0}
+.elia-v5-showroom-dialog header small,.elia-v5-customer-modal header small{font-size:12px;color:#7b7469;display:flex;align-items:center;gap:5px}
+.elia-v5-close,.elia-v5-customer-modal>header button{border:1px solid #e4dcd0;border-radius:50%;width:39px;height:39px;display:grid;place-items:center;flex:none}
+.elia-v5-dialog-content{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(285px,1fr);gap:0}
+.elia-v5-gallery{padding:20px;min-width:0}
+.elia-v5-gallery-stage{background:#eee8df;min-height:360px;height:min(62vh,560px);border-radius:14px;overflow:hidden;position:relative;touch-action:pan-y;user-select:none;display:grid;place-items:center}
+.elia-v5-gallery-stage>img{width:100%;height:100%;object-fit:contain;pointer-events:none}
+.elia-v5-no-image{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#9f9485;font-size:13px}
+.elia-v5-gallery-arrow{position:absolute;top:50%;transform:translateY(-50%);border-radius:50%;width:42px;height:42px;display:grid;place-items:center;background:#fefdfce8;color:#3e392f;box-shadow:0 5px 20px #0002}
+.elia-v5-gallery-arrow.left{left:12px}.elia-v5-gallery-arrow.right{right:12px}
+.elia-v5-gallery-bottom{display:flex;justify-content:space-between;gap:10px;color:#83776a;font-size:11px;margin:10px 0}
+.elia-v5-thumbs{display:flex;gap:9px;overflow:auto;padding:4px 2px}
+.elia-v5-thumbs button{border:2px solid transparent;border-radius:8px;overflow:hidden;width:56px;height:65px;flex:none}
+.elia-v5-thumbs button.chosen{border-color:#8e7557}.elia-v5-thumbs img{width:100%;height:100%;object-fit:cover}
+.elia-v5-calendar-side{padding:24px 20px;border-left:1px solid #e6dfd5;background:#faf7f3}
+.elia-v5-calendar-side h4{font-size:16px;font-weight:750;margin-bottom:6px}.elia-v5-calendar-side>p{font-size:12px;line-height:1.5;color:#84796d;margin-bottom:17px}
+.elia-v5-mini-calendar{background:white;border:1px solid #e6ded5;padding:13px;border-radius:15px}
+.elia-v5-mini-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;margin-bottom:12px}
+.elia-v5-mini-heading button{display:grid;place-items:center;width:31px;height:31px;border:1px solid #eee7dd;border-radius:8px}
+.elia-v5-mini-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center}
+.elia-v5-weekday{color:#918a7d;font-size:10px;font-weight:700;padding:7px 0}
+.elia-v5-mini-day{height:37px;display:grid;place-items:center;position:relative;font-size:12px;border:1px solid transparent;border-radius:7px}
+.elia-v5-mini-day.busy{background:#ffebea;border:1px solid #f3c7c5;color:#9d2424;font-weight:700}
+.elia-v5-mini-day.busy b{font-size:12px;color:#c82525;position:absolute;right:1px;top:-5px}
+.elia-v5-mini-legend{border-top:1px solid #eee6da;margin-top:14px;padding-top:9px;font-size:10px;color:#86776b;line-height:1.5}.elia-v5-mini-legend b{color:#c82525;font-size:16px}
+.elia-v5-photo-editor{background:#f8f5ef;padding:12px;border:1px solid #e8ded0;border-radius:12px;margin-top:12px;color:#514b42}
+.elia-v5-photo-editor-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:13px}
+.elia-v5-upload{display:flex;align-items:center;gap:6px;cursor:pointer;background:#353a32;color:white;padding:9px 12px;border-radius:9px;font-size:12px;font-weight:700}
+.elia-v5-photo-editor>small{font-size:11px;color:#817a71}
+.elia-v5-photo-list{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+.elia-v5-photo-tile{width:86px;height:102px;border-radius:10px;overflow:hidden;position:relative;background:#eee4d9}
+.elia-v5-photo-tile img{width:100%;height:100%;object-fit:cover}
+.elia-v5-photo-tile button{position:absolute;top:4px;right:4px;background:#b72e2e;color:white;border-radius:50%;width:25px;height:25px;display:grid;place-items:center}
+.elia-v5-scheduler{padding-bottom:35px}.elia-v5-form-card{border:1px solid #e8dfd4;padding:18px;background:#fff;border-radius:16px;margin:18px 0}
+.elia-v5-form-card>header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}.elia-v5-form-card header h3{font-size:18px;font-weight:750;color:#352f26}
+.elia-v5-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.elia-v5-form-grid label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:700;color:#61584e}
+.elia-v5-form-grid label.wide{grid-column:1/-1}
+.elia-v5-form-grid input,.elia-v5-form-grid textarea{border:1px solid #ddd6ca;background:white;border-radius:9px;padding:11px 12px;color:#292723;font-size:14px;min-width:0;max-width:100%}
+.elia-v5-form-grid textarea{resize:vertical}.elia-v5-form-grid input:focus,.elia-v5-form-grid textarea:focus{outline:2px solid #bfab8c;outline-offset:1px}
+.elia-v5-price-line{margin-top:14px;font-size:14px}.elia-v5-price-line strong{color:#16684e}
+.elia-v5-form-actions{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
+.elia-v5-services{border-top:1px solid #e8ded4;padding-top:18px;margin-top:20px}.elia-v5-services h4{font-weight:750;font-size:15px}.elia-v5-services p{font-size:12px;color:#716a60}
+.elia-v5-service{border:1px solid #e8e0d5;border-radius:12px;margin:12px 0;padding:14px;background:#fcfaf8}.elia-v5-service-toggle{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:14px;cursor:pointer}.elia-v5-service-toggle input{width:17px;height:17px;accent-color:#756146}
+.elia-v5-records{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:16px}
+.elia-v5-record{background:white;border:1px solid #e7ded2;border-radius:14px;padding:18px;min-width:0}
+.elia-v5-record>header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px}.elia-v5-record>header strong{font-size:16px;color:#393327}.elia-v5-record>header>div{display:flex;gap:5px}
+.elia-v5-record>header button{background:#f5f1ed;border-radius:8px;color:#66543f;padding:9px;min-height:40px;display:flex;align-items:center}
+.elia-v5-record-metadata{display:grid;gap:7px;font-size:12px;color:#71685b}.elia-v5-record-metadata span{display:flex;align-items:center;gap:6px;overflow-wrap:anywhere}
+.elia-v5-record>p{font-size:12px;color:#81776b;margin-top:12px}
+.elia-v5-success,.elia-v5-error{display:flex;align-items:center;gap:7px;padding:10px 13px;border-radius:9px;font-size:13px;margin-bottom:12px}
+.elia-v5-success{background:#eef7ed;color:#207044}.elia-v5-error{background:#fff0ee;color:#a12921}
+.elia-v5-customer-link{border:0;background:none;font-weight:750;text-align:left;text-decoration:underline;text-decoration-color:#d4c5b3;text-underline-offset:3px;color:#363329;cursor:pointer}
+.elia-v5-customer-modal{width:min(780px,100%)}.elia-v5-customer-body{padding:18px 23px 26px;display:grid;gap:18px}
+.elia-v5-customer-body>p{display:flex;align-items:center;gap:8px;font-size:13px}.elia-v5-customer-body section{border:1px solid #e7dfd5;border-radius:12px;padding:15px}
+.elia-v5-customer-body h3{font-size:15px;font-weight:750;margin-bottom:12px}.elia-v5-customer-row{padding:10px 0;border-top:1px solid #eee7dd;display:grid;gap:3px;font-size:12px;color:#5d554c}
+.elia-v5-customer-row strong{font-size:14px;color:#302c27}.elia-v5-customer-body>small{color:#91877a;font-size:11px}
+.elia-v5-photo-schedule{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}.elia-v5-photo-schedule label{display:flex;flex-direction:column;font-size:12px}.elia-v5-photo-schedule input{padding:9px;border:1px solid #ddd4c6;border-radius:7px}.elia-v5-photo-schedule button{padding:10px;border-radius:7px;background:#ede7dd;font-weight:700;font-size:13px}
+.elia-v5-muted{padding:14px;font-size:12px;color:#8c8174}
+@media(max-width:800px){.elia-v5-dialog-content{grid-template-columns:1fr}.elia-v5-calendar-side{border-left:0;border-top:1px solid #e6dfd5}.elia-v5-gallery-stage{height:43vh;min-height:240px}.elia-v5-showroom-dialog,.elia-v5-customer-modal{max-height:95vh}.elia-v5-showroom-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.elia-v5-product>strong{font-size:13px}.elia-v5-form-grid{grid-template-columns:1fr}.elia-v5-form-grid label.wide{grid-column:auto}.elia-v5-gallery-bottom{flex-direction:column}}
+@media(max-width:430px){.elia-v5-modal-backdrop{padding:4px}.elia-v5-gallery{padding:10px}.elia-v5-gallery-stage{min-height:220px}.elia-v5-showroom-dialog,.elia-v5-customer-modal{border-radius:12px}.elia-v5-product-photo{aspect-ratio:1/1.15}.elia-v5-filter select{max-width:none;width:100%}.elia-v5-subtabs{width:100%}.elia-v5-subtabs button{flex:1;justify-content:center;font-size:12px}}

@@ -1,8 +1,7 @@
 import {officeRole} from '@/lib/server/office-auth';
 import { randomUUID } from 'node:crypto';
-import { adminDatabase, authenticatedUser, isAdmin, publicAuthFailure, firebaseAdminApp } from './firebase-admin';
-import { getAuth } from 'firebase-admin/auth';
-import type { DecodedIdToken } from 'firebase-admin/auth';
+import { adminDatabase, authenticatedUser, isAdmin, publicAuthFailure , localAccountAdmin } from './firebase-admin';
+import type { DecodedIdToken } from '@/lib/server/vps-auth';
 import { recordValues, vietnamDate } from '@/lib/domain/scheduling';
 import { eventIdValid } from '@/lib/domain/event-management';
 import { NextResponse } from 'next/server';
@@ -12,7 +11,7 @@ export class ScheduleError extends Error { constructor(public status:number, mes
 export function failure(err:unknown){
   if(err instanceof ScheduleError)return json({error:err.message,code:err.code},err.status);
   console.error('[staff-scheduling]',err);
-  return json({error:'Lỗi kết nối Firebase. Kiểm tra Runtime Logs.',code:'SCHEDULE_DATABASE_ERROR'},503);
+  return json({error:'Không kết nối được PostgreSQL. Kiểm tra server logs.',code:'SCHEDULE_DATABASE_ERROR'},503);
 }
 export async function identity(request:Request,adminOnly:boolean|'office'=false):Promise<DecodedIdToken|Response>{
   try {
@@ -37,7 +36,7 @@ export async function staffByUid(uid:string):Promise<LocatedStaff|null>{
   const snap=await staffRef().orderByChild('authUid').equalTo(uid).limitToFirst(3).once('value');
   const arr:LocatedStaff[]=[];
   snap.forEach(s=>{const val=s.val();if(val && typeof val==='object' && val.authUid===uid && val.active!==false)arr.push({key:String(s.key),data:val});return false;});
-  if(arr.length>1)throw new ScheduleError(409,'UID Firebase được liên kết với nhiều nhân sự. Liên hệ admin.','STAFF_UID_CONFLICT');
+  if(arr.length>1)throw new ScheduleError(409,'UID tài khoản được liên kết với nhiều nhân sự. Liên hệ admin.','STAFF_UID_CONFLICT');
   return arr[0]??null;
 }
 export async function staffPermission(token:DecodedIdToken,staffId:string):Promise<LocatedStaff>{
@@ -138,7 +137,7 @@ export async function dailyBlackouts(date:string){
   const snapshot=await adminDatabase().ref('studioPlanner_v1/blackouts')
     .orderByChild('date').equalTo(date).limitToFirst(2001).once('value');
   const rows=recordValues(snapshot.val());
-  if(rows.length>=2001)throw new ScheduleError(503,'Quá nhiều lịch nghỉ trong ngày, cần kiểm tra dữ liệu Firebase','BLACKOUTS_LIMIT');
+  if(rows.length>=2001)throw new ScheduleError(503,'Quá nhiều lịch nghỉ trong ngày, cần kiểm tra dữ liệu PostgreSQL','BLACKOUTS_LIMIT');
   return rows;
 }
 export function safeStaff(data:Record<string,unknown>){
@@ -163,13 +162,13 @@ export async function jsonBody(req:Request,max=8192):Promise<unknown>{
   try{return JSON.parse(body);}catch{throw new ScheduleError(400,'JSON không hợp lệ');}
 }
 
-/** Admin must link an existing Firebase Authentication identity, never a guessed UID. */
+/** Admin must link an existing Tài khoản Élia identity, never a guessed UID. */
 export async function verifyAuthUid(uid:string):Promise<void>{
   if(!uid)return;
-  try{await getAuth(firebaseAdminApp()).getUser(uid);}
+  try{await localAccountAdmin().getUser(uid);}
   catch(err){
     if((err as {code?:string})?.code==='auth/user-not-found')
-      throw new ScheduleError(422,'Firebase Authentication chưa có tài khoản UID này','STAFF_AUTH_UID_NOT_FOUND');
-    throw new ScheduleError(503,'Không kiểm tra được Firebase Authentication UID. Kiểm tra Admin SDK.','STAFF_AUTH_LOOKUP_FAILED');
+      throw new ScheduleError(422,'Tài khoản Élia chưa có tài khoản UID này','STAFF_AUTH_UID_NOT_FOUND');
+    throw new ScheduleError(503,'Không kiểm tra được Tài khoản Élia UID. Kiểm tra Admin SDK.','STAFF_AUTH_LOOKUP_FAILED');
   }
 }

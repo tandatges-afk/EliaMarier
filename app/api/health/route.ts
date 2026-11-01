@@ -5,16 +5,16 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    app: 'Élia Marier VNext 3.2.5 — R2 Only + Lunar Calendar + Photo Download',
+    app: 'Élia Marier — VPS Self-Hosted',
     release: 'drive-302-pilot-20261013-r1',
     upgradeRelease: 'availability-money-302-auto-20261013-r1',
     authApi: 'diagnostic-codes-enabled',
     deliveryApi: 'capability-tokens-enabled',
-    streamingApi: 'r2-only-1080p-signed-url-no-vercel-video',
-    privateVideoRelease: 'r2-signed-private-20261013-r1',
-    autoVideoSyncRelease: 'r2-auto-worker-20261014-r1',
-    currentRelease: 'elia-marier-3.2.5-r2-only',
-    privateVideoMode: 'r2-only',
+    streamingApi: 'nginx-x-accel-private-1080p',
+    privateVideoRelease: 'vps-signed-media-20261101',
+    autoVideoSyncRelease: 'vps-local-worker-20261101',
+    currentRelease: 'elia-marier-vps-migration-beta',
+    privateVideoMode: 'vps-private',
     systemDiagnostics: 'admin-only',
     time: new Date().toISOString()
   }, { headers: { 'Cache-Control': 'no-store, max-age=0' } });

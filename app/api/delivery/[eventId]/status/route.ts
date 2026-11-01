@@ -11,7 +11,7 @@ export async function GET(request:Request,{params}:{params:Promise<{eventId:stri
     await requireAdmin(request);
     const {eventId}=await params;
     await findBooking(eventId);
-    const state=(await adminDatabase().ref(`studioPlanner_v1/deliveryState/${eventId}`).once('value')).val()||{};
+    const state=((await adminDatabase().ref(`studioPlanner_v1/deliveryState/${eventId}`).once('value')).val()||{}) as {completedAt?:number;completedBy?:string};
     return json({completed:Boolean(state.completedAt),completedAt:state.completedAt||null,completedBy:state.completedBy||null});
   }catch(error){return deliveryFailure(error);}
 }

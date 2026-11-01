@@ -1,7 +1,7 @@
 'use client';
 import '@/components/elia-luxe.css';
 import {useEffect,useState} from 'react';
-import {onAuthStateChanged,type User} from 'firebase/auth';
+import {onAuthStateChanged,type User} from '@/lib/auth/client';
 import {browserAuth} from '@/lib/firebase/client';
 import {OfficeAccountsManager} from '@/components/OfficeAccountsManager';
 
@@ -35,7 +35,7 @@ export default function OfficeAccountsPage(){
      setAccess(detectedRole==='admin'?'admin':'denied');
     }catch(e){if(alive){setAccess('error');setError(e instanceof Error?e.message:'Không xác minh được quyền Admin');}}
    })();
-  },e=>{if(alive){setAccess('error');setError(e.message||'Lỗi đăng nhập Firebase');}});
+  },e=>{if(alive){setAccess('error');setError(e instanceof Error?e.message:'Lỗi đăng nhập');}});
   return()=>{alive=false;unsubscribe();};
  },[]);
  return <main className="elia-admin-accounts-page">
@@ -49,7 +49,7 @@ export default function OfficeAccountsPage(){
   {access==='sign-in'&&<section className="surface" style={{padding:24}}>Bạn chưa đăng nhập. <a href="/" style={{textDecoration:'underline'}}>Đăng nhập Admin ở trang chủ</a>, sau đó mở lại trang này.</section>}
   {access==='denied'&&<section className="surface" style={{padding:24}} role="alert">
     <strong>Không có quyền quản lý tài khoản nhân viên.</strong>
-    <p>API xác định vai trò đang đăng nhập: <code>{role}</code>. Để hiển thị trang này, UID Admin phải có trong biến Vercel <code>AMORRI_ADMIN_UIDS</code> hoặc có custom claim <code>admin=true</code>.</p>
+    <p>API xác định vai trò đang đăng nhập: <code>{role}</code>. Để hiển thị trang này, tài khoản phải có quyền Admin trong PostgreSQL hoặc UID phải nằm trong biến cấu hình VPS <code>AMORRI_ADMIN_UIDS</code>.</p>
     <p>Nếu đây là tài khoản Admin, kiểm tra biến môi trường Production, Redeploy, rồi đăng xuất/đăng nhập lại.</p>
   </section>}
   {access==='error'&&<section className="surface" style={{padding:24}} role="alert"><strong>Không kiểm tra được quyền đăng nhập.</strong><p>{error}</p></section>}

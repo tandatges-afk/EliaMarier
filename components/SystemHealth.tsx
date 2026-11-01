@@ -1,7 +1,7 @@
 'use client';
 
 import {useCallback,useEffect,useState} from 'react';
-import type {User} from 'firebase/auth';
+import type {User} from '@/lib/auth/client';
 import {AlertCircle,AlertTriangle,CheckCircle2,Copy,RefreshCw,ServerCog,ShieldCheck} from 'lucide-react';
 import type {HealthCheck,HealthStatus} from '@/lib/domain/system-health';
 import {R2StorageHealth} from './R2StorageHealth';
@@ -31,11 +31,11 @@ export function SystemHealth({user}:{user:User}){
     <div className="ops30-health-hero">
       <div className="ops30-health-icon"><ServerCog size={28}/></div>
       <div><span className="eyebrow">STUDIO OS 3.0 / SYSTEM HEALTH</span><h2>Kiểm tra sức khỏe hệ thống</h2>
-        <p>Đọc cấu hình và thử truy vấn Firebase an toàn. Không kiểm tra bằng cách xóa, sửa lịch hay phát hành link mới.</p></div>
+        <p>Đọc cấu hình VPS và thử truy vấn PostgreSQL an toàn. Không kiểm tra bằng cách xóa, sửa lịch hay phát hành link mới.</p></div>
       <button type="button" className="secondary-button" disabled={busy} onClick={()=>void refresh()}><RefreshCw size={16} className={busy?'spin':''}/> Kiểm tra lại</button>
     </div>
     {error&&<div role="alert" className="alert error"><AlertCircle size={18}/><div><strong>Không thực hiện được chẩn đoán</strong><p>{error}</p></div></div>}
-    {busy&&!report&&<div className="loading-state"><RefreshCw className="spin" size={22}/> Đang kiểm tra Firebase và cấu hình server…</div>}
+    {busy&&!report&&<div className="loading-state"><RefreshCw className="spin" size={22}/> Đang kiểm tra PostgreSQL và cấu hình VPS…</div>}
     {report&&<>
       <div className="ops30-health-metrics">
         <div><strong>{report.summary.ok}</strong><span>Đạt</span></div>
@@ -56,6 +56,6 @@ export function SystemHealth({user}:{user:User}){
       </div>
     </>}
     <R2StorageHealth user={user}/>
-    <p className="ops30-health-disclaimer">Kết quả cấu hình “Đạt” không bảo đảm quyền truy cập từng file Google Drive, hiệu năng video 1080p, hay toàn bộ nhánh Firebase. Những bước đó vẫn phải thử trên Vercel Preview.</p>
+    <p className="ops30-health-disclaimer">Kết quả cấu hình “Đạt” không bảo đảm quyền truy cập từng file Google Drive, hiệu năng video 1080p, hay toàn bộ dữ liệu PostgreSQL. Những bước đó phải thử trên môi trường VPS staging.</p>
   </section>;
 }

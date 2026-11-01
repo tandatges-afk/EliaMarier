@@ -1,7 +1,7 @@
 import {NextResponse} from 'next/server';
-import {getAuth} from 'firebase-admin/auth';
-import {adminDatabase,authenticatedAdmin,firebaseAdminApp,publicAuthFailure} from '@/lib/server/firebase-admin';
+import {adminDatabase,authenticatedAdmin,localAccountAdmin,publicAuthFailure} from '@/lib/server/firebase-admin';
 import {randomUUID} from 'node:crypto';
+import {OFFICE_ROLES,type OfficeRole} from '@/lib/server/office-auth';
 export const runtime='nodejs';export const dynamic='force-dynamic';
 const json=(data:object,status=200)=>NextResponse.json(data,{status,headers:{'Cache-Control':'private, no-store'}});
 const UID=/^[a-zA-Z0-9_-]{1,128}$/;
@@ -10,7 +10,7 @@ const UID=/^[a-zA-Z0-9_-]{1,128}$/;
 async function isProtectedAdminAccount(uid:string):Promise<boolean>{
   const allowlist=(process.env.AMORRI_ADMIN_UIDS||'').split(',').map(x=>x.trim()).filter(Boolean);
   if(allowlist.includes(uid))return true;
-  const user=await getAuth(firebaseAdminApp()).getUser(uid);
+  const user=await localAccountAdmin().getUser(uid);
   return user.customClaims?.admin===true;
 }
 async function adminTargetGuard(uid:string,message:string):Promise<Response|null>{
@@ -29,17 +29,19 @@ export async function PATCH(request:Request,{params}:{params:Promise<{uid:string
  const {uid}=await params;if(!UID.test(uid)||uid===actor.uid)return json({error:'UID không hợp lệ'},400);
  let data:Record<string,unknown>;try{data=await request.json();}catch{return json({error:'JSON không hợp lệ'},400);}
  const db=adminDatabase().ref('studioPlanner_v1/officeAccounts').child(uid);
- const old=(await db.once('value')).val();if(!old)return json({error:'Không tìm thấy tài khoản'},404);
+ const old=(await db.once('value')).val() as Record<string,unknown>|null;if(!old)return json({error:'Không tìm thấy tài khoản'},404);
  const guard=await adminTargetGuard(uid,'Không thể thay đổi tài khoản Admin');if(guard)return guard;
-  const name=data.name===undefined?old.name:String(data.name||'').trim();
+  const role=String(data.role??old.role??'sale') as OfficeRole;
+ if(role==='admin'||!OFFICE_ROLES.includes(role))return json({error:'Vai trò không hợp lệ'},422);
+ const name=data.name===undefined?old.name:String(data.name||'').trim();
  const email=data.email===undefined?String(old.email):String(data.email||'').trim().toLowerCase();
  const active=data.active===undefined?old.active===true:data.active===true;
  const password=data.password===undefined?'':String(data.password);
  if(typeof name!=='string'||name.length<2||name.length>100||!/^\S+@\S+\.\S+$/.test(email)||(password&&password.length<8))return json({error:'Thông tin không hợp lệ'},422);
  try{
-   await getAuth(firebaseAdminApp()).updateUser(uid,{displayName:name,email,disabled:!active,...(password?{password}:{})});
-   await db.update({name,email,role:'receptionist',active,updatedAt:Date.now(),updatedBy:actor.uid});
-   if(!active||password||email!==old.email)await getAuth(firebaseAdminApp()).revokeRefreshTokens(uid);
+   await localAccountAdmin().updateUser(uid,{displayName:name,email,disabled:!active,...(password?{password}:{})});
+   await db.update({name,email,role,active,updatedAt:Date.now(),updatedBy:actor.uid});
+   if(!active||password||email!==old.email)await localAccountAdmin().revokeRefreshTokens(uid);
    await audit(actor,'OFFICE_ACCOUNT_UPDATED',uid).catch(()=>{});
    return json({success:true});
  }catch(e){console.error('[office-account] patch failed',{code:(e as {code?:string})?.code});return json({error:'Không thể cập nhật tài khoản'},503);}
@@ -49,11 +51,11 @@ export async function DELETE(request:Request,{params}:{params:Promise<{uid:strin
  const actor=await auth(request);if(actor instanceof Response)return actor;
  const {uid}=await params;if(!UID.test(uid)||uid===actor.uid)return json({error:'UID không hợp lệ'},400);
  const db=adminDatabase().ref('studioPlanner_v1/officeAccounts').child(uid);
- const old=(await db.once('value')).val();if(!old)return json({error:'Không tìm thấy tài khoản'},404);
+ const old=(await db.once('value')).val() as Record<string,unknown>|null;if(!old)return json({error:'Không tìm thấy tài khoản'},404);
  const guard=await adminTargetGuard(uid,'Không thể khóa tài khoản Admin');if(guard)return guard;
  try{await db.update({active:false,deletedAt:Date.now(),deletedBy:actor.uid});
- await getAuth(firebaseAdminApp()).updateUser(uid,{disabled:true});
- await getAuth(firebaseAdminApp()).revokeRefreshTokens(uid);
+ await localAccountAdmin().updateUser(uid,{disabled:true});
+ await localAccountAdmin().revokeRefreshTokens(uid);
  await audit(actor,'OFFICE_ACCOUNT_DISABLED',uid).catch(()=>{});
  return json({success:true,disabled:true});
  }catch(e){console.error('[office-account] disable failed',{code:(e as {code?:string})?.code});return json({error:'Không thể khóa tài khoản'},503);}

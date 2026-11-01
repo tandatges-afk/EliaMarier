@@ -15,7 +15,7 @@ export async function GET(request:Request){
 }
 export async function POST(request:Request){
  let actor;try{actor=await authenticatedOffice(request);}catch(err){const e=publicAuthFailure(err);return json(e,e.status);}
- if(!actor||actor.role!=='admin')return json({error:'Chỉ Admin được quản lý mã trang phục'},403);
+ if(!actor||!['admin','sale'].includes(actor.role))return json({error:'Chỉ Admin được quản lý mã trang phục'},403);
  try{
   if(Number(request.headers.get('content-length')||0)>4096)throw new WeddingFault(413,'Dữ liệu quá lớn.','BODY_TOO_LARGE');
   let body:Record<string,unknown>;try{body=await request.json();}catch{throw new WeddingFault(400,'JSON không hợp lệ.','INVALID_JSON');}

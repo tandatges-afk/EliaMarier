@@ -10,6 +10,12 @@ import {DeliveryGrantManager} from '@/components/DeliveryGrantManager';
 import {DeliveryReviewManager} from '@/components/DeliveryReviewManager';
 import {AdminThumbnail,THUMB_CACHE_NAME,type CoverInfo} from '@/components/AdminThumbnail';
 import {OperationsHub} from './OperationsHub';
+import {WardrobeShowroom} from './WardrobeShowroom';
+import {EliaOperationsSchedules} from './EliaOperationsSchedules';
+import {EliaCustomerProfile} from './EliaCustomerProfile';
+import {PhotoLeaderPlanner} from './PhotoLeaderPlanner';
+import type {OfficeRole} from '@/lib/server/office-auth';
+import './elia-ops-v5.css';
 import {CalendarPlanner} from './CalendarPlanner';
 import {StudioAnalytics} from './StudioAnalytics';
 import {SystemHealth} from './SystemHealth';
@@ -24,8 +30,8 @@ import './elia-uiux-v4.css';
 import {EliaBrandMini} from './EliaBrandMini';
 
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
-import type { User } from 'firebase/auth';
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import type { User } from '@/lib/auth/client';
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from '@/lib/auth/client';
 import {
   Activity, ArrowRight, BadgeCheck, CalendarDays, ChevronLeft, ChevronRight, Copy,
   CircleDollarSign, Clock3, Download, Film, FolderOpen, Images, LayoutDashboard, ChartNoAxesCombined,
@@ -40,9 +46,9 @@ import { StaffManager } from './StaffManager';
 import { getMonthStats, monthEvents, shiftMonth, statusName } from '@/lib/domain/studio';
 import type { DashboardData, StudioEvent } from '@/lib/domain/types';
 
-type Tab = 'overview'|'calendar'|'wedding'|'staff'|'payroll'|'delivery'|'analytics'|'system'|'accounts';
-type AccessRole='admin'|'receptionist'|'guest'|'staff';
-type SystemSection='health'|'activity'|'data'|'wardrobe';
+type Tab = 'overview'|'calendar'|'wedding'|'catalog'|'decor'|'makeup'|'packages'|'staff'|'payroll'|'delivery'|'analytics'|'system'|'accounts';
+type AccessRole=OfficeRole|'guest'|'staff';
+type SystemSection='health'|'activity'|'data';
 const monthNow = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; };
 const localToday = () => { const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const take=(type:string)=>parts.find(p=>p.type===type)?.value||'';return `${take('year')}-${take('month')}-${take('day')}`; };
 const money = formatVnd;
@@ -50,7 +56,11 @@ const dateDisplay = (s:string) => /^\d{4}-\d{2}-\d{2}$/.test(s) ? `${s.slice(8,1
 const pages: {key:Tab;name:string;sub:string;icon:typeof LayoutDashboard}[] = [
   {key:'overview',name:'Tổng quan',sub:'Tình hình vận hành',icon:LayoutDashboard},
   {key:'calendar',name:'Lịch quay & chụp',sub:'Lịch và công việc',icon:CalendarDays},
-  {key:'wedding',name:'Lịch váy cưới',sub:'Thuê váy & kiểm tra mã trống',icon:Shirt},
+  {key:'wedding',name:'Lịch trang phục',sub:'Lịch thuê và kho trang phục',icon:Shirt},
+  {key:'catalog',name:'Catalog trang phục',sub:'Chọn mẫu, xem ảnh và tình trạng thuê',icon:Images},
+  {key:'makeup',name:'Lịch Makeup',sub:'Ngày giờ và layout khách hàng',icon:Sparkles},
+  {key:'decor',name:'Lịch Decor',sub:'Dựng, tiệc và thu hồi',icon:CalendarDays},
+  {key:'packages',name:'Chọn gói',sub:'Tư vấn và lập gói dịch vụ',icon:FolderOpen},
   {key:'staff',name:'Đội ngũ',sub:'Nhân sự, phân công',icon:Users},
   {key:'payroll',name:'Lương thợ',sub:'Theo dõi thanh toán',icon:WalletCards},
   {key:'delivery',name:'Bàn giao sản phẩm',sub:'Ảnh, video, đánh giá',icon:FolderOpen},
@@ -92,18 +102,18 @@ function Login({onLogin,error,loading}:{onLogin:(email:string,password:string)=>
   </div>;
 }
 
-function EventTable({events,staff,compact=false,onSelect}:{events:StudioEvent[];staff:DashboardData['staff'];compact?:boolean;onSelect:(id:string)=>void}) {
+function EventTable({events,staff,compact=false,onSelect,onCustomer}:{events:StudioEvent[];staff:DashboardData['staff'];compact?:boolean;onSelect:(id:string)=>void;onCustomer?:(id:string)=>void}) {
   return <div className="table-scroll"><table className="data-table"><thead><tr><th>Ngày & giờ</th><th>Dự án / Khách hàng</th><th>Dịch vụ</th>{!compact&&<th>Phân công</th>}<th>Trạng thái</th><th/></tr></thead>
     <tbody>{events.length ? events.slice(0,compact?6:150).map(event=>{
       const crew=event.assignments.map(a=>staff.find(s=>s.id===a.id)?.name).filter(Boolean);
       return <tr key={event.id}><td><div className="date-cell">{dateDisplay(event.date)}</div><div className="hint">{event.start||'Chưa có giờ'}</div></td>
-        <td><strong className="event-name">{event.name||'Không có tên'}</strong><div className="hint clamp">{event.location||'Chưa có địa điểm'}</div></td>
+        <td><button type="button" className="elia-v5-customer-link event-name" onClick={()=>onCustomer?onCustomer(event.id):onSelect(event.id)} title="Xem toàn bộ thông tin và gói của khách">{event.name||'Không có tên'}</button><div className="hint clamp">{event.location||'Chưa có địa điểm'}</div></td>
         <td><span className="type-pill">{event.eventType||'Khác'}</span></td>
         {!compact&&<td><div className="crew-cell">{crew.length?crew.join(', '):'Chưa phân công'}</div></td>}
         <td><Status status={event.status}/></td>
         <td><button className="icon-link" onClick={()=>onSelect(event.id)} aria-label={`Chi tiết ${event.name}`} title="Xem và chỉnh sửa lịch"><ArrowRight size={16}/></button></td>
       </tr>;
-    }):<tr><td colSpan={compact?5:6}><Empty title="Chưa có lịch phù hợp" detail="Dữ liệu sẽ hiển thị sau khi được đồng bộ từ Firebase."/></td></tr>}</tbody></table></div>;
+    }):<tr><td colSpan={compact?5:6}><Empty title="Chưa có lịch phù hợp" detail="Dữ liệu sẽ hiển thị sau khi được nhập vào PostgreSQL."/></td></tr>}</tbody></table></div>;
 }
 
 type ProductMediaSummary={id:string;name:string;kind:'video'|'image'|'mixed'|'unknown';videoCount:number;imageCount:number;selectedNames:string[];cover?:CoverInfo;warning?:string;r2?:{state:'ready'|'pending'|'invalid'|'error'|'none';readyCount:number;totalCount:number;message:string;checkedAt:number}};
@@ -204,6 +214,8 @@ export function Dashboard(){
   const [deliverySearch,setDeliverySearch]=useState('');
   const [month,setMonth]=useState(monthNow),[tab,setTab]=useState<Tab>('overview');
   const [systemSection,setSystemSection]=useState<SystemSection>('health');
+  const [wardrobeMode,setWardrobeMode]=useState<'rentals'|'inventory'>('rentals');
+  const [customerEvent,setCustomerEvent]=useState<string|null>(null);
   const [driveRefresh,setDriveRefresh]=useState(0);
   const [data,setData]=useState<DashboardData|null>(null),[loading,setLoading]=useState(false);
   const [lastSynced,setLastSynced]=useState<string|null>(null);
@@ -217,7 +229,7 @@ export function Dashboard(){
 
   useEffect(()=>{
     try {
-      const unsub=onAuthStateChanged(browserAuth(), u=>{setUser(u);setReady(true);},()=>{setReady(true);setAuthError('Firebase Auth chưa được kết nối.');});
+      const unsub=onAuthStateChanged(browserAuth(), u=>{setUser(u);setReady(true);},()=>{setReady(true);setAuthError('Máy chủ đăng nhập chưa kết nối.');});
       return ()=>unsub();
     } catch(error) {
       setReady(true);setAuthError(error instanceof Error?error.message:'Thiếu cấu hình Firebase');
@@ -232,10 +244,13 @@ export function Dashboard(){
    }catch(e){if(alive)setAccessError(e instanceof Error?e.message:'Không thể tải quyền nhân viên');}})();
    return()=>{alive=false;};
   },[user]);
+  useEffect(()=>{if(access==='leader_photo')setTab('calendar');if(access==='leader_makeup')setTab('makeup');if(access==='leader_decor')setTab('decor');},[access]);
   const canAdmin=access==='admin';
-  const login=async (email:string,password:string)=>{setLogging(true);setAuthError('');try {await signInWithEmailAndPassword(browserAuth(),email,password);}catch{setAuthError('Đăng nhập không thành công. Kiểm tra email, mật khẩu và quyền Firebase.');}finally{setLogging(false);}};
+  const canSale=access==='admin'||access==='sale';
+  const limitedLeader=access==='leader_photo'||access==='leader_makeup'||access==='leader_decor';
+  const login=async (email:string,password:string)=>{setLogging(true);setAuthError('');try {await signInWithEmailAndPassword(browserAuth(),email,password);}catch{setAuthError('Đăng nhập không thành công. Kiểm tra email, mật khẩu và quyền tài khoản.');}finally{setLogging(false);}};
   const load=useCallback(async (signal:AbortSignal)=>{
-    if(!user || !['admin','receptionist'].includes(access||'')){setData(null);return;}
+    if(!user || !['admin','sale','leader_photo'].includes(access||'')){setData(null);return;}
     setLoading(true);setRequestError('');
     // A previous month's data must never be displayed under a new month heading.
     setData(previous=>previous?.month===month?previous:null);
@@ -274,56 +289,60 @@ export function Dashboard(){
   },[data,deliverySearch]);
   const stats=data?getMonthStats(data.events,data.month):null;
   const nextEvents=useMemo(()=>filtered.filter(e=>e.date>=localToday()&&e.status!=='cancelled').slice(0,6),[filtered]);
-  const availablePages=pages.filter(p=>canAdmin||!['payroll','analytics','system','accounts'].includes(p.key));
+  const userPages=canAdmin?pages:access==='sale'?pages.filter(p=>!['payroll','analytics','system','accounts'].includes(p.key)):pages.filter(p=>p.key===(access==='leader_photo'?'calendar':access==='leader_makeup'?'makeup':'decor'));
   const title=pages.find(p=>p.key===tab);
-  const goTab=(next:Tab)=>{if(!canAdmin&&['payroll','analytics','system','accounts'].includes(next))return;setTab(next);setSelected(null);setMenuOpen(false);};
+  const goTab=(next:Tab)=>{if(!userPages.some(p=>p.key===next))return;setTab(next);setSelected(null);setMenuOpen(false);};
   const currentEvent=selected?data?.events.find(e=>e.id===selected):null;
 
   if(!ready)return <div className="boot-screen"><Image className="elia-brand-boot" src="/logo.png" alt="Élia Marier" width={2048} height={2452} priority unoptimized /><p>Đang kết nối Élia Marier…</p></div>;
   if(!user)return <Login onLogin={login} error={authError} loading={logging}/>;
   if(accessError)return <div className="boot-screen"><p role="alert">{accessError}</p><button className="secondary-button" onClick={()=>void signOut(browserAuth())}>Đăng xuất</button></div>;
   if(access===null)return <div className="boot-screen"><p>Đang kiểm tra quyền tài khoản…</p></div>;
-  if(!['admin','receptionist'].includes(access))return <div className="boot-screen"><p>Không có quyền truy cập hệ thống. Liên hệ quản trị viên.</p><button className="secondary-button" onClick={()=>void signOut(browserAuth())}>Đăng xuất</button></div>;
+  if(!['admin','sale','leader_photo','leader_makeup','leader_decor'].includes(access))return <div className="boot-screen"><p>Không có quyền truy cập hệ thống. Liên hệ quản trị viên.</p><button className="secondary-button" onClick={()=>void signOut(browserAuth())}>Đăng xuất</button></div>;
 
   return <div className="shell">
     {menuOpen&&<button className="mobile-dimmer" aria-label="Đóng menu" onClick={()=>setMenuOpen(false)}/>}
     <aside className={`sidebar ${menuOpen?'sidebar-visible':''}`}>
       <div className="brand elia-brand-refined"><EliaBrandMini variant="sidebar" /><button onClick={()=>setMenuOpen(false)} className="sidebar-close" aria-label="Đóng menu"><X size={19}/></button></div>
       <nav aria-label="Điều hướng chính" className="nav-items">{([
-        {heading:"ĐIỀU HÀNH",keys:["overview","calendar","wedding","delivery"]},
+        {heading:"ĐIỀU HÀNH",keys:["overview","calendar","wedding","catalog","makeup","decor","packages","delivery"]},
         {heading:"QUẢN TRỊ",keys:["staff","payroll","analytics","system","accounts"]}
       ] as const).map(group=><div className="elia-nav-group" key={group.heading}>
         <div className="elia-nav-caption">{group.heading}</div>
-        {availablePages.filter(p=>(group.keys as readonly string[]).includes(p.key)).map(p=>{
+        {userPages.filter(p=>(group.keys as readonly string[]).includes(p.key)).map(p=>{
           const Icon=p.icon;return <button key={p.key} onClick={()=>goTab(p.key)} className={`nav-item ${tab===p.key?'nav-active':''}`} aria-current={tab===p.key?'page':undefined}><Icon size={19}/><span>{p.name}</span>{tab===p.key&&<i/>}</button>;
         })}
       </div>)}</nav>
       <div className="sidebar-bottom">
-        <div className="user-identity"><EliaBrandMini variant="profile" /><div className="user-meta"><strong>{user.email?.split('@')[0]||'Admin'}</strong><span>{canAdmin?'Quản trị viên':'Lễ tân'}</span></div><button title="Đăng xuất" onClick={async()=>{await signOut(browserAuth());if('caches' in window)void caches.delete(THUMB_CACHE_NAME);}}><LogOut size={19}/></button></div>
+        <div className="user-identity"><EliaBrandMini variant="profile" /><div className="user-meta"><strong>{user.email?.split('@')[0]||'Admin'}</strong><span>{access==='admin'?'Quản trị viên':access==='sale'?'Sale':access==='leader_photo'?'Leader Quay chụp':access==='leader_makeup'?'Leader Makeup':'Leader Decor'}</span></div><button title="Đăng xuất" onClick={async()=>{await signOut(browserAuth());if('caches' in window)void caches.delete(THUMB_CACHE_NAME);}}><LogOut size={19}/></button></div>
       </div>
     </aside>
     <main className="content">
       <header className="topbar"><div className="topbar-left"><button aria-label="Mở menu" className="menu-toggle" onClick={()=>setMenuOpen(true)}><Menu size={22}/></button><div className="breadcrumb">ÉLIA MARIER <span>/</span> {title?.name.toUpperCase()}</div></div><div className="topbar-right"><span className="elia-build-label" title="Élia Marier UI/UX phiên bản 3">UI 4.0</span><span className="live-dot"/><span className="topbar-time">{lastSynced?`Đồng bộ ${new Date(lastSynced).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}`:'Chưa đồng bộ'}</span><button aria-label="Tải lại" title="Làm mới" onClick={()=>setReload(x=>x+1)} className="top-icon"><RefreshCw size={18} className={loading?'spin':''}/></button><EliaBrandMini variant="topbar" /></div></header>
       <div className="content-inner">
-        <div className="page-heading ops29-page-heading"><div><div className="eyebrow">ÉLIA MARIER · STUDIO WORKSPACE</div><h1>{title?.name}</h1><p>{title?.sub}{tab!=='system'?` · Tháng ${month.slice(5)}/${month.slice(0,4)}`:' · Chỉ tài khoản Admin'}</p></div><div className="heading-actions">{tab!=='system'&&tab!=='wedding'&&<><button className="secondary-button" onClick={()=>setReload(x=>x+1)} disabled={loading}><RefreshCw size={16} className={loading?'spin':''}/> Đồng bộ</button><button className="primary-button" onClick={()=>createBooking()}><Plus size={18}/> Tạo lịch mới</button></>}</div></div>
+        <div className="page-heading ops29-page-heading"><div><div className="eyebrow">ÉLIA MARIER · STUDIO WORKSPACE</div><h1>{title?.name}</h1><p>{title?.sub}{tab!=='system'?` · Tháng ${month.slice(5)}/${month.slice(0,4)}`:' · Chỉ tài khoản Admin'}</p></div><div className="heading-actions">{canSale&&tab!=='system'&&tab!=='wedding'&&tab!=='catalog'&&tab!=='makeup'&&tab!=='decor'&&tab!=='packages'&&<><button className="secondary-button" onClick={()=>setReload(x=>x+1)} disabled={loading}><RefreshCw size={16} className={loading?'spin':''}/> Đồng bộ</button><button className="primary-button" onClick={()=>createBooking()}><Plus size={18}/> Tạo lịch mới</button></>}</div></div>
         
-        {requestError&&tab!=='system'&&tab!=='wedding'&&<div className="alert error"><ShieldCheck size={18}/><div><strong>Không tải được dữ liệu quản trị</strong><p>{requestError}</p>{data?.month===month&&<p>Đang hiển thị dữ liệu tải thành công gần nhất của tháng này; hãy thử Đồng bộ lại.</p>}<button type="button" className="secondary-button" onClick={()=>{setSystemSection('health');goTab('system');}}><Settings2 size={15}/> Mở Hệ thống</button></div></div>}
-        {data?.eventLimitReached&&<div className="alert notice">Dữ liệu tháng vượt giới hạn truy vấn 1001 bản ghi. Cần phân trang và index Firebase trước khi dùng báo cáo.</div>}
+        {requestError&&['overview','calendar','delivery','staff','analytics'].includes(tab)&&<div className="alert error"><ShieldCheck size={18}/><div><strong>Không tải được dữ liệu quản trị</strong><p>{requestError}</p>{data?.month===month&&<p>Đang hiển thị dữ liệu tải thành công gần nhất của tháng này; hãy thử Đồng bộ lại.</p>}<button type="button" className="secondary-button" onClick={()=>{setSystemSection('health');goTab('system');}}><Settings2 size={15}/> Mở Hệ thống</button></div></div>}
+        {data?.eventLimitReached&&<div className="alert notice">Dữ liệu tháng vượt giới hạn truy vấn 1001 bản ghi. Cần phân trang và chỉ mục PostgreSQL trước khi dùng báo cáo.</div>}
         {canAdmin&&tab==='system'&&<section className="ops30-system-panel">
           <div className="ops30-system-tabs" role="group" aria-label="Chức năng hệ thống">
             <button type="button" className={systemSection==='health'?'active':''} onClick={()=>setSystemSection('health')}><ShieldCheck size={16}/> Sức khỏe</button>
             <button type="button" className={systemSection==='activity'?'active':''} onClick={()=>setSystemSection('activity')}><Activity size={16}/> Hoạt động</button>
             <button type="button" className={systemSection==='data'?'active':''} onClick={()=>setSystemSection('data')}><Settings2 size={16}/> Kiểm tra dữ liệu</button>
-            <button type="button" className={systemSection==='wardrobe'?'active':''} onClick={()=>setSystemSection('wardrobe')}><Shirt size={16}/> Kho trang phục</button>
+            
           </div>
           {systemSection==='health'&&<SystemHealth user={user}/>}
-          {systemSection==='wardrobe'&&<WeddingCatalogManager user={user}/>}
+
           {systemSection==='data'&&<MigrationReadiness embedded/>}
-          {systemSection==='activity'&&<section className="surface"><div className="surface-title"><h3>Nhật ký hoạt động gần đây</h3></div>{data?.audit.length?<div className="activity-list">{data.audit.map((a,i)=><div key={a.id||i} className="activity-item"><div className="activity-symbol"><Activity size={17}/></div><div><strong>{a.message||a.action||'Hoạt động'}</strong><p>{a.action} · {a.createdAt?new Date(a.createdAt<1e12?a.createdAt*1000:a.createdAt).toLocaleString('vi-VN'):'Chưa xác định'}</p></div></div>)}</div>:<Empty title="Chưa có nhật ký" detail="Nếu Dashboard chưa tải được, hãy mở Sức khỏe để chẩn đoán Firebase."/>}</section>}
+          {systemSection==='activity'&&<section className="surface"><div className="surface-title"><h3>Nhật ký hoạt động gần đây</h3></div>{data?.audit.length?<div className="activity-list">{data.audit.map((a,i)=><div key={a.id||i} className="activity-item"><div className="activity-symbol"><Activity size={17}/></div><div><strong>{a.message||a.action||'Hoạt động'}</strong><p>{a.action} · {a.createdAt?new Date(a.createdAt<1e12?a.createdAt*1000:a.createdAt).toLocaleString('vi-VN'):'Chưa xác định'}</p></div></div>)}</div>:<Empty title="Chưa có nhật ký" detail="Nếu Dashboard chưa tải được, hãy mở Sức khỏe để chẩn đoán PostgreSQL."/>}</section>}
         </section>}
-        {!data && loading && tab!=='system' && tab!=='wedding' && <div className="loading-state"><RefreshCw size={24} className="spin"/> Đang tải dữ liệu Firebase…</div>}
-        {tab==='wedding'&&<WeddingWardrobe user={user}/>}
-        {data && tab!=='system' && tab!=='wedding' && <>
+        {!data && loading && ['overview','calendar','delivery','staff','analytics'].includes(tab) && <div className="loading-state"><RefreshCw size={24} className="spin"/> Đang tải dữ liệu PostgreSQL…</div>}
+        {tab==='wedding'&&<><div className="elia-v5-subtabs" role="group" aria-label="Trang phục"><button className={wardrobeMode==='rentals'?'active':''} onClick={()=>setWardrobeMode('rentals')}><CalendarDays size={17}/> Lịch trang phục</button><button className={wardrobeMode==='inventory'?'active':''} onClick={()=>setWardrobeMode('inventory')}><Shirt size={17}/> Kho trang phục</button></div>{wardrobeMode==='inventory'?<WeddingCatalogManager user={user}/>:<WeddingWardrobe user={user}/>}</>}
+        {tab==='catalog'&&<WardrobeShowroom user={user}/>}
+        {['decor','makeup','packages'].includes(tab)&&<div key={tab}><EliaOperationsSchedules user={user} role={access as OfficeRole} module={tab as 'decor'|'makeup'|'packages'}/></div>}
+        {data&&tab==='calendar'&&access==='leader_photo'&&<PhotoLeaderPlanner user={user} events={filtered} onChanged={()=>setReload(x=>x+1)}/>}
+
+        {data && (canAdmin||access==='sale') && !['system','wedding','catalog','makeup','decor','packages'].includes(tab) && <>
           {tab==='overview'&&<>
 
             <div className="elia-workspace-section-title"><div><h2>Tình hình studio</h2><p>Số liệu và công việc cần xử lý trong tháng</p></div></div>
@@ -343,9 +362,9 @@ export function Dashboard(){
                   ['Đã chốt',stats?.confirmed||0,'var(--blue)'],['Chờ xác nhận',stats?.pending||0,'var(--amber)'],['Hoàn thành',stats?.done||0,'var(--green)']
                 ].map(([name,count,color])=><div className="breakdown-row" key={String(name)}><div className="breakdown-copy"><span>{name}</span><strong>{count}</strong></div><div className="progress-track"><div style={{width:`${stats?.total?Number(count)/stats.total*100:0}%`,background:String(color)}}/></div></div>)}<div className="breakdown-foot"><span>Nhân sự hoạt động</span><strong>{data.staff.length} thành viên</strong></div></div>
               </section></div>
-            <section className="surface"><div className="surface-title"><div><span className="eyebrow">DANH SÁCH LỊCH HẸN</span><h3>Danh sách lịch trong tháng</h3></div><button onClick={()=>goTab('calendar')} className="text-action">Xem lịch tháng <ArrowRight size={16}/></button></div><EventTable events={filtered} staff={data.staff} compact onSelect={setSelected}/></section>
+            <section className="surface"><div className="surface-title"><div><span className="eyebrow">DANH SÁCH LỊCH HẸN</span><h3>Danh sách lịch trong tháng</h3></div><button onClick={()=>goTab('calendar')} className="text-action">Xem lịch tháng <ArrowRight size={16}/></button></div><EventTable events={filtered} staff={data.staff} compact onSelect={setSelected} onCustomer={setCustomerEvent}/></section>
           </>}
-          {tab==='calendar'&&<><div className="toolbar"><div className="search-input"><Search size={17}/><input placeholder="Tìm tên khách, loại dịch vụ, nhân sự..." value={search} onChange={e=>setSearch(e.target.value)} aria-label="Tìm kiếm lịch"/></div><div className="toolbar-right"><button className="month-navigator" onClick={()=>setMonth(shiftMonth(month,-1))}><ChevronLeft size={18}/></button><strong className="month-title">Tháng {month.slice(5)}/{month.slice(0,4)}</strong><button className="month-navigator" onClick={()=>setMonth(shiftMonth(month,1))}><ChevronRight size={18}/></button></div></div><CalendarPlanner data={data} filter={search} onSelect={setSelected} onCreate={createBooking}/><section className="surface"><div className="surface-title"><h3>Danh sách đặt lịch <span className="counter">{filtered.length}</span></h3><span className="text-xs text-slate-500">Chọn một lịch để chỉnh sửa trên web chính</span></div><EventTable events={filtered} staff={data.staff} onSelect={setSelected}/></section></>}
+          {tab==='calendar'&&<><div className="toolbar"><div className="search-input"><Search size={17}/><input placeholder="Tìm tên khách, loại dịch vụ, nhân sự..." value={search} onChange={e=>setSearch(e.target.value)} aria-label="Tìm kiếm lịch"/></div><div className="toolbar-right"><button className="month-navigator" onClick={()=>setMonth(shiftMonth(month,-1))}><ChevronLeft size={18}/></button><strong className="month-title">Tháng {month.slice(5)}/{month.slice(0,4)}</strong><button className="month-navigator" onClick={()=>setMonth(shiftMonth(month,1))}><ChevronRight size={18}/></button></div></div><CalendarPlanner data={data} filter={search} onSelect={setSelected} onCreate={createBooking}/><section className="surface"><div className="surface-title"><h3>Danh sách đặt lịch <span className="counter">{filtered.length}</span></h3><span className="text-xs text-slate-500">Chọn một lịch để chỉnh sửa trên web chính</span></div><EventTable events={filtered} staff={data.staff} onSelect={setSelected} onCustomer={setCustomerEvent}/></section></>}
           {tab==='staff'&&(canAdmin?<StaffManager user={user} month={month} onChanged={()=>setReload(x=>x+1)}/>:<section className="surface"><div className="surface-title"><h3>Danh sách nhân sự quay chụp</h3></div><div className="table-scroll"><table className="data-table"><thead><tr><th>Họ tên</th><th>Vị trí</th><th>Trạng thái</th></tr></thead><tbody>{data.staff.map(s=><tr key={s.id}><td>{s.name}</td><td>{s.role}</td><td>{s.active!==false?'Đang làm':'Ngưng hoạt động'}</td></tr>)}</tbody></table></div></section>)}
           {canAdmin&&tab==='payroll'&&<PayrollManager month={month} user={user}/>}
           {tab==='delivery'&&<>
@@ -358,8 +377,9 @@ export function Dashboard(){
         {canAdmin&&tab==='accounts'&&<OfficeAccountsManager user={user}/>}
       </div><footer className="footer">ÉLIA MARIER · STUDIO WORKSPACE <span>ÉLIA MARIER · {new Date().getFullYear()}</span></footer>
     </main>
-    <NewBookingDialog isAdmin={canAdmin} open={newBookingOpen} initialDate={newBookingDate} onClose={()=>setNewBookingOpen(false)} onCreated={()=>{setReload(x=>x+1);setTab('calendar');}} user={user} staff={data?.staff||[]}/>
-    <EventEditor isAdmin={canAdmin} id={editEventId} staff={data?.staff||[]} user={user} onClose={()=>setEditEventId(null)} onDataUpdated={()=>setReload(v=>v+1)} onChanged={(date)=>{setEditEventId(null);setSelected(null);if(date && date.slice(0,7)!==month)setMonth(date.slice(0,7));setReload(v=>v+1);}}/>
-    {currentEvent&&<BookingDetailPanel isAdmin={canAdmin} event={currentEvent} user={user} staff={data?.staff||[]} onClose={()=>setSelected(null)} onEdit={()=>{setEditEventId(currentEvent.id);setSelected(null);}}/>}
+    {customerEvent&&canSale&&<EliaCustomerProfile eventId={customerEvent} user={user} onClose={()=>setCustomerEvent(null)}/>}
+    {canSale&&<NewBookingDialog isAdmin={canAdmin} open={newBookingOpen} initialDate={newBookingDate} onClose={()=>setNewBookingOpen(false)} onCreated={()=>{setReload(x=>x+1);setTab('calendar');}} user={user} staff={data?.staff||[]}/>}
+    {canSale&&<EventEditor isAdmin={canAdmin} id={editEventId} staff={data?.staff||[]} user={user} onClose={()=>setEditEventId(null)} onDataUpdated={()=>setReload(v=>v+1)} onChanged={(date)=>{setEditEventId(null);setSelected(null);if(date && date.slice(0,7)!==month)setMonth(date.slice(0,7));setReload(v=>v+1);}}/>}
+    {currentEvent&&canSale&&<BookingDetailPanel isAdmin={canAdmin} event={currentEvent} user={user} staff={data?.staff||[]} onClose={()=>setSelected(null)} onEdit={()=>{setEditEventId(currentEvent.id);setSelected(null);}}/>}
   </div>;
 }

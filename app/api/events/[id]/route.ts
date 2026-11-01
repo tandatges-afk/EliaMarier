@@ -12,14 +12,14 @@ import { withScheduleLock, dailyEvents, dailyBlackouts, ScheduleError } from '@/
 import {authenticatedOffice,safeOfficeEvent} from '@/lib/server/office-auth';
 import {isAdmin} from '@/lib/server/firebase-admin';
 import { encryptBookingArchive, ArchiveConfigurationError } from '@/lib/server/booking-archive';
-import type { DecodedIdToken } from 'firebase-admin/auth';
+import type { DecodedIdToken } from '@/lib/server/vps-auth';
 
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
 const headers={'Cache-Control':'private, no-store, max-age=0'};
 const json=(payload:object,status=200)=>NextResponse.json(payload,{status,headers});
 async function requireAdmin(request:Request):Promise<DecodedIdToken|Response>{
-  try {const actor=await authenticatedOffice(request);return actor?.token||json({error:'Tài khoản không có quyền vận hành'},403);}
+  try {const actor=await authenticatedOffice(request,['admin','sale','leader_photo']);return actor?.token||json({error:'Tài khoản không có quyền vận hành'},403);}
   catch(err){const failure=publicAuthFailure(err);return json({error:failure.error,code:failure.code},failure.status);}
 }
 function fail(err:unknown){
@@ -30,12 +30,12 @@ function fail(err:unknown){
   const rawCode=String((err as {code?:unknown})?.code||'');
   const detail=err instanceof Error?err.message:'';
   // Never echo raw backend exception to browser (it can contain internal paths).
-  const errorCode=/permission.denied/i.test(rawCode+' '+detail)?'FIREBASE_PERMISSION_DENIED':
-    /timeout|deadline|ETIMEDOUT/i.test(rawCode+' '+detail)?'FIREBASE_TIMEOUT':
-    /network|ECONN|UNAVAILABLE/i.test(rawCode+' '+detail)?'FIREBASE_CONNECTION_FAILED':
+  const errorCode=/permission.denied/i.test(rawCode+' '+detail)?'DATABASE_PERMISSION_DENIED':
+    /timeout|deadline|ETIMEDOUT/i.test(rawCode+' '+detail)?'DATABASE_TIMEOUT':
+    /network|ECONN|UNAVAILABLE/i.test(rawCode+' '+detail)?'DATABASE_CONNECTION_FAILED':
     'BOOKING_WRITE_FAILED';
   console.error('[booking-manager]',{code:errorCode,backendCode:rawCode,details:detail,at:new Date().toISOString()});
-  return json({error:'Không thể lưu lịch vào Firebase. Kiểm tra quyền service account, địa chỉ Database và Function Logs.',code:errorCode},503);
+  return json({error:'Không thể lưu lịch vào PostgreSQL. Kiểm tra dịch vụ database và nhật ký server.',code:errorCode},503);
 }
 async function audit(action:string,user:DecodedIdToken,event:Record<string,unknown>,id:string,detail:string){
   try {const key=randomUUID();await adminDatabase().ref('studioPlanner_v1/auditLogs').child(key).set({
@@ -47,17 +47,25 @@ async function audit(action:string,user:DecodedIdToken,event:Record<string,unkno
 async function handleGET(request:Request,{params}:{params:Promise<{id:string}>}){
   const user=await requireAdmin(request);if(user instanceof Response)return user;
   try{const {id}=await params;const item=await findBooking(id);
-    const deliveryCompleted=Boolean((await adminDatabase().ref(`studioPlanner_v1/deliveryState/${id}`).once('value')).val()?.completedAt);
+    const deliveryState=(await adminDatabase().ref(`studioPlanner_v1/deliveryState/${id}`).once('value')).val() as {completedAt?:number}|null;
+    const deliveryCompleted=Boolean(deliveryState?.completedAt);
     const productState=(await adminDatabase().ref(`studioPlanner_v1/deliveryProductState/${id}`).once('value')).val()||{};
     const completedProductIds=Object.entries(productState as Record<string,{completedAt?:unknown}>).filter(([,value])=>Boolean(value?.completedAt)).map(([productId])=>productId);
-    return json({event:{...safeOfficeEvent(normaliseEvents([item.value])[0],isAdmin(user)?'admin':'receptionist'),deliveryCompleted,completedProductIds,phone:item.value.phone||'',note:item.value.note||'',isRuocDau:item.value.isRuocDau===true,
-    sourceLinks:Object.fromEntries(recordValues(item.value.assignments).filter(a=>a.id!=null).map(a=>[String(a.id),String(a.link||'')])),
-    products:recordValues(item.value.products).map(p=>({id:String(p.id||''),name:String(p.name||''),url:String(p.url||''),mediaType:String(p.mediaType||'auto')})),
+    const role=(await authenticatedOffice(request,['admin','sale','leader_photo']))?.role;
+    const event=safeOfficeEvent(normaliseEvents([item.value])[0],isAdmin(user)?'admin':role||'sale');
+    return json({event:{...event,...(role==='leader_photo'?{price:0,deposit:0,products:[]}:{ }),deliveryCompleted,completedProductIds,phone:item.value.phone||'',note:item.value.note||'',isRuocDau:item.value.isRuocDau===true,
+    sourceLinks:role==='leader_photo'?{}:Object.fromEntries(recordValues(item.value.assignments).filter(a=>a.id!=null).map(a=>[String(a.id),String(a.link||'')])),
+    products:role==='leader_photo'?[]:recordValues(item.value.products).map(p=>({id:String(p.id||''),name:String(p.name||''),url:String(p.url||''),mediaType:String(p.mediaType||'auto')})),
     startTrai:item.value.startTrai||'',startGai:item.value.startGai||'',locTrai:item.value.locTrai||'',locGai:item.value.locGai||'',phoneTrai:item.value.phoneTrai||'',phoneGai:item.value.phoneGai||''},version:item.version});
   }catch(err){return fail(err);}
 }
 async function handlePATCH(request:Request,{params}:{params:Promise<{id:string}>}){
   const user=await requireAdmin(request);if(user instanceof Response)return user;
+  const actorRole=(await authenticatedOffice(request,['admin','sale','leader_photo']))?.role;
+  if(actorRole==='leader_photo'){
+    const candidate=await request.clone().json().catch(()=>null);const keys=candidate?.changes&&typeof candidate.changes==='object'&&!Array.isArray(candidate.changes)?Object.keys(candidate.changes):[];
+    if(!keys.length||keys.some((key:string)=>!['date','start','end','startTrai','startGai'].includes(key)))return json({error:'Leader quay chụp chỉ được sửa ngày và giờ.'},403);
+  }
   if(Number(request.headers.get('content-length')||0)>20_480)return json({error:'Yêu cầu quá lớn'},413);
   let body:unknown;try{body=await request.json();}catch{return json({error:'JSON không hợp lệ'},400);}
   if(!body||typeof body!=='object'||Array.isArray(body))return json({error:'Yêu cầu không hợp lệ'},400);

@@ -11,7 +11,7 @@ export async function GET(req:Request){
  }catch(e){if(e instanceof AdminAuthFailure){const f=publicAuthFailure(e);return json(f,f.status);}const w=publicWeddingError(e);return json(w,w.status);}
 }
 export async function POST(req:Request){
- try{const actor=await authenticatedOffice(req);if(actor?.role!=='admin')return json({error:'Chỉ Admin được tạo thư mục.'},403);
+ try{const actor=await authenticatedOffice(req);if(!actor||!['admin','sale'].includes(actor.role))return json({error:'Chỉ Admin được tạo thư mục.'},403);
   const body=await req.json();const name=String(body?.name||'').trim();if(!name||name.length>60)throw new WeddingFault(422,'Tên thư mục từ 1 đến 60 ký tự.','INVALID_FOLDER');
   const id=randomUUID(),folder={id,name,createdAt:Date.now(),createdBy:actor.token.uid};
   await weddingFoldersRef().child(id).set(folder);

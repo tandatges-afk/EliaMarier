@@ -1,0 +1,15 @@
+[Unit]
+Description=Find new Drive sources linked to Elia bookings
+After=network-online.target postgresql.service
+[Service]
+Type=oneshot
+User=elia
+Group=elia
+EnvironmentFile=/etc/elia/elia.env
+WorkingDirectory=/srv/elia/app/current
+ExecStart=/usr/bin/node vps/enqueue-linked-sources.mjs
+NoNewPrivileges=true
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/srv/elia/sync-queue
+TimeoutStartSec=120

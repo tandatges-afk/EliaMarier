@@ -1,6 +1,6 @@
 'use client';
 import {useCallback,useEffect,useMemo,useState,type FormEvent} from 'react';
-import type {User} from 'firebase/auth';
+import type {User} from '@/lib/auth/client';
 import {BadgeCheck,CalendarDays,Clock3,ChevronLeft,ChevronRight,Heart,RefreshCw,Search,Shirt,ShoppingBag,SquarePen,Trash2,CheckCircle2} from 'lucide-react';
 import type {WeddingBooking,WeddingItem,WeddingRentalStatus,WeddingFolder} from '@/lib/domain/wedding-rental';
 import {validWeddingRange,weddingConflict,weddingDateLabel} from '@/lib/domain/wedding-rental';

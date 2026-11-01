@@ -1,6 +1,6 @@
 'use client';
 import {useCallback,useEffect,useMemo,useState,type FormEvent} from 'react';
-import type {User} from 'firebase/auth';
+import type {User} from '@/lib/auth/client';
 import {CalendarCheck,RefreshCw,Search,Shirt,XCircle} from 'lucide-react';
 import type {WeddingBooking,WeddingItem,WeddingFolder} from '@/lib/domain/wedding-rental';
 import {weddingDateLabel,validWeddingRange} from '@/lib/domain/wedding-rental';
