@@ -9,7 +9,6 @@ export function OperationsHub({data,today,onOpenEvent,onNavigate}:Props){
  const summary=useMemo(()=>getOperationsSnapshot(data.events,data.staff,data.month,today),[data,today]);
  const health=[
   {label:'Chưa phân công',value:summary.unassigned.length,icon:AlertTriangle,description:'Lịch cần bổ sung thợ',action:()=>summary.unassigned[0]?onOpenEvent(summary.unassigned[0].id):onNavigate('calendar')},
-  {label:'Chờ xác nhận',value:summary.pendingConfirmation.length,icon:CalendarCheck,description:'Lịch chưa được chốt',action:()=>summary.pendingConfirmation[0]?onOpenEvent(summary.pendingConfirmation[0].id):onNavigate('calendar')},
   {label:'Sản phẩm đang giao',value:summary.unfinishedProducts.length,icon:FolderCheck,description:'Chưa đánh dấu hoàn thành',action:()=>onNavigate('delivery')},
  ];
  return <section className="ops29-hub" aria-label="Việc cần xử lý">

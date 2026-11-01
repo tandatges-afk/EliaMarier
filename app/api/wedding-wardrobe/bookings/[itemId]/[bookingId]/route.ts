@@ -11,7 +11,7 @@ export async function PATCH(request:Request,{params}:{params:Promise<{itemId:str
  try{
   if(Number(request.headers.get('content-length')||0)>8192)throw new WeddingFault(413,'Dữ liệu quá lớn.','BODY_TOO_LARGE');
   const {itemId,bookingId}=await params;
-  if(!/^[a-f0-9]{64}$/.test(itemId)||!/^[0-9a-f-]{36}$/i.test(bookingId))throw new WeddingFault(422,'Mã lịch thuê không hợp lệ.','INVALID_ID');
+  if(!/^[a-f0-9]{64}$/.test(itemId)||!/^(?:[0-9a-f-]{36}|pk[a-f0-9]{32})$/i.test(bookingId))throw new WeddingFault(422,'Mã lịch thuê không hợp lệ.','INVALID_ID');
   let body:Record<string,unknown>;try{body=await request.json();}catch{throw new WeddingFault(400,'JSON không hợp lệ.','INVALID_JSON');}
   if(body.status!==undefined&& !WEDDING_STATUSES.includes(body.status as WeddingRentalStatus))throw new WeddingFault(422,'Trạng thái không hợp lệ.','INVALID_STATUS');
   const canEdit=['customerName','customerPhone','startDate','endDate','notes'].some(k=>Object.prototype.hasOwnProperty.call(body,k));

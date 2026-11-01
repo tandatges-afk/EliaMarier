@@ -25,7 +25,7 @@ export function NewBookingDialog({isAdmin,open,onClose,onCreated,user,staff,init
  const [weddingSubtype,setWeddingSubtype]=useState('');
  const mainTypes=[['✨','Concept','Concept'],['💍','Cưới','Cưới'],['🖼️','Chụp cổng - Prewedding','Pre-wedding'],['🎉','Sự kiện','Sự kiện'],['🧧','Tết','Tết']] as const;
  const weddingTypes=['Dạm Ngõ','Đám Nối','Vu Quy','Rước Dâu','Xuất Giá'] as const;
- const [status,setStatus]=useState<BookingInput['status']>('pending'),[price,setPrice]=useState('0'),[deposit,setDeposit]=useState('0');
+ const [status,setStatus]=useState<BookingInput['status']>('confirmed'),[price,setPrice]=useState('0'),[deposit,setDeposit]=useState('0');
  const [busy,setBusy]=useState(false),[error,setError]=useState('');
  const [hideBusy,setHideBusy]=useState(false);
  const [assignments,setAssignments]=useState<Assignment[]>([]),[isRuocDau,setIsRuocDau]=useState(false);
@@ -34,7 +34,7 @@ export function NewBookingDialog({isAdmin,open,onClose,onCreated,user,staff,init
  const toggleStaff=(staffId:string,enabled:boolean)=>setAssignments(prev=>enabled?[...prev,{id:staffId,task:defaultStaffTask(staff.find(s=>s.id===staffId)?.role||'',eventType),cost:0,locType:isRuocDau?'Nhà trai':''}]:prev.filter(a=>a.id!==staffId));
  const changeAssignment=(staffId:string,key:'task'|'cost'|'locType',value:string|number)=>setAssignments(prev=>prev.map(a=>a.id===staffId?{...a,[key]:value}:a));
  const availability=useStaffAvailability(user,{date,start,end,isRuocDau,startTrai,startGai,status},open&&step==='form');
- useEffect(()=>{if(open){setHideBusy(false);setSelectedWardrobe([]);setWardrobeQuery('');setWardrobeAck(false);setWardrobeStart(/^\d{4}-\d{2}-\d{2}$/.test(initialDate||'')?initialDate!:today());setWardrobeEnd(/^\d{4}-\d{2}-\d{2}$/.test(initialDate||'')?initialDate!:today());setWardrobeError('');setCreatedEventId(null);setId(crypto.randomUUID());setError('');setAssignments([]);setStep('main');setWeddingSubtype('');setName('');setDate(/^\d{4}-\d{2}-\d{2}$/.test(initialDate||'')?initialDate!:today());setEventType('Cưới');setIsRuocDau(false);setStart('08:00');setEnd('17:00');}},[open,initialDate]);
+ useEffect(()=>{if(open){setHideBusy(false);setSelectedWardrobe([]);setStatus('confirmed');setWardrobeQuery('');setWardrobeAck(false);setWardrobeStart(/^\d{4}-\d{2}-\d{2}$/.test(initialDate||'')?initialDate!:today());setWardrobeEnd(/^\d{4}-\d{2}-\d{2}$/.test(initialDate||'')?initialDate!:today());setWardrobeError('');setCreatedEventId(null);setId(crypto.randomUUID());setError('');setAssignments([]);setStep('main');setWeddingSubtype('');setName('');setDate(/^\d{4}-\d{2}-\d{2}$/.test(initialDate||'')?initialDate!:today());setEventType('Cưới');setIsRuocDau(false);setStart('08:00');setEnd('17:00');}},[open,initialDate]);
  const chooseService=(type:string,subtype='')=>{
   if(type==='Cưới'&&!subtype){setStep('wedding');return;}
   const ruocDau=type==='Cưới'&&subtype==='Rước Dâu';
@@ -124,7 +124,7 @@ export function NewBookingDialog({isAdmin,open,onClose,onCreated,user,staff,init
       </div>}
       {!isRuocDau&&<label className={`${lab} sm:col-span-2`}>Địa điểm<MapLocationInput className={field} user={user} maxLength={1500} value={location} onChange={setLocation} placeholder="Nhập địa chỉ hoặc dán link Google Maps"/></label>}
       {!isRuocDau&&<label className={lab}>Số điện thoại<input type="tel" maxLength={50} className={field} value={phone} onChange={e=>setPhone(e.target.value)}/></label>}
-      <label className={lab}>Trạng thái<select className={field} value={status} onChange={e=>setStatus(e.target.value as BookingInput['status'])}><option value="pending">Chờ xác nhận</option><option value="confirmed">Đã chốt</option><option value="done">Hoàn thành</option><option value="cancelled">Đã hủy</option></select></label>
+      <label className={lab}>Trạng thái<select className={field} value={status} onChange={e=>setStatus(e.target.value as BookingInput['status'])}><option value="confirmed">Đã chốt</option><option value="done">Hoàn thành</option><option value="cancelled">Đã hủy</option></select></label>
       <label className={lab}>Giá trị hợp đồng (VND)<VndInput className={field} value={Number(price)} onValueChange={v=>setPrice(String(v))}/></label>
       <label className={lab}>Đã cọc (VND)<VndInput className={field} value={Number(deposit)} onValueChange={v=>setDeposit(String(v))}/></label>
       <label className={`${lab} sm:col-span-2`}>Ghi chú<textarea rows={2} maxLength={1000} className={field} value={note} onChange={e=>setNote(e.target.value)}/></label>

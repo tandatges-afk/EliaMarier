@@ -11,7 +11,7 @@ import {conceptKey,uploadConcept,deleteConcept,signConceptRead} from '@/lib/serv
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
 type Module='wardrobe'|'makeup';
-const UUID=/^[0-9a-f-]{36}$/i,WARDROBE=/^[a-f0-9]{64}$/i;
+const UUID=/^(?:[0-9a-f-]{36}|pk[a-f0-9]{32})$/i,WARDROBE=/^[a-f0-9]{64}$/i; // Accept linked package makeup records.
 const PHOTO=/^[0-9a-f-]{36}\.(jpg|png|webp)$/i;
 const respond=(v:object,status=200)=>NextResponse.json(v,{status,headers:{'Cache-Control':'private, no-store'}});
 const valid=(kind:string,id:string)=>(kind==='wardrobe'&&WARDROBE.test(id))||(kind==='makeup'&&UUID.test(id));

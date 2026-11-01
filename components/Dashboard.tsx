@@ -54,19 +54,19 @@ const localToday = () => { const parts=new Intl.DateTimeFormat('en-CA',{timeZone
 const money = formatVnd;
 const dateDisplay = (s:string) => /^\d{4}-\d{2}-\d{2}$/.test(s) ? `${s.slice(8,10)}/${s.slice(5,7)}/${s.slice(0,4)}` : s;
 const pages: {key:Tab;name:string;sub:string;icon:typeof LayoutDashboard}[] = [
-  {key:'overview',name:'Tổng quan',sub:'Tình hình vận hành',icon:LayoutDashboard},
-  {key:'calendar',name:'Lịch quay & chụp',sub:'Lịch và công việc',icon:CalendarDays},
-  {key:'wedding',name:'Lịch trang phục',sub:'Lịch thuê và kho trang phục',icon:Shirt},
-  {key:'catalog',name:'Catalog trang phục',sub:'Chọn mẫu, xem ảnh và tình trạng thuê',icon:Images},
-  {key:'makeup',name:'Lịch Makeup',sub:'Ngày giờ và layout khách hàng',icon:Sparkles},
-  {key:'decor',name:'Lịch Decor',sub:'Dựng, tiệc và thu hồi',icon:CalendarDays},
-  {key:'packages',name:'Chọn gói',sub:'Tư vấn và lập gói dịch vụ',icon:FolderOpen},
-  {key:'staff',name:'Đội ngũ',sub:'Nhân sự, phân công',icon:Users},
-  {key:'payroll',name:'Lương thợ',sub:'Theo dõi thanh toán',icon:WalletCards},
-  {key:'delivery',name:'Bàn giao sản phẩm',sub:'Ảnh, video, đánh giá',icon:FolderOpen},
-  {key:'analytics',name:'Báo cáo',sub:'Thống kê vận hành',icon:ChartNoAxesCombined},
-  {key:'system',name:'Hệ thống',sub:'Hoạt động, sức khỏe và dữ liệu',icon:Settings2},
-  {key:'accounts',name:'Tài khoản nhân viên',sub:'Admin quản lý',icon:ShieldCheck}
+ {key:'overview',name:'Tổng quan',sub:'Tình hình vận hành',icon:LayoutDashboard},
+ {key:'catalog',name:'Catalog',sub:'Xem mẫu và lịch thuê',icon:Images},
+ {key:'packages',name:'Chọn gói',sub:'Dịch vụ và lịch theo gói',icon:FolderOpen},
+ {key:'calendar',name:'Lịch quay chụp',sub:'Phân công nhân sự',icon:CalendarDays},
+ {key:'decor',name:'Lịch Decor',sub:'Thi công và tháo dỡ',icon:CalendarDays},
+ {key:'wedding',name:'Lịch trang phục',sub:'Lịch thuê và kho trang phục',icon:Shirt},
+ {key:'makeup',name:'Lịch Makeup',sub:'Giờ và layout',icon:Sparkles},
+ {key:'delivery',name:'Bàn giao sản phẩm',sub:'Ảnh và video',icon:FolderOpen},
+ {key:'staff',name:'Đội ngũ',sub:'Nhân sự, phân công',icon:Users},
+ {key:'payroll',name:'Lương thợ',sub:'Theo dõi thanh toán',icon:WalletCards},
+ {key:'analytics',name:'Báo cáo',sub:'Thống kê vận hành',icon:ChartNoAxesCombined},
+ {key:'system',name:'Hệ thống',sub:'Sức khỏe và dữ liệu',icon:Settings2},
+ {key:'accounts',name:'Tài khoản nhân viên',sub:'Phân quyền',icon:ShieldCheck}
 ];
 function Status({status}:{status:StudioEvent['status']}) {
   return <span className={`status status-${status}`}><i />{statusName(status)}</span>;
@@ -340,7 +340,7 @@ export function Dashboard(){
         {tab==='wedding'&&<><div className="elia-v5-subtabs" role="group" aria-label="Trang phục"><button className={wardrobeMode==='rentals'?'active':''} onClick={()=>setWardrobeMode('rentals')}><CalendarDays size={17}/> Lịch trang phục</button><button className={wardrobeMode==='inventory'?'active':''} onClick={()=>setWardrobeMode('inventory')}><Shirt size={17}/> Kho trang phục</button></div>{wardrobeMode==='inventory'?<WeddingCatalogManager user={user}/>:<WeddingWardrobe user={user}/>}</>}
         {tab==='catalog'&&<WardrobeShowroom user={user}/>}
         {['decor','makeup','packages'].includes(tab)&&<div key={tab}><EliaOperationsSchedules user={user} role={access as OfficeRole} module={tab as 'decor'|'makeup'|'packages'}/></div>}
-        {data&&tab==='calendar'&&access==='leader_photo'&&<PhotoLeaderPlanner user={user} events={filtered} onChanged={()=>setReload(x=>x+1)}/>}
+        {data&&tab==='calendar'&&access==='leader_photo'&&<PhotoLeaderPlanner user={user} events={filtered} staff={data.staff} onChanged={()=>setReload(x=>x+1)}/>}
 
         {data && (canAdmin||access==='sale') && !['system','wedding','catalog','makeup','decor','packages'].includes(tab) && <>
           {tab==='overview'&&<>
@@ -350,7 +350,7 @@ export function Dashboard(){
               {[
                 {label:'Tổng số lịch',value:stats?.total||0,hint:'Trong tháng được chọn',icon:CalendarDays,kind:'purple'},
                 {label:'Lịch đã chốt',value:stats?.confirmed||0,hint:'Sẵn sàng triển khai',icon:BadgeCheck,kind:'blue'},
-                {label:'Chờ xác nhận',value:stats?.pending||0,hint:'Cần theo dõi',icon:Clock3,kind:'orange'},
+                {label:'Hoàn thành',value:stats?.done||0,hint:'Đã thực hiện',icon:BadgeCheck,kind:'green'},
                 {label:'Chưa thanh toán đủ',value:stats?.unpaid||0,hint:'Theo giá trị booking',icon:CircleDollarSign,kind:'green'}
               ].map(c=>{const Icon=c.icon;return <div className="metric" key={c.label}><div className={`metric-icon ${c.kind}`}><Icon size={19}/></div><span>{c.label}</span><strong>{c.value.toString().padStart(2,'0')}</strong><small>{c.hint}</small></div>;})}
             </div>
@@ -359,7 +359,7 @@ export function Dashboard(){
               {nextEvents.length?<div className="upcoming-items">{nextEvents.map(e=><button className="upcoming-row" onClick={()=>setSelected(e.id)} key={e.id}><div className="upcoming-date"><b>{e.date.slice(-2)}</b><span>TH {Number(e.date.slice(5,7))}</span></div><div className="upcoming-info"><strong>{e.name}</strong><span>{e.start||'--:--'} · {e.eventType||'Khác'}</span></div><Status status={e.status}/><ChevronRight size={17}/></button>)}</div>:<Empty title="Chưa có lịch sắp tới" detail="Các sự kiện sắp diễn ra trong tháng sẽ xuất hiện tại đây."/>}</section>
               <section className="surface"><div className="surface-title"><div><span className="eyebrow">THÁNG NÀY</span><h3>Tổng hợp trạng thái</h3></div><button className="month-navigator" onClick={()=>setMonth(shiftMonth(month,-1))} title="Tháng trước"><ChevronLeft size={16}/></button><span className="month-chip">{month.slice(5)}/{month.slice(0,4)}</span><button className="month-navigator" onClick={()=>setMonth(shiftMonth(month,1))} title="Tháng sau"><ChevronRight size={16}/></button></div>
                 <div className="status-breakdown">{[
-                  ['Đã chốt',stats?.confirmed||0,'var(--blue)'],['Chờ xác nhận',stats?.pending||0,'var(--amber)'],['Hoàn thành',stats?.done||0,'var(--green)']
+                  ['Đã chốt',stats?.confirmed||0,'var(--blue)'],['Hoàn thành',stats?.done||0,'var(--green)'],['Đã hủy',stats?.cancelled||0,'var(--amber)']
                 ].map(([name,count,color])=><div className="breakdown-row" key={String(name)}><div className="breakdown-copy"><span>{name}</span><strong>{count}</strong></div><div className="progress-track"><div style={{width:`${stats?.total?Number(count)/stats.total*100:0}%`,background:String(color)}}/></div></div>)}<div className="breakdown-foot"><span>Nhân sự hoạt động</span><strong>{data.staff.length} thành viên</strong></div></div>
               </section></div>
             <section className="surface"><div className="surface-title"><div><span className="eyebrow">DANH SÁCH LỊCH HẸN</span><h3>Danh sách lịch trong tháng</h3></div><button onClick={()=>goTab('calendar')} className="text-action">Xem lịch tháng <ArrowRight size={16}/></button></div><EventTable events={filtered} staff={data.staff} compact onSelect={setSelected} onCustomer={setCustomerEvent}/></section>

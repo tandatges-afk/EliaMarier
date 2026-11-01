@@ -10,6 +10,8 @@ import { normaliseEvents } from '@/lib/domain/studio';
 import { scheduleConflict, recordValues } from '@/lib/domain/scheduling';
 import { withScheduleLock, dailyEvents, dailyBlackouts, ScheduleError } from '@/lib/server/staff-scheduling';
 import {authenticatedOffice,safeOfficeEvent} from '@/lib/server/office-auth';
+import {taskOptionsFor} from '@/lib/domain/staff-task';
+import {moduleRef} from '@/lib/server/elia-operations';
 import {isAdmin} from '@/lib/server/firebase-admin';
 import { encryptBookingArchive, ArchiveConfigurationError } from '@/lib/server/booking-archive';
 import type { DecodedIdToken } from 'firebase-admin/auth';
@@ -64,13 +66,13 @@ async function handlePATCH(request:Request,{params}:{params:Promise<{id:string}>
   const actorRole=(await authenticatedOffice(request,['admin','sale','leader_photo']))?.role;
   if(actorRole==='leader_photo'){
     const candidate=await request.clone().json().catch(()=>null);const keys=candidate?.changes&&typeof candidate.changes==='object'&&!Array.isArray(candidate.changes)?Object.keys(candidate.changes):[];
-    if(!keys.length||keys.some((key:string)=>!['date','start','end','startTrai','startGai'].includes(key)))return json({error:'Leader quay chụp chỉ được sửa ngày và giờ.'},403);
+    if(!keys.length||keys.some((key:string)=>!['date','start','end','startTrai','startGai','assignments'].includes(key)))return json({error:'Leader quay chụp chỉ được sửa ngày và giờ.'},403);
   }
   if(Number(request.headers.get('content-length')||0)>20_480)return json({error:'Yêu cầu quá lớn'},413);
   let body:unknown;try{body=await request.json();}catch{return json({error:'JSON không hợp lệ'},400);}
   if(!body||typeof body!=='object'||Array.isArray(body))return json({error:'Yêu cầu không hợp lệ'},400);
   const payload=body as Record<string,unknown>;
-  if(!isAdmin(user)&&payload.changes&&typeof payload.changes==='object'&&Object.prototype.hasOwnProperty.call(payload.changes,'assignments'))return json({error:'Chỉ Admin được phân công nhân sự và sửa chi phí nhân sự'},403);
+  if(!isAdmin(user)&&actorRole!=='leader_photo'&&payload.changes&&typeof payload.changes==='object'&&Object.prototype.hasOwnProperty.call(payload.changes,'assignments'))return json({error:'Chỉ Admin được phân công nhân sự và sửa chi phí nhân sự'},403);
   if(!requireVersion(payload.expectedVersion))return json({error:'Thiếu mã phiên bản lịch. Hãy tải lại chi tiết trước khi sửa.'},400);
   try {
     const {id}=await params;
@@ -85,6 +87,22 @@ async function handlePATCH(request:Request,{params}:{params:Promise<{id:string}>
     let committedForAudit:Record<string,unknown>|null=null;
     const action=async()=>{
     const located=await findBooking(id);
+    // Leader may choose the crew but never change or even submit its pay rates.
+    if(actorRole==='leader_photo'&&payload.changes&&typeof payload.changes==='object'&&'assignments' in payload.changes){
+      const changes=payload.changes as Record<string,unknown>;
+      if(!Array.isArray(changes.assignments))return json({error:'Danh sách phân công không hợp lệ'},422);
+      const existing=recordValues(located.value.assignments);
+      const costs=new Map(existing.map(a=>[String(a.id),Number(a.cost)||0]));
+      for(const item of changes.assignments){
+        if(!item||typeof item!=='object'||Array.isArray(item)||!Number.isInteger(item.cost)||item.cost!==0)return json({error:'Leader không có quyền chỉnh chi phí nhân sự'},403);
+      }
+      changes.assignments=changes.assignments.map((entry:{id:string;task:string;locType:string;cost:number})=>({...entry,cost:costs.get(String(entry.id))||0}));
+    }
+    if(located.value.sourcePackageId){
+      const allowed=['date','start','end','startTrai','startGai','assignments'];
+      const proposedKeys=payload.changes&&typeof payload.changes==='object'&&!Array.isArray(payload.changes)?Object.keys(payload.changes):[];
+      if(proposedKeys.some(key=>!allowed.includes(key)))return json({error:'Lịch thuộc gói: chỉ thay đổi thời gian và phân công tại đây. Thông tin, trạng thái và tiền phải chỉnh trong Chọn gói.'},409);
+    }
     const validated=validateEventChanges(payload.changes,located.value);
     if(!validated.ok)return json({error:validated.message,code:'BOOKING_VALIDATION'},422);
     if(located.version!==payload.expectedVersion)return json({error:'Lịch đã thay đổi ở một phiên khác. Hãy tải lại trước khi lưu.'},409);
@@ -94,11 +112,18 @@ async function handlePATCH(request:Request,{params}:{params:Promise<{id:string}>
     // Validate references against authoritative staff list, not the UI's cached roster.
     if(validated.value.assignments){
       const snap=await adminDatabase().ref('studioPlanner_v1/staff').once('value');
-      const staff=Object.values(snap.val()||{}) as {id?:string;active?:boolean}[];
+      const staff=Object.values(snap.val()||{}) as {id?:string;active?:boolean;role?:string}[];
       const allowed=new Set(staff.filter(s=>s.active!==false).map(s=>String(s?.id||'')));
       const old=Array.isArray(located.value.assignments)?located.value.assignments:Object.values(located.value.assignments||{});
       for(const record of old as {id?:unknown}[])if(record?.id!=null)allowed.add(String(record.id));
       if(validated.value.assignments.some(s=>!allowed.has(s.id)))return json({error:'Có nhân sự không tồn tại trong Firebase.'},422);
+      if(actorRole==='leader_photo'){
+        const roster=new Map(staff.map(s=>[String(s.id),String((s as {role?:string}).role||'')]));
+        for(const assigned of validated.value.assignments){
+          const options=taskOptionsFor(roster.get(assigned.id)||'','Cưới');
+          if(options.length&&!options.includes(assigned.task))return json({error:'Công việc thợ không phù hợp chuyên môn.'},422);
+        }
+      }
     }
     // Server-side overlap checks must use the latest data while the VNext write lease is held.
     const proposed={...located.value,...validated.value};
@@ -118,6 +143,20 @@ async function handlePATCH(request:Request,{params}:{params:Promise<{id:string}>
     });
     const committed=saved.record;
     committedForAudit=committed;
+    // Keep the timeline in the source package aligned when Leader edits the specialist event.
+    if(committed.sourcePackageId&&committed.sourceEntryId&&(['date','start','end','startTrai','startGai'].some(key=>Object.hasOwn(validated.value,key)))){
+      const pkgId=String(committed.sourcePackageId),entryId=String(committed.sourceEntryId);
+      let packageUpdated=false;
+      try{
+       const tx=await moduleRef('packages').child(pkgId).transaction(raw=>{
+        if(!raw?.services?.photo?.entries?.some((entry:{id:string})=>entry.id===entryId))return;
+        const entries=raw.services.photo.entries.map((entry:{id:string;[key:string]:unknown})=>entry.id===entryId?{...entry,date:committed.date,start:committed.start,end:committed.end,startTrai:committed.startTrai,startGai:committed.startGai}:entry);
+        return {...raw,services:{...raw.services,photo:{...raw.services.photo,entries}},updatedAt:Date.now()};
+       },undefined,false);
+       packageUpdated=tx.committed;
+      }catch(syncError){console.error('[event] linked package sync failed',syncError);}
+      if(!packageUpdated)return json({error:'Đã lưu lịch chuyên môn nhưng chưa đồng bộ được về gói. Hãy kiểm tra và đồng bộ lại ngay.',code:'PACKAGE_SYNC_RECONCILE',event:normaliseEvents([committed])[0]},409);
+    }
     return json({success:true,id,version:saved.version,event:normaliseEvents([committed])[0]});
     };
     // Lock the destination date. The optimistic version check inside action protects stale reads.
@@ -138,6 +177,7 @@ async function handleDELETE(request:Request,{params}:{params:Promise<{id:string}
   if(!requireVersion(expectedVersion)||typeof confirmName!=='string')return json({error:'Cần mã phiên bản và tên lịch xác nhận xóa.'},400);
   try {
     const {id}=await params;const item=await findBooking(id);
+    if(item.value.sourcePackageId)return json({error:'Lịch này thuộc Chọn gói. Hãy chuyển gói sang Đã hủy thay vì xóa lịch con.'},409);
     if(String(item.value.name)!==confirmName.trim())return json({error:'Tên lịch xác nhận không trùng khớp'},422);
     if(item.version!==expectedVersion)return json({error:'Lịch đã thay đổi. Tải lại trước khi xóa.'},409);
     if(await hasActiveWeddingEventLinks(id))return json({error:'Lịch đang liên kết mã trang phục. Hãy hủy các lượt giữ mã váy trước khi xóa lịch.',code:'WARDROBE_LINK_ACTIVE'},409);

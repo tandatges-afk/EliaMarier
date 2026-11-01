@@ -48,7 +48,7 @@ export async function GET(request: Request) {
       // Static branch names and classification only. Never log raw SDK errors or data.
       console.error('[dashboard-read]',{requestId,failures:errors});
       return errorResponse({
-        error:`Không thể đọc PostgreSQL tại: ${errors.map(x=>x.source).join(', ')} (${errors.map(x=>x.reason).join(', ')}). Kiểm tra PostgreSQL, dữ liệu và chỉ mục.`,
+        error:`Không thể đọc Firebase Realtime Database tại: ${errors.map(x=>x.source).join(', ')} (${errors.map(x=>x.reason).join(', ')}). Kiểm tra Firebase, dữ liệu và chỉ mục.`,
         code:'DASHBOARD_READ_FAILED'
       },503,requestId);
     }
@@ -66,18 +66,18 @@ export async function GET(request: Request) {
         completedProductIds:Object.entries(productState[event.id]||{}).filter(([,v])=>Boolean(v?.completedAt)).map(([id])=>id)
       }));
       const payload: DashboardData = {
-        month, events:events.map(event=>actorRole==='leader_photo'?{...safeOfficeEvent(event,actorRole),price:0,deposit:0,products:[]}:safeOfficeEvent(event,actorRole)), staff: actorRole==='leader_photo'?[]:normaliseStaff(snapshot(1).val()),
+        month, events:events.map(event=>actorRole==='leader_photo'?{...safeOfficeEvent(event,actorRole),price:0,deposit:0,products:[]}:safeOfficeEvent(event,actorRole)), staff: normaliseStaff(snapshot(1).val()),
         payroll:actorRole==='admin'?normalisePayroll(snapshot(2).val()):{}, audit:actorRole==='admin'?normaliseAudit(snapshot(3).val()):[],
         eventLimitReached: events.length >= 1001, generatedAt: new Date().toISOString()
       };
       return NextResponse.json(payload,{headers:{...NO_CACHE,'X-Amorri-Request-Id':requestId}});
     } catch(err) {
       console.error('[dashboard-parse]',{requestId,code:'DASHBOARD_DATA_INVALID',kind:err instanceof Error?err.name:'unknown'});
-      return errorResponse({error:'Đã đọc PostgreSQL nhưng không xử lý được dữ liệu Dashboard. Kiểm tra cấu trúc bản ghi.',code:'DASHBOARD_DATA_INVALID'},503,requestId);
+      return errorResponse({error:'Đã đọc Firebase nhưng không xử lý được dữ liệu Dashboard. Kiểm tra cấu trúc bản ghi.',code:'DASHBOARD_DATA_INVALID'},503,requestId);
     }
   } catch(err) {
     console.error('[dashboard-init]',{requestId,code:'DASHBOARD_CONNECTION_FAILED',reason:classifyFirebaseError(err)});
-    return errorResponse({error:'Không kết nối được PostgreSQL trên VPS.',code:'DASHBOARD_CONNECTION_FAILED'},503,requestId);
+    return errorResponse({error:'Không kết nối được Firebase Realtime Database.',code:'DASHBOARD_CONNECTION_FAILED'},503,requestId);
   }
 }
 

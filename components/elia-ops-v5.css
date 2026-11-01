@@ -83,3 +83,41 @@
 .elia-v5-muted{padding:14px;font-size:12px;color:#8c8174}
 @media(max-width:800px){.elia-v5-dialog-content{grid-template-columns:1fr}.elia-v5-calendar-side{border-left:0;border-top:1px solid #e6dfd5}.elia-v5-gallery-stage{height:43vh;min-height:240px}.elia-v5-showroom-dialog,.elia-v5-customer-modal{max-height:95vh}.elia-v5-showroom-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.elia-v5-product>strong{font-size:13px}.elia-v5-form-grid{grid-template-columns:1fr}.elia-v5-form-grid label.wide{grid-column:auto}.elia-v5-gallery-bottom{flex-direction:column}}
 @media(max-width:430px){.elia-v5-modal-backdrop{padding:4px}.elia-v5-gallery{padding:10px}.elia-v5-gallery-stage{min-height:220px}.elia-v5-showroom-dialog,.elia-v5-customer-modal{border-radius:12px}.elia-v5-product-photo{aspect-ratio:1/1.15}.elia-v5-filter select{max-width:none;width:100%}.elia-v5-subtabs{width:100%}.elia-v5-subtabs button{flex:1;justify-content:center;font-size:12px}}
+/* V6: calendars and flexible service editor */
+.elia-v6-money-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:20px;border-top:1px solid #e9e0d4;padding-top:15px}
+.elia-v6-money{display:flex;flex-direction:column;gap:7px;font-size:12px;color:#574d42;font-weight:700}
+.elia-v6-money>div{border:1px solid #ddd6ca;border-radius:9px;background:#fff;min-height:44px}
+.elia-v6-money input{height:44px;text-align:left;padding:0 12px}
+.elia-v6-money-grid .elia-v5-price-line{grid-column:1/-1}
+.elia-v6-entries{display:grid;gap:13px;margin:14px 0}
+.elia-v6-entry{border:1px solid #e3d8c9;border-radius:12px;padding:14px;min-width:0;background:#fff}
+.elia-v6-entry legend{padding:0 7px;font-size:13px;font-weight:750;color:#574a3e}
+.elia-v6-entry select,.elia-v5-form-grid select,.elia-v6-folder select{min-height:43px;padding:9px 11px;border:1px solid #ddd6ca;border-radius:9px;background:white;color:#302b26;width:100%}
+.elia-v6-remove{display:flex;align-items:center;gap:6px;color:#b03434;font-size:12px;padding:9px;margin-top:8px}
+.elia-v6-crew{grid-column:1/-1;display:grid;gap:6px;background:#f7f3ed;padding:12px;border-radius:9px}
+.elia-v6-crew small{color:#836f5b;font-weight:400}
+.elia-v6-crew .elia-v5-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.elia-v6-folder{display:flex;gap:12px;align-items:center;max-width:370px;font-size:13px}
+.elia-v6-calendar{border:1px solid #e7ded1;border-radius:15px;background:#fff;margin-bottom:20px;overflow:hidden}
+.elia-v6-calendar>header{display:flex;justify-content:space-between;padding:13px 18px;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid #ede6dc}
+.elia-v6-calendar>header strong,.elia-v6-calendar>header>div{display:flex;align-items:center;gap:9px}
+.elia-v6-calendar button{cursor:pointer}
+.elia-v6-calendar>header button{padding:7px 11px;border:1px solid #e8dfd2;border-radius:8px;font-size:12px}
+.elia-v6-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+.elia-v6-days>strong{background:#f9f6f2;text-align:center;padding:11px 4px;font-size:11px;color:#887666}
+.elia-v6-days>button{min-height:77px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;border-top:1px solid #f1ece5;border-right:1px solid #f1ece5;padding:10px;font-size:12px}
+.elia-v6-days>button.outside{opacity:.42}.elia-v6-days>button.booked{background:#f0f6ff}.elia-v6-days>button.active{background:#e6e0d3;outline:2px solid #8e7859;outline-offset:-2px}
+.elia-v6-days>button small{background:#dac9aa;border-radius:7px;padding:3px 6px;color:#4d3a21;font-size:10px}
+.elia-v6-calendar>footer{padding:9px 15px;font-size:12px;color:#7d6d5c;display:flex;justify-content:space-between}
+.elia-v6-calendar>footer button{color:#755c39;text-decoration:underline}
+.ops29-event.elia-v6-unassigned{background:#f7e8f1!important;border:1px solid #c94b92!important;border-left:4px solid #a8226c!important;color:#822057!important}
+.ops29-event.elia-v6-unassigned em{font-size:10px;font-style:normal;color:#a8226c;font-weight:750}
+.elia-v6-crew-alert{border-left:5px solid #b52872;background:#fff6fa}
+.elia-v6-crew-editor{display:grid;gap:10px}
+.elia-v6-crew-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#f9f5f0;padding:10px;border-radius:9px}
+.elia-v6-crew-row label{display:flex;align-items:center;gap:8px;flex:1;font-size:13px}
+.elia-v6-crew-row select{padding:9px;border:1px solid #ded4c4;border-radius:9px;max-width:220px}
+@media(max-width:650px){.elia-v6-money-grid,.elia-v5-form-grid,.elia-v6-crew .elia-v5-form-grid{grid-template-columns:1fr}.elia-v6-days>button{min-height:55px;padding:5px;font-size:11px}.elia-v6-days>button small{font-size:8px}.elia-v6-crew-row select{width:100%;max-width:none}}
+
+.elia-v6-advisory{display:flex;gap:8px;align-items:center;font-size:12px;line-height:1.5;color:#8a4b28;background:#fff5e8;border:1px solid #ecd5b7;border-radius:9px;padding:12px}
+.elia-v6-advisory input{width:18px;height:18px;flex:none}.elia-v6-wardrobe-warning{grid-column:1/-1}

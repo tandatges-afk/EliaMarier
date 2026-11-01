@@ -1,4 +1,4 @@
-export type EventStatus = 'pending' | 'confirmed' | 'done' | 'cancelled';
+export type EventStatus = 'confirmed' | 'done' | 'cancelled';
 export type RecordList<T> = Record<string, T> | T[] | null | undefined;
 export interface Staff { id: string; name: string; role: string; authUid?: string; active?: boolean; }
 export interface Assignment {
@@ -17,6 +17,11 @@ export interface StudioEvent {
   status: EventStatus;
   location: string;
   assignments: Assignment[];
+  requiredCrew?: Record<string,number>;
+  isRuocDau?: boolean;
+  startTrai?: string;
+  startGai?: string;
+  sourcePackageId?: string;
   price: number;
   deposit: number;
   products: { id: string; name: string; mediaType: string }[];

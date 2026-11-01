@@ -24,8 +24,8 @@ export function normaliseEvents(raw: unknown): StudioEvent[] {
       return {
         id: txt(e.id, 160), name: txt(e.name), date: txt(e.date, 10), start: txt(e.start, 8),
         end: txt(e.end, 8), eventType: txt(e.eventType),
-        status: ['pending','confirmed','done','cancelled'].includes(status) ? status : 'pending',
-        location: txt(e.location, 240), assignments, price: amount(e.price), deposit: amount(e.deposit),
+        status: ['confirmed','done','cancelled'].includes(status) ? status : 'confirmed',
+        location: txt(e.location, 240), assignments, isRuocDau:e.isRuocDau===true, startTrai:txt(e.startTrai,8), startGai:txt(e.startGai,8), requiredCrew:(e.requiredCrew&&typeof e.requiredCrew==='object'?e.requiredCrew:{} ) as Record<string,number>, sourcePackageId:txt(e.sourcePackageId,160), price: amount(e.price), deposit: amount(e.deposit),
         products: values<Record<string, unknown>>(e.products).filter(p => p.id != null).map(p => ({
           id: txt(p.id, 160), name: txt(p.name), mediaType: txt(p.mediaType, 32)
         }))
@@ -49,7 +49,7 @@ export function normaliseAudit(raw: unknown): AuditEvent[] {
   })).sort((a,b)=>b.createdAt - a.createdAt).slice(0, 20);
 }
 export function statusName(status: EventStatus): string {
-  return {pending:'Chờ xác nhận', confirmed:'Đã chốt', done:'Hoàn thành', cancelled:'Đã hủy'}[status];
+  return {confirmed:'Đã chốt', done:'Hoàn thành', cancelled:'Đã hủy'}[status];
 }
 export function monthEvents(events: StudioEvent[], month: string): StudioEvent[] {
   return events.filter(e => e.date.startsWith(month)).sort((a,b) =>
@@ -60,7 +60,8 @@ export function getMonthStats(events: StudioEvent[], month: string) {
   return {
     total: list.length,
     confirmed: list.filter(x=>x.status==='confirmed').length,
-    pending: list.filter(x=>x.status==='pending').length,
+    pending: 0,
+    cancelled: list.filter(x=>x.status==='cancelled').length,
     done: list.filter(x=>x.status==='done').length,
     unpaid: list.filter(x=>x.status!=='cancelled' && x.price>x.deposit).length,
   };

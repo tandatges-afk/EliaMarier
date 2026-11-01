@@ -6,7 +6,7 @@ export type StaffBusy = {kind:'event'|'blackout';label:string;eventId?:string};
 type Lookup = {key:string;busy:Record<string,StaffBusy>;loading:boolean;error:string};
 /** Advisory admin-only view; saving always rechecks conflicts on the server under a date lock. */
 export function useStaffAvailability(user:User, params:{date:string;start:string;end:string;isRuocDau:boolean;startTrai?:string;startGai?:string;excludeId?:string;status?:string},enabled:boolean){
- const query=useMemo(()=>new URLSearchParams({date:params.date,start:params.start,end:params.end,isRuocDau:params.isRuocDau?'true':'false',startTrai:params.startTrai||'',startGai:params.startGai||'',excludeId:params.excludeId||'',status:params.status||'pending'}).toString(),[params.date,params.start,params.end,params.isRuocDau,params.startTrai,params.startGai,params.excludeId,params.status]);
+ const query=useMemo(()=>new URLSearchParams({date:params.date,start:params.start,end:params.end,isRuocDau:params.isRuocDau?'true':'false',startTrai:params.startTrai||'',startGai:params.startGai||'',excludeId:params.excludeId||'',status:params.status||'confirmed'}).toString(),[params.date,params.start,params.end,params.isRuocDau,params.startTrai,params.startGai,params.excludeId,params.status]);
  const [state,setState]=useState<Lookup>({key:'',busy:{},loading:false,error:''});
  useEffect(()=>{
   if(!enabled)return;

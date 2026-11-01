@@ -3,7 +3,7 @@ export type EditableChanges = {
   name?: string; date?: string; start?: string; end?: string; eventType?: string;
   location?: string; phone?: string; note?: string;
   startTrai?:string;startGai?:string;locTrai?:string;locGai?:string;phoneTrai?:string;phoneGai?:string;
-  status?: 'pending'|'confirmed'|'done'|'cancelled';
+  status?: 'confirmed'|'done'|'cancelled';
   price?: number; deposit?: number;
   assignments?: { id:string; task:string; cost:number; locType:string }[];
 };
@@ -56,7 +56,7 @@ export function validateEventChanges(raw: unknown, current: Record<string,unknow
     if(key==='name'&&input.length<2)return {ok:false,message:'Tên dự án phải từ 2 ký tự'};
     if(key==='date'&&!isCalendarDate(input))return {ok:false,message:'Ngày không hợp lệ'};
     if(['start','end','startTrai','startGai'].includes(key)&&!timeRe.test(input))return {ok:false,message:'Giờ phải theo HH:mm'};
-    if(key==='status'&&!['pending','confirmed','done','cancelled'].includes(input))return {ok:false,message:'Trạng thái không hợp lệ'};
+    if(key==='status'&&!['confirmed','done','cancelled'].includes(input))return {ok:false,message:'Trạng thái không hợp lệ'};
     if(current.isRuocDau===true && ['start','location','phone'].includes(key))
       return {ok:false,message:'Lịch rước dâu: chỉnh giờ, địa điểm, số điện thoại theo từng nhà'};
     if(current.isRuocDau!==true && ['startTrai','startGai','locTrai','locGai','phoneTrai','phoneGai'].includes(key))

@@ -1,18 +1,27 @@
+/** Compatibility checks retained from V5 after V6 changes to package schema and roles. */
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {validateModule,serviceLabels} from '../lib/domain/elia-operations.ts';
-const read=file=>readFileSync(new URL(`../${file}`,import.meta.url),'utf8');
-const decor={brideName:'Linh',groomName:'Minh',bridePhone:'0901234567',groomPhone:'0909998888',contactPhone:'0901234567',brideAddress:'Nhà dâu A',groomAddress:'Nhà rể B',partyDate:'2026-12-12',installDate:'2026-12-11',pickupDate:'2026-12-13',price:20000000,deposit:5000000,notes:'Trang trí đỏ'};
-const makeup={customerName:'Lan',phone:'0901234567',makeupDate:'2026-12-12',makeupTime:'04:30',layout:'Tóc buộc nhẹ',notes:''};
-const wedding={brideName:'Linh',groomName:'Minh',bridePhone:'0901234567',groomPhone:'',contactPhone:'0901234567',brideAddress:'Cần Thơ',groomAddress:'',notes:'',services:{photo:{date:'2026-12-12',time:'08:00',endDate:'',endTime:'',location:'Nhà dâu',notes:''},makeup:{date:'2026-12-11',time:'03:00',endDate:'',endTime:'',location:'',notes:''}}};
-test('decor preserves two homes and calculates remaining amount',()=>{const v=validateModule('decor',decor);assert.equal(v.balance,15000000);assert.equal(v.brideAddress,'Nhà dâu A');assert.equal(v.groomPhone,'0909998888');});
-test('decor rejects impossible dates and deposit greater than total',()=>{assert.throws(()=>validateModule('decor',{...decor,pickupDate:'2026-12-10'}));assert.throws(()=>validateModule('decor',{...decor,deposit:30000000}));});
-test('makeup validates schedule and layout, rejects invalid time',()=>{const v=validateModule('makeup',makeup);assert.equal(v.layout,makeup.layout);assert.throws(()=>validateModule('makeup',{...makeup,makeupTime:'99:00'}));});
-test('package supports independent dates for different services and shared contacts',()=>{const v=validateModule('packages',wedding);assert.notEqual(v.services.photo.date,v.services.makeup.date);assert.equal(v.contactPhone,'0901234567');assert.equal(Object.keys(serviceLabels).length,4);});
-test('package rejects missing services and invalid service date',()=>{assert.throws(()=>validateModule('packages',{...wedding,services:{}}));assert.throws(()=>validateModule('packages',{...wedding,services:{photo:{...wedding.services.photo,date:'2026-02-30'}}}));});
-test('role checks default-deny leaders from legacy office APIs',()=>{const code=read('lib/server/office-auth.ts');assert.match(code,/allowed:readonly OfficeRole\[\]=\['admin','sale'\]/);assert.match(code,/leader_makeup/);assert.match(code,/leader_decor/);assert.match(code,/leader_photo/);});
-test('leader photo mutation restricts fields to schedule',()=>{const code=read('app/api/events/[id]/route.ts');assert.match(code,/leader_photo/);assert.match(code,/\['date','start','end','startTrai','startGai'\]/);});
-test('wardrobe supports authenticated uploads and caps photos at eight',()=>{const code=read('app/api/office-uploads/route.ts');assert.match(code,/photos\.length>=8/);assert.match(code,/await authorized\(req,kind/);assert.match(code,/image\/webp/);assert.doesNotMatch(code,/public\/uploads/);});
-test('catalog supports cyclic gallery, swipe and booked red-X calendar',()=>{const code=read('components/WardrobeShowroom.tsx');assert.match(code,/rotate\(-1\)/);assert.match(code,/rotate\(1\)/);assert.match(code,/onPointerUp/);assert.match(code,/weddingConflict/);assert.match(read('components/elia-ops-v5.css'),/\.elia-v5-mini-day\.busy/);});
-test('graduation removed and new operations tabs added',()=>{assert.doesNotMatch(read('components/NewBookingDialog.tsx'),/Tốt nghiệp/);const code=read('components/Dashboard.tsx');for(const tab of ['catalog','makeup','decor','packages'])assert.match(code,new RegExp(`key:'${tab}'`));});
+const read=(file)=>readFileSync(new URL(`../${file}`,import.meta.url),'utf8');
+test('default office API denies leader access unless explicitly granted',()=>{
+ const code=read('lib/server/office-auth.ts');
+ assert.match(code,/allowed:readonly OfficeRole\[\]=\['admin','sale'\]/);
+ for(const role of ['leader_makeup','leader_photo','leader_decor'])assert.match(code,new RegExp(role));
+});
+test('wardrobe upload remains authenticated, private, and capped at eight',()=>{
+ const code=read('app/api/office-uploads/route.ts');
+ assert.match(code,/photos\.length>=8/);
+ assert.match(code,/await authorized\(req,kind/);
+ assert.match(code,/image\/webp/);
+ assert.doesNotMatch(code,/public\/uploads/);
+});
+test('catalog retains cyclic gallery, swipe and rental mini-calendar',()=>{
+ const code=read('components/WardrobeShowroom.tsx');
+ assert.match(code,/rotate\(-1\)/);assert.match(code,/rotate\(1\)/);
+ assert.match(code,/onPointerUp/);assert.match(code,/weddingConflict/);
+});
+test('graduation remains removed and catalog is first after overview',()=>{
+ assert.doesNotMatch(read('components/NewBookingDialog.tsx'),/Tốt nghiệp/);
+ const code=read('components/Dashboard.tsx');
+ assert.ok(code.indexOf("key:'overview'")<code.indexOf("key:'catalog'"));
+});

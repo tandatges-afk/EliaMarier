@@ -15,7 +15,8 @@
     "validate": "npm run typecheck && npm run test && npm run test:unit && npm run check:static",
     "test:elia-v5": "node --experimental-strip-types --test tests/elia-v5-features.test.mjs",
     "test:firebase-restore": "node --experimental-strip-types --test tests/elia-v5-firebase-restore.test.mjs",
-    "rules:proposal": "node scripts/prepare-rtdb-rules.mjs"
+    "rules:proposal": "node scripts/prepare-rtdb-rules.mjs",
+    "test:elia-v6": "node --experimental-strip-types --test tests/elia-v6-operations.test.mjs"
   },
   "engines": {
     "node": "22.x"

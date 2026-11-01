@@ -39,7 +39,7 @@ export function EventEditor({isAdmin,id,staff,user,onClose,onChanged,onDataUpdat
  const [productNotice,setProductNotice]=useState('');
  const [now,setNow]=useState(()=>Date.now());
  const [hideBusy,setHideBusy]=useState(false);
- const availability=useStaffAvailability(user,{date:form.date||'',start:form.start||'',end:form.end||'',isRuocDau:detail?.isRuocDau===true,startTrai:form.startTrai||'',startGai:form.startGai||'',excludeId:id||'',status:form.status||'pending'},Boolean(id&&detail));
+ const availability=useStaffAvailability(user,{date:form.date||'',start:form.start||'',end:form.end||'',isRuocDau:detail?.isRuocDau===true,startTrai:form.startTrai||'',startGai:form.startGai||'',excludeId:id||'',status:form.status||'confirmed'},Boolean(id&&detail));
  useEffect(()=>{const timer=setInterval(()=>setNow(Date.now()),30_000);return()=>clearInterval(timer);},[]);
  useEffect(()=>{
    if(!id){setDetail(null);setVersion('');setError('');setConfirmName('');return;}
@@ -241,7 +241,7 @@ export function EventEditor({isAdmin,id,staff,user,onClose,onChanged,onDataUpdat
       </div>}
       <label className={`${label} sm:col-span-2`}>Tên khách hàng / dự án<input className={input} required minLength={2} value={form.name||''} onChange={e=>set('name',e.target.value)}/></label>
       <label className={label}>Ngày thực hiện<input className={input} type="date" required value={form.date||''} onChange={e=>set('date',e.target.value)}/></label>
-      <label className={label}>Trạng thái<select className={input} value={form.status||'pending'} onChange={e=>set('status',e.target.value as NonNullable<EditableChanges['status']>)}><option value="pending">Chờ xác nhận</option><option value="confirmed">Đã chốt</option><option value="done">Hoàn thành</option><option value="cancelled">Đã hủy</option></select></label>
+      <label className={label}>Trạng thái<select className={input} value={form.status||'confirmed'} onChange={e=>set('status',e.target.value as NonNullable<EditableChanges['status']>)}><option value="confirmed">Đã chốt</option><option value="done">Hoàn thành</option><option value="cancelled">Đã hủy</option></select></label>
       {!detail.isRuocDau&&<><label className={label}>Bắt đầu<input className={input} type="time" required value={form.start||''} onChange={e=>set('start',e.target.value)}/></label><label className={label}>Kết thúc<input className={input} type="time" required value={form.end||''} onChange={e=>set('end',e.target.value)}/></label></>}
       <label className={`${label} sm:col-span-2`}>Dịch vụ<input className={input} value={form.eventType||''} maxLength={80} onChange={e=>{const next=e.target.value;setForm(previous=>({...previous,eventType:next,assignments:isAdmin?(previous.assignments||[]).map(a=>({...a,task:taskForService(a.task,roster.find(s=>s.id===a.id)?.role||'',next)})):previous.assignments}));}}/></label>
       {!detail.isRuocDau&&<><label className={`${label} sm:col-span-2`}>Địa điểm<MapLocationInput user={user} className={input} maxLength={1500} value={form.location||''} onChange={v=>set('location',v)}/></label><label className={`${label} sm:col-span-2`}>Số điện thoại<input className={input} value={form.phone||''} maxLength={50} onChange={e=>set('phone',e.target.value)}/></label></>}

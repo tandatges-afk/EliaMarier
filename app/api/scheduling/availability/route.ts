@@ -12,10 +12,10 @@ export async function GET(request:Request){
  const isRuocDau=q.get('isRuocDau')==='true';
  const startTrai=q.get('startTrai')||'',startGai=q.get('startGai')||'';
  const excludeId=q.get('excludeId')||'';
- const status=q.get('status')||'pending';
+ const status=q.get('status')||'confirmed';
  if(!isCalendarDate(date)||!CLOCK.test(end)||(!isRuocDau&&!CLOCK.test(start))||
     (isRuocDau&&(!CLOCK.test(startTrai)||!CLOCK.test(startGai)))||
-    (excludeId&&!eventIdValid(excludeId))||!['pending','confirmed','done','cancelled'].includes(status))
+    (excludeId&&!eventIdValid(excludeId))||!['confirmed','done','cancelled'].includes(status))
   return json({error:'Ngày, giờ hoặc mã lịch không hợp lệ'},400);
  try{
   const [events,blackouts,staffSnapshot]=await Promise.all([dailyEvents(date),dailyBlackouts(date),staffRef().once('value')]);
