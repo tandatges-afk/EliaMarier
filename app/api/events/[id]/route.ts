@@ -47,7 +47,8 @@ async function audit(action:string,user:DecodedIdToken,event:Record<string,unkno
 async function handleGET(request:Request,{params}:{params:Promise<{id:string}>}){
   const user=await requireAdmin(request);if(user instanceof Response)return user;
   try{const {id}=await params;const item=await findBooking(id);
-    const deliveryCompleted=Boolean((await adminDatabase().ref(`studioPlanner_v1/deliveryState/${id}`).once('value')).val()?.completedAt);
+    const deliveryState=(await adminDatabase().ref(`studioPlanner_v1/deliveryState/${id}`).once('value')).val() as {completedAt?:number}|null;
+    const deliveryCompleted=Boolean(deliveryState?.completedAt);
     const productState=(await adminDatabase().ref(`studioPlanner_v1/deliveryProductState/${id}`).once('value')).val()||{};
     const completedProductIds=Object.entries(productState as Record<string,{completedAt?:unknown}>).filter(([,value])=>Boolean(value?.completedAt)).map(([productId])=>productId);
     const role=(await authenticatedOffice(request,['admin','sale','leader_photo']))?.role;

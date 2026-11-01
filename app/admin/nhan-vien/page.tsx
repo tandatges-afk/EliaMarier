@@ -35,7 +35,7 @@ export default function OfficeAccountsPage(){
      setAccess(detectedRole==='admin'?'admin':'denied');
     }catch(e){if(alive){setAccess('error');setError(e instanceof Error?e.message:'Không xác minh được quyền Admin');}}
    })();
-  },e=>{if(alive){setAccess('error');setError(e.message||'Lỗi đăng nhập');}});
+  },e=>{if(alive){setAccess('error');setError(e instanceof Error?e.message:'Lỗi đăng nhập');}});
   return()=>{alive=false;unsubscribe();};
  },[]);
  return <main className="elia-admin-accounts-page">

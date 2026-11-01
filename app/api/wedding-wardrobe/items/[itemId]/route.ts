@@ -34,7 +34,8 @@ export async function PATCH(request:Request,{params}:{params:Promise<{itemId:str
   },undefined,false);
   if(!tx.committed)throw new WeddingFault(denied==='NOT_FOUND'?404:409,denied==='CODE_EXISTS'?'Mã trang phục đã tồn tại.':'Không tìm thấy mã trang phục. ',denied||'UPDATE_FAILED');
   await weddingAudit(actor.token,'WEDDING_ITEM_UPDATED',itemId,'Sửa mã trang phục');
-  return json({item:asWeddingItem(tx.snapshot.child(itemId).val())});
+  const updatedItems=tx.snapshot.val() as Record<string,unknown>|null;
+  return json({item:asWeddingItem(updatedItems?.[itemId])});
  }catch(e){if(e instanceof AdminAuthFailure){const failure=publicAuthFailure(e);return json(failure,failure.status);}const f=publicWeddingError(e);return json(f,f.status);}
 }
 export async function DELETE(request:Request,{params}:{params:Promise<{itemId:string}>}){

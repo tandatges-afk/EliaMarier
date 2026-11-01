@@ -7,7 +7,7 @@ export const OFFICE_ROLES:OfficeRole[]=['admin','sale','leader_makeup','leader_p
 export const ROLE_LABELS:Record<OfficeRole,string>={admin:'Admin',sale:'Sale',leader_makeup:'Leader Makeup',leader_photo:'Leader Quay chụp',leader_decor:'Leader Decor'};
 export async function officeRole(token:DecodedIdToken):Promise<OfficeRole|null>{
  if(isAdmin(token))return 'admin';
- const record=(await adminDatabase().ref('studioPlanner_v1/officeAccounts').child(token.uid).once('value')).val();
+ const record=(await adminDatabase().ref('studioPlanner_v1/officeAccounts').child(token.uid).once('value')).val() as {active?:boolean;role?:string}|null;
  if(!record||record.active!==true)return null;
  // Migration compatibility: old receptionist accounts retain their former sale abilities.
  const role=record.role==='receptionist'?'sale':record.role;

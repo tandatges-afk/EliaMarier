@@ -12,7 +12,7 @@ export default function AdminVideoR2Page(){
   useEffect(()=>{
     try{
       const unsub=onAuthStateChanged(browserAuth(),current=>{setUser(current);setLoading(false);},err=>{
-        setError(err.message||'Không thể xác thực');setLoading(false);
+        setError(err instanceof Error?err.message:'Không thể xác thực');setLoading(false);
       });
       return ()=>unsub();
     }catch(err){setError(err instanceof Error?err.message:'Lỗi xác thực');setLoading(false);}

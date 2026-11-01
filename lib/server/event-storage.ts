@@ -26,16 +26,16 @@ export async function findBooking(id:string):Promise<LocatedBooking>{
     const direct=await events.child(id).once('value');
     const directValue=direct.val();
     const candidates:{key:string;value:Record<string,unknown>}[]=[];
-    if(directValue && typeof directValue==='object' && !Array.isArray(directValue) && String(directValue.id)===id){
-      candidates.push({key:id,value:directValue});
+    if(directValue && typeof directValue==='object' && !Array.isArray(directValue) && String((directValue as Record<string,unknown>).id)===id){
+      candidates.push({key:id,value:directValue as Record<string,unknown>});
     }
     // Even with direct key present, check whether a numeric legacy record
     // with the same ID exists. Never silently update one of two duplicates.
     const match=await events.orderByChild('id').equalTo(id).limitToFirst(3).once('value');
     match.forEach(child=>{
       const value=child.val(),key=String(child.key||'');
-      if(value && typeof value==='object' && !Array.isArray(value) && String(value.id)===id &&
-        !candidates.some(x=>x.key===key))candidates.push({key,value});
+      if(value && typeof value==='object' && !Array.isArray(value) && String((value as Record<string,unknown>).id)===id &&
+        !candidates.some(x=>x.key===key))candidates.push({key,value:value as Record<string,unknown>});
       return false;
     });
     if(candidates.length>1)throw new BookingStoreError(409,'Lịch bị trùng ID trong dữ liệu cũ. Mở /migration để kiểm tra, không thể sửa an toàn.');

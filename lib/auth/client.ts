@@ -19,7 +19,7 @@ export async function refreshAuth(){
 }
 export function onAuthStateChanged(authInstance:Auth,callback:Listener,onError?:(error:unknown)=>void){
  authInstance.listeners.add(callback);if(authInstance.started){if(authInstance.currentUser)callback(authInstance.currentUser);else void refreshAuth().catch(onError);} else browserAuth();
- return ()=>authInstance.listeners.delete(callback);
+ return ()=>{authInstance.listeners.delete(callback);};
 }
 export async function signInWithEmailAndPassword(_authInstance:Auth,email:string,password:string){
  const response=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password}),credentials:'same-origin',cache:'no-store'});
