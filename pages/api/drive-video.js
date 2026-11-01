@@ -1,8 +1,8 @@
 /**
- * Amorri Studio 3.2.5 — VPS private playback authorization endpoint.
+ * Amorri Studio 3.2.5 — R2-only authorization endpoint.
  * POST authenticates client grant and Drive membership, then returns a short-lived
- * VPS signed local URL for an existing 1080p rendition. This route NEVER returns
- * video bytes, Next.js streaming proxies or Drive redirects.
+ * R2 presigned URL for an existing 1080p rendition. This route NEVER returns
+ * video bytes, Vercel proxy tickets or Drive redirects.
  */
 import {findR2Video,r2PlaybackTtl} from '../../lib/server/r2-private-video.mjs';
 import {checkDrive1080} from '../../lib/server/video-1080-policy.mjs';
@@ -52,7 +52,7 @@ async function getDriveMetadata(id, token) {
   return r.json();
 }
 async function loadGalleryEvent(id) {
-  // PostgreSQL stores booking records, separate from Google Drive.
+  // Firebase Admin uses its own credentials, separate from Drive.
   // findBooking resolves old numeric RTDB keys using the event.id index and rejects duplicates.
   try {return (await findBooking(id)).value;}
   catch (error) {
@@ -114,7 +114,7 @@ export default async function handler(req,res){
  res.setHeader('X-Content-Type-Options','nosniff');
  res.setHeader('Referrer-Policy','no-referrer');
  // Retire every legacy video GET/HEAD ticket, including previously issued tickets.
- if(req.method==='GET'||req.method==='HEAD')return sendError(res,410,'Đường phát video cũ không còn hỗ trợ. Vui lòng mở lại link bàn giao.','VIDEO_R2_ONLY');
+ if(req.method==='GET'||req.method==='HEAD')return sendError(res,410,'Video qua Vercel đã ngừng hỗ trợ. Vui lòng mở lại link bàn giao.','VIDEO_R2_ONLY');
  if(req.method!=='POST')return sendError(res,405,'Method Not Allowed');
  try{
   if(!process.env.DRIVE_SERVICE_ACCOUNT_JSON)throw fail(503,'Drive credentials missing','config');
@@ -123,7 +123,7 @@ export default async function handler(req,res){
   catch{return sendError(res,400,'Invalid JSON body');}
   const id=String(body.id||'').trim(),eventId=String(body.clientGallery||''),productId=String(body.productId||'');
   if(!FILE_ID.test(id)||!GALLERY_ID.test(eventId)||!GALLERY_ID.test(productId))return sendError(res,400,'Invalid video, gallery or product ID');
-  if(!body.deliveryToken)return sendError(res,401,'Private delivery token required');
+  if(!body.deliveryToken)return sendError(res,401,'Private delivery token required for R2');
   try{const grant=await verifyDeliveryGrant(eventId,body.deliveryToken,false);assertGrantProduct(grant,productId);}
   catch{return sendError(res,401,'Invalid or expired delivery link');}
   const [metaResult,event]=await Promise.all([
@@ -131,18 +131,18 @@ export default async function handler(req,res){
    loadGalleryEvent(eventId)
   ]);
   const {token,meta}=metaResult;
-  if(!meta.mimeType?.startsWith('video/'))return sendError(res,415,'Only video files can use private playback');
+  if(!meta.mimeType?.startsWith('video/'))return sendError(res,415,'Only video files can use R2 playback');
   if(meta.capabilities?.canDownload===false)return sendError(res,403,'Download not permitted');
   if(!await authorized(eventId,productId,id,token,meta,event))return sendError(res,403,'Video does not belong to this product');
   const policy=checkDrive1080(meta);
   if(!policy.ok)return sendError(res,409,policy.message,policy.code);
   let r2;
   try{r2=await findR2Video(id,meta);}
-  catch(error){console.error('[vps-video]',{code:String(error?.message||'MEDIA_UNAVAILABLE')});return sendError(res,503,'VPS video storage unavailable');}
-  if(!r2)return sendError(res,409,'Chưa có bản MP4 1080p trên máy chủ. Admin cần đồng bộ video.','VIDEO_NOT_MIRRORED');
-  return res.status(200).json({success:true,url:r2.url,expiresIn:r2PlaybackTtl(process.env),mimeType:'video/mp4',transport:'vps',quality:'1080p'});
+  catch(error){console.error('[r2-video]',{code:String(error?.message||'R2_UNAVAILABLE')});return sendError(res,503,'R2 video storage unavailable');}
+  if(!r2)return sendError(res,409,'Chưa có bản MP4 1080p trên R2. Admin cần đợi đồng bộ hoàn tất.','VIDEO_NOT_MIRRORED');
+  return res.status(200).json({success:true,url:r2.url,expiresIn:r2PlaybackTtl(process.env),mimeType:'video/mp4',transport:'r2',quality:'1080p'});
  }catch(error){
-  console.error('[vps-video-auth]',{step:error?.step||'unknown',status:error?.status||500,code:String(error?.code||'error')});
-  return sendError(res,error?.status||500,[503,504].includes(error?.status)?error.message:'Không cấp được link video 1080p');
+  console.error('[r2-video-auth]',{step:error?.step||'unknown',status:error?.status||500,code:String(error?.code||'error')});
+  return sendError(res,error?.status||500,[503,504].includes(error?.status)?error.message:'Không cấp được link R2 1080p');
  }
 }

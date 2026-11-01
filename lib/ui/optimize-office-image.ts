@@ -1,4 +1,4 @@
-/** Client-only downscale for small VPS disks. Server validates the original bytes again. */
+/** Client-only downscale for temporary media storage. Server validates the original bytes again. */
 export async function optimizeOfficePhoto(file:File):Promise<File>{
  if(typeof createImageBitmap!=='function'||typeof document==='undefined')return file;
  let bitmap:ImageBitmap|null=null;

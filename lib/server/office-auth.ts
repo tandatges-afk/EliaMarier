@@ -1,4 +1,4 @@
-import type {DecodedIdToken} from '@/lib/server/vps-auth';
+import type {DecodedIdToken} from 'firebase-admin/auth';
 import {adminDatabase,authenticatedUser,isAdmin} from './firebase-admin';
 
 export type OfficeRole='admin'|'sale'|'leader_makeup'|'leader_photo'|'leader_decor';

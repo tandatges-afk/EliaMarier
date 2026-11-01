@@ -9,7 +9,7 @@ import {formatTimecode,parseTimecode} from '@/lib/domain/timecode';
 type Comment={id:string;name:string;text:string;seconds:number;createdAt:number;resolved:boolean};
 const time=formatTimecode;
 const REVIEWER_NAME_KEY='amorri:delivery-reviewer-name';
-type PlaybackMode='loading'|'vps'|'blocked';
+type PlaybackMode='loading'|'r2'|'blocked';
 function VideoReview({eventId,productId,file,token}:{eventId:string;productId:string;file:DeliveryMedia;token:string}){
   const [src,setSrc]=useState(''),[mode,setMode]=useState<PlaybackMode>('loading');
   const [error,setError]=useState(''),[comments,setComments]=useState<Comment[]>([]);
@@ -29,21 +29,21 @@ function VideoReview({eventId,productId,file,token}:{eventId:string;productId:st
       const v=await r.json();if(!r.ok)throw new Error(v.error||'Không tải được góp ý');setComments(v.comments||[]);
     }catch(err){setError(err instanceof Error?err.message:'Không tải được góp ý');}
   },[endpoint,token]);
-  const issueVPSPlayback=useCallback(async()=>{
+  const issueR2Playback=useCallback(async()=>{
     const r=await fetch('/api/drive-video',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({id:file.id,clientGallery:eventId,productId,deliveryToken:token})});
-    const b=await r.json();if(!r.ok)throw new Error(b.error||'Không cấp được đường dẫn VPS');
-    if(b.transport!=='vps'||b.quality!=='1080p'||typeof b.url!=='string')throw new Error('Chỉ hỗ trợ video 1080p từ máy chủ Élia');
+    const b=await r.json();if(!r.ok)throw new Error(b.error||'Không cấp được đường dẫn R2');
+    if(b.transport!=='r2'||b.quality!=='1080p'||typeof b.url!=='string')throw new Error('Chỉ hỗ trợ video 1080p từ Cloudflare R2');
     return b.url as string;
   },[eventId,productId,file.id,token]);
-  const prepareVPS=useCallback(async()=>{
+  const prepareR2=useCallback(async()=>{
     const w=file.width||0,h=file.height||0;
     if(w>0&&h>0&&!(w>=h?w===1920&&h<=1080:h===1920&&w<=1080)){
       setMode('blocked');setError('Video không đúng chuẩn 1080p. Studio phải xuất MP4 1920×1080 và tải file mới lên Drive trước khi phát.');return;
     }
-    try{const url=await issueVPSPlayback();setSrc(url);setMode('vps');}
+    try{const url=await issueR2Playback();setSrc(url);setMode('r2');}
     catch(e){setMode('blocked');setError(e instanceof Error?e.message:'Không thể phát video 1080p.');}
-  },[issueVPSPlayback,file.width,file.height]);
+  },[issueR2Playback,file.width,file.height]);
   const onNativeError=useCallback(async(e:SyntheticEvent<HTMLVideoElement>)=>{
     const node=e.currentTarget;
     const errorCode=node.error?.code||0;
@@ -51,32 +51,32 @@ function VideoReview({eventId,productId,file,token}:{eventId:string;productId:st
     lastPosition.current=Number.isFinite(node.currentTime)?node.currentTime:seconds;
     if(retryCount.current===0){
       retryCount.current=1;
-      setError('Đang làm mới đường dẫn bảo mật máy chủ Élia…');
+      setError('Đang làm mới đường dẫn bảo mật Cloudflare R2…');
       try {
-        const fresh=await issueVPSPlayback();
-        setSrc(fresh);setMode('vps');return;
-      }catch(err){setError(`Không cấp lại được link VPS 1080p: ${err instanceof Error?err.message:'Lỗi kết nối'}.`);}
+        const fresh=await issueR2Playback();
+        setSrc(fresh);setMode('r2');return;
+      }catch(err){setError(`Không cấp lại được link R2 1080p: ${err instanceof Error?err.message:'Lỗi kết nối'}.`);}
     }
     // The browser's MediaError is NOT proof that an MP4 codec is unsupported.
-    // Distinguish upstream VPS/HTTP failures from decoding problems where possible.
+    // Distinguish upstream R2/HTTP failures from decoding problems where possible.
     let reason='';
     try{
       const probe=await fetch(source,{method:'GET',headers:{Range:'bytes=0-0'},cache:'no-store'});
       try{await probe.body?.cancel();}catch{}
-      if(!probe.ok)reason=`VPS trả HTTP ${probe.status}`;
+      if(!probe.ok)reason=`R2 trả HTTP ${probe.status}`;
       else if(errorCode===4)reason='định dạng/codec không tương thích hoặc dữ liệu nguồn không đọc được';
       else if(errorCode===3)reason='giải mã video không thành công (codec hoặc file gốc)';
       else if(errorCode===2)reason='kết nối bị gián đoạn';
       else reason='không thể phát trực tiếp';
-    }catch{reason='kết nối tới VPS gặp lỗi';}
-    setMode('blocked');setError(`Phát 1080p từ VPS không thành công (${reason}). Liên hệ Studio để kiểm tra file 1080p.`);
-  },[issueVPSPlayback,src,seconds]);
+    }catch{reason='kết nối tới R2 gặp lỗi';}
+    setMode('blocked');setError(`Phát 1080p từ R2 không thành công (${reason}). Liên hệ Studio để kiểm tra file 1080p.`);
+  },[issueR2Playback,src,seconds]);
   useEffect(()=>{
-    // VPS-only playback: video access is authorized when the signed URL is issued.
+    // R2-only playback: video access is authorized when the signed URL is issued.
     retryCount.current=0;lastPosition.current=0;
-    void prepareVPS();
+    void prepareR2();
     void load();
-  },[prepareVPS,load]);
+  },[prepareR2,load]);
   const send=async(e:FormEvent)=>{e.preventDefault();
     const timestamp=parseTimecode(timeDraft);
     if(timestamp===null){setError('Nhập mốc hợp lệ như 00:32 hoặc 01:02:15.');return;}
@@ -86,7 +86,7 @@ function VideoReview({eventId,productId,file,token}:{eventId:string;productId:st
       const value=await r.json();if(!r.ok)throw new Error(value.error||'Không thể gửi bình luận');setMessage('');await load();
     }catch(err){setError(err instanceof Error?err.message:'Không thể gửi');}finally{setSending(false);}
   };
-  const native=mode==='vps';
+  const native=mode==='r2';
   return <section className="delivery-video"><div className="delivery-video-main"><h4>{file.name}</h4>
     {native?<video ref={mediaRef} src={src} controls playsInline preload="metadata"
       onTimeUpdate={e=>{const t=Math.floor(e.currentTarget.currentTime);lastPosition.current=t;if(!editingTime.current)updateSeconds(t);}}

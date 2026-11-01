@@ -49,7 +49,7 @@ export default function OfficeAccountsPage(){
   {access==='sign-in'&&<section className="surface" style={{padding:24}}>Bạn chưa đăng nhập. <a href="/" style={{textDecoration:'underline'}}>Đăng nhập Admin ở trang chủ</a>, sau đó mở lại trang này.</section>}
   {access==='denied'&&<section className="surface" style={{padding:24}} role="alert">
     <strong>Không có quyền quản lý tài khoản nhân viên.</strong>
-    <p>API xác định vai trò đang đăng nhập: <code>{role}</code>. Để hiển thị trang này, tài khoản phải có quyền Admin trong PostgreSQL hoặc UID phải nằm trong biến cấu hình VPS <code>AMORRI_ADMIN_UIDS</code>.</p>
+    <p>API xác định vai trò đang đăng nhập: <code>{role}</code>. Để hiển thị trang này, tài khoản phải có quyền Admin trong Firebase hoặc UID phải nằm trong biến cấu hình <code>AMORRI_ADMIN_UIDS</code>.</p>
     <p>Nếu đây là tài khoản Admin, kiểm tra biến môi trường Production, Redeploy, rồi đăng xuất/đăng nhập lại.</p>
   </section>}
   {access==='error'&&<section className="surface" style={{padding:24}} role="alert"><strong>Không kiểm tra được quyền đăng nhập.</strong><p>{error}</p></section>}

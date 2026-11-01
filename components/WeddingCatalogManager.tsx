@@ -17,7 +17,7 @@ type FoldersResponse = {folders: WeddingFolder[]};
 const emptyDraft = (): Draft => ({code:'',folderId:''});
 
 function readableFailure(status:number, contentType:string, body:unknown, endpoint:string):string {
-  if(status===404) return `Chưa tìm thấy API ${endpoint} trên VPS (404). Hãy kiểm tra bản build và dịch vụ Next.js.`;
+  if(status===404) return `Chưa tìm thấy API ${endpoint} trên website (404). Hãy kiểm tra bản build và dịch vụ Next.js.`;
   if(contentType.includes('application/json') && body && typeof body==='object' && 'error' in body && typeof body.error==='string') return body.error;
   if(status===401) return 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.';
   if(status===403) return 'Tài khoản không có quyền thực hiện thao tác này.';

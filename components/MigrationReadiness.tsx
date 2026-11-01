@@ -50,7 +50,7 @@ export default function MigrationReadiness({embedded=false}:{embedded?:boolean})
             <li>Lựa chọn ảnh: <strong>API mới xác thực quyền và kiểm tra nguồn Drive</strong></li>
             <li>Bình luận video: <strong>API mới hỗ trợ timeline; cần kiểm tra các link cũ trước khi đóng chuyển đổi</strong></li>
           </ul>
-          <p style={{fontSize:13,color:'#92400e',marginTop:16}}>Đã gỡ giao diện /studio. Không thay cấu hình production trước khi thử link cũ, PostgreSQL staging và các luồng ghi hiện tại.</p>
+          <p style={{fontSize:13,color:'#92400e',marginTop:16}}>Đã gỡ giao diện /studio. Không thay cấu hình production trước khi thử link cũ, Firebase staging và các luồng ghi hiện tại.</p>
         </section>
       </>}
       <section style={{background:'#fff',border:'1px solid #e2e8f0',padding:24,borderRadius:18,marginTop:20}}>

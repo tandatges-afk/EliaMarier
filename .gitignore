@@ -10,6 +10,7 @@ test-results/
 .env
 .env.*
 !.env.maps.example
+!.env.vps.example
 !.env.example
 *.pem
 *.p12
@@ -40,4 +41,3 @@ tmp/
 *service-account*.json
 *service_account*.json
 *google-credentials*.json
-!.env.vps.example

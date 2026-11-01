@@ -12,7 +12,7 @@ import { withScheduleLock, dailyEvents, dailyBlackouts, ScheduleError } from '@/
 import {authenticatedOffice,safeOfficeEvent} from '@/lib/server/office-auth';
 import {isAdmin} from '@/lib/server/firebase-admin';
 import { encryptBookingArchive, ArchiveConfigurationError } from '@/lib/server/booking-archive';
-import type { DecodedIdToken } from '@/lib/server/vps-auth';
+import type { DecodedIdToken } from 'firebase-admin/auth';
 
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
@@ -35,7 +35,7 @@ function fail(err:unknown){
     /network|ECONN|UNAVAILABLE/i.test(rawCode+' '+detail)?'DATABASE_CONNECTION_FAILED':
     'BOOKING_WRITE_FAILED';
   console.error('[booking-manager]',{code:errorCode,backendCode:rawCode,details:detail,at:new Date().toISOString()});
-  return json({error:'Không thể lưu lịch vào PostgreSQL. Kiểm tra dịch vụ database và nhật ký server.',code:errorCode},503);
+  return json({error:'Không thể lưu lịch vào Firebase. Kiểm tra dịch vụ database và nhật ký server.',code:errorCode},503);
 }
 async function audit(action:string,user:DecodedIdToken,event:Record<string,unknown>,id:string,detail:string){
   try {const key=randomUUID();await adminDatabase().ref('studioPlanner_v1/auditLogs').child(key).set({

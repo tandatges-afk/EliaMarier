@@ -113,7 +113,7 @@ function EventTable({events,staff,compact=false,onSelect,onCustomer}:{events:Stu
         <td><Status status={event.status}/></td>
         <td><button className="icon-link" onClick={()=>onSelect(event.id)} aria-label={`Chi tiết ${event.name}`} title="Xem và chỉnh sửa lịch"><ArrowRight size={16}/></button></td>
       </tr>;
-    }):<tr><td colSpan={compact?5:6}><Empty title="Chưa có lịch phù hợp" detail="Dữ liệu sẽ hiển thị sau khi được nhập vào PostgreSQL."/></td></tr>}</tbody></table></div>;
+    }):<tr><td colSpan={compact?5:6}><Empty title="Chưa có lịch phù hợp" detail="Dữ liệu sẽ hiển thị khi có lịch trong Firebase."/></td></tr>}</tbody></table></div>;
 }
 
 type ProductMediaSummary={id:string;name:string;kind:'video'|'image'|'mixed'|'unknown';videoCount:number;imageCount:number;selectedNames:string[];cover?:CoverInfo;warning?:string;r2?:{state:'ready'|'pending'|'invalid'|'error'|'none';readyCount:number;totalCount:number;message:string;checkedAt:number}};
@@ -323,7 +323,7 @@ export function Dashboard(){
         <div className="page-heading ops29-page-heading"><div><div className="eyebrow">ÉLIA MARIER · STUDIO WORKSPACE</div><h1>{title?.name}</h1><p>{title?.sub}{tab!=='system'?` · Tháng ${month.slice(5)}/${month.slice(0,4)}`:' · Chỉ tài khoản Admin'}</p></div><div className="heading-actions">{canSale&&tab!=='system'&&tab!=='wedding'&&tab!=='catalog'&&tab!=='makeup'&&tab!=='decor'&&tab!=='packages'&&<><button className="secondary-button" onClick={()=>setReload(x=>x+1)} disabled={loading}><RefreshCw size={16} className={loading?'spin':''}/> Đồng bộ</button><button className="primary-button" onClick={()=>createBooking()}><Plus size={18}/> Tạo lịch mới</button></>}</div></div>
         
         {requestError&&['overview','calendar','delivery','staff','analytics'].includes(tab)&&<div className="alert error"><ShieldCheck size={18}/><div><strong>Không tải được dữ liệu quản trị</strong><p>{requestError}</p>{data?.month===month&&<p>Đang hiển thị dữ liệu tải thành công gần nhất của tháng này; hãy thử Đồng bộ lại.</p>}<button type="button" className="secondary-button" onClick={()=>{setSystemSection('health');goTab('system');}}><Settings2 size={15}/> Mở Hệ thống</button></div></div>}
-        {data?.eventLimitReached&&<div className="alert notice">Dữ liệu tháng vượt giới hạn truy vấn 1001 bản ghi. Cần phân trang và chỉ mục PostgreSQL trước khi dùng báo cáo.</div>}
+        {data?.eventLimitReached&&<div className="alert notice">Dữ liệu tháng vượt giới hạn truy vấn 1001 bản ghi. Cần phân trang và chỉ mục Firebase trước khi dùng báo cáo.</div>}
         {canAdmin&&tab==='system'&&<section className="ops30-system-panel">
           <div className="ops30-system-tabs" role="group" aria-label="Chức năng hệ thống">
             <button type="button" className={systemSection==='health'?'active':''} onClick={()=>setSystemSection('health')}><ShieldCheck size={16}/> Sức khỏe</button>
@@ -334,9 +334,9 @@ export function Dashboard(){
           {systemSection==='health'&&<SystemHealth user={user}/>}
 
           {systemSection==='data'&&<MigrationReadiness embedded/>}
-          {systemSection==='activity'&&<section className="surface"><div className="surface-title"><h3>Nhật ký hoạt động gần đây</h3></div>{data?.audit.length?<div className="activity-list">{data.audit.map((a,i)=><div key={a.id||i} className="activity-item"><div className="activity-symbol"><Activity size={17}/></div><div><strong>{a.message||a.action||'Hoạt động'}</strong><p>{a.action} · {a.createdAt?new Date(a.createdAt<1e12?a.createdAt*1000:a.createdAt).toLocaleString('vi-VN'):'Chưa xác định'}</p></div></div>)}</div>:<Empty title="Chưa có nhật ký" detail="Nếu Dashboard chưa tải được, hãy mở Sức khỏe để chẩn đoán PostgreSQL."/>}</section>}
+          {systemSection==='activity'&&<section className="surface"><div className="surface-title"><h3>Nhật ký hoạt động gần đây</h3></div>{data?.audit.length?<div className="activity-list">{data.audit.map((a,i)=><div key={a.id||i} className="activity-item"><div className="activity-symbol"><Activity size={17}/></div><div><strong>{a.message||a.action||'Hoạt động'}</strong><p>{a.action} · {a.createdAt?new Date(a.createdAt<1e12?a.createdAt*1000:a.createdAt).toLocaleString('vi-VN'):'Chưa xác định'}</p></div></div>)}</div>:<Empty title="Chưa có nhật ký" detail="Nếu Dashboard chưa tải được, hãy mở Sức khỏe để chẩn đoán Firebase."/>}</section>}
         </section>}
-        {!data && loading && ['overview','calendar','delivery','staff','analytics'].includes(tab) && <div className="loading-state"><RefreshCw size={24} className="spin"/> Đang tải dữ liệu PostgreSQL…</div>}
+        {!data && loading && ['overview','calendar','delivery','staff','analytics'].includes(tab) && <div className="loading-state"><RefreshCw size={24} className="spin"/> Đang tải dữ liệu Firebase…</div>}
         {tab==='wedding'&&<><div className="elia-v5-subtabs" role="group" aria-label="Trang phục"><button className={wardrobeMode==='rentals'?'active':''} onClick={()=>setWardrobeMode('rentals')}><CalendarDays size={17}/> Lịch trang phục</button><button className={wardrobeMode==='inventory'?'active':''} onClick={()=>setWardrobeMode('inventory')}><Shirt size={17}/> Kho trang phục</button></div>{wardrobeMode==='inventory'?<WeddingCatalogManager user={user}/>:<WeddingWardrobe user={user}/>}</>}
         {tab==='catalog'&&<WardrobeShowroom user={user}/>}
         {['decor','makeup','packages'].includes(tab)&&<div key={tab}><EliaOperationsSchedules user={user} role={access as OfficeRole} module={tab as 'decor'|'makeup'|'packages'}/></div>}

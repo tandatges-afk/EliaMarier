@@ -68,7 +68,7 @@ export function EventEditor({isAdmin,id,staff,user,onClose,onChanged,onDataUpdat
      const booking=info.booking as {found?:boolean;legacyNumericKey?:boolean;httpStatus?:number}|undefined;
      const lock=info.schedule as {locked?:boolean;isExpired?:boolean;expiresInSeconds?:number}|undefined;
      setDiagnostic([
-       booking?.found===true?'Lịch còn trên PostgreSQL':booking?.found===false?'Không tìm thấy ID lịch trên VPS':'Chưa xác minh lịch',
+       booking?.found===true?'Lịch có trên Firebase':booking?.found===false?'Không tìm thấy ID lịch trên Firebase':'Chưa xác minh lịch',
        booking?.legacyNumericKey?'Dữ liệu cũ dùng khóa số':'',
        lock?.locked?`Đang khóa ngày này (tối đa ${lock.expiresInSeconds??'?'} giây còn lại)`:
          lock?.isExpired?'Khóa cũ đã hết hạn':'Không có khóa ngày đang hoạt động',
@@ -150,9 +150,9 @@ export function EventEditor({isAdmin,id,staff,user,onClose,onChanged,onDataUpdat
    // Ready for the next product; no second click on 'Tạo mới' required.
    setProductId('');setProductName('');setProductUrl('');setProductType('auto');
    setProductNotice(body.unchanged?'Không có thay đổi. Không cần đồng bộ lại.':body.syncReason==='unchanged-or-image'?'Đã lưu sản phẩm. Link Drive không đổi hoặc là sản phẩm ảnh nên không cần đồng bộ video.':body.syncQueued
-      ?'Đã lưu sản phẩm và đưa video 1080p vào hàng đợi đồng bộ trên VPS. Theo dõi ở Hệ thống → Video VPS.'
+      ?'Đã lưu sản phẩm. Theo dõi đồng bộ video 1080p trên R2.'
       :body.syncReason==='hourly-scan-only'
-      ?'Đã lưu sản phẩm. Worker VPS sẽ quét video tự động theo giờ.'
+      ?'Đã lưu sản phẩm. GitHub Actions sẽ quét và đồng bộ video định kỳ.'
       :'Đã lưu sản phẩm. Worker sẽ kiểm tra video trong lượt quét tiếp theo (nếu là sản phẩm video).');
    onDataUpdated?.();
    return body.version;
@@ -194,7 +194,7 @@ export function EventEditor({isAdmin,id,staff,user,onClose,onChanged,onDataUpdat
  }
  async function removeProduct(prod:{id:string;name:string;url:string;mediaType:string}){
   if(busy||!detail)return;
-  if(!window.confirm(`Xóa link bàn giao “${prod.name}” khỏi lịch? Lịch sử ảnh khách chọn và góp ý sẽ được giữ trong PostgreSQL.`))return;
+  if(!window.confirm(`Xóa link bàn giao “${prod.name}” khỏi lịch? Lịch sử ảnh khách chọn và góp ý sẽ được giữ trong Firebase.`))return;
   setBusy(true);setError('');setProductNotice('');
   try{
    const res=await authorizedRequest(user,`/api/events/${encodeURIComponent(eventId)}/products`,{
@@ -230,8 +230,8 @@ export function EventEditor({isAdmin,id,staff,user,onClose,onChanged,onDataUpdat
  }
  return <div className="fixed inset-0 z-[130] flex justify-end bg-slate-950/65" onMouseDown={e=>{if(e.target===e.currentTarget&&!busy)onClose();}}>
   <section role="dialog" aria-modal="true" aria-label="Chỉnh sửa lịch" className="elia-editor-panel flex h-full w-full max-w-2xl flex-col overflow-hidden bg-white shadow-2xl">
-   <header className="flex items-center justify-between border-b border-slate-200 px-5 py-4 sm:px-7"><div className="flex items-center gap-3"><CalendarClock className="text-indigo-600" size={23}/><div><h2 className="text-lg font-extrabold text-slate-900">Quản lý lịch</h2><p className="text-xs text-slate-500">PostgreSQL · kiểm tra phiên bản trước khi ghi</p></div></div><button type="button" onClick={onClose} disabled={busy} className="rounded-xl p-2 hover:bg-slate-100" aria-label="Đóng"><X size={20}/></button></header>
-   {loading?<p className="p-8 text-slate-500">Đang đọc chi tiết từ VPS…</p>:!detail?<div className="p-7 text-red-700" role="alert">{error||'Không thể đọc lịch'}<button className="mt-4 block rounded-lg border px-3 py-2 text-sm" onClick={()=>setReloadKey(x=>x+1)}>Thử tải lại lịch</button></div>:<>
+   <header className="flex items-center justify-between border-b border-slate-200 px-5 py-4 sm:px-7"><div className="flex items-center gap-3"><CalendarClock className="text-indigo-600" size={23}/><div><h2 className="text-lg font-extrabold text-slate-900">Quản lý lịch</h2><p className="text-xs text-slate-500">Firebase · kiểm tra phiên bản trước khi ghi</p></div></div><button type="button" onClick={onClose} disabled={busy} className="rounded-xl p-2 hover:bg-slate-100" aria-label="Đóng"><X size={20}/></button></header>
+   {loading?<p className="p-8 text-slate-500">Đang đọc chi tiết từ Firebase…</p>:!detail?<div className="p-7 text-red-700" role="alert">{error||'Không thể đọc lịch'}<button className="mt-4 block rounded-lg border px-3 py-2 text-sm" onClick={()=>setReloadKey(x=>x+1)}>Thử tải lại lịch</button></div>:<>
     <form id="edit-event-form" className="grid flex-1 grid-cols-1 content-start gap-4 overflow-y-auto p-5 sm:grid-cols-2 sm:p-7" onSubmit={save}>
       {detail.isRuocDau&&<div className="col-span-full grid gap-3 rounded-xl bg-amber-50 p-4 sm:grid-cols-2"><p className="col-span-full text-xs font-bold text-amber-800">Thông tin rước dâu hai nhà — chỉnh sửa trực tiếp tại đây</p>
        {(['startTrai','startGai'] as const).map((key,i)=><label key={key} className={label}>Giờ nhà {i===0?'trai':'gái'}<input type="time" required className={input} value={form[key]||''} onChange={e=>set(key,e.target.value)}/></label>)}
@@ -292,7 +292,7 @@ export function EventEditor({isAdmin,id,staff,user,onClose,onChanged,onDataUpdat
   {deleting&&detail&&<div className="fixed inset-0 z-[160] flex items-center justify-center bg-slate-950/75 p-4" onMouseDown={e=>{if(e.target===e.currentTarget&&!busy)setDeleting(false);}}>
     <section role="alertdialog" aria-modal="true" aria-label="Xác nhận xóa lịch" className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
       <h3 className="flex items-center gap-2 text-lg font-bold text-rose-800"><Trash2 size={20}/> Xóa lịch</h3>
-      <p className="mt-3 text-sm text-slate-700">Bạn đang xóa <strong>{detail.name}</strong>. Hệ thống phải lưu bản dự phòng có mã hóa trong PostgreSQL trước khi xóa.</p>
+      <p className="mt-3 text-sm text-slate-700">Bạn đang xóa <strong>{detail.name}</strong>. Hệ thống phải lưu bản dự phòng có mã hóa trên Firebase trước khi xóa.</p>
       <p className="mt-2 text-xs text-slate-500">Gõ chính xác tên lịch để xác nhận. Để giữ lại lịch, hãy chọn trạng thái “Đã hủy” thay vì xóa.</p>
       <label className={`${label} mt-4`}>Tên lịch xác nhận<input autoFocus className={input} value={confirmName} onChange={e=>setConfirmName(e.target.value)} placeholder={detail.name}/></label>
       {error&&<p role="alert" className="mt-3 rounded-lg bg-rose-50 p-3 text-xs text-rose-700">{error}</p>}

@@ -19,7 +19,7 @@ export default function AdminVideoR2Page(){
   },[]);
   return <main style={{maxWidth:1120,margin:'40px auto',padding:'0 20px'}}>
     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,marginBottom:22,flexWrap:'wrap'}}>
-      <h1 style={{fontSize:'1.5rem',fontWeight:700}}>Hệ thống / Video VPS</h1>
+      <h1 style={{fontSize:'1.5rem',fontWeight:700}}>Hệ thống / Video R2</h1>
       <a href="/" style={{textDecoration:'underline'}}>Về trang quản trị</a>
     </div>
     {loading?<p>Đang kiểm tra đăng nhập…</p>:

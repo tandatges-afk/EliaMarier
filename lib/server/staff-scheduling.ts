@@ -1,7 +1,7 @@
 import {officeRole} from '@/lib/server/office-auth';
 import { randomUUID } from 'node:crypto';
 import { adminDatabase, authenticatedUser, isAdmin, publicAuthFailure , localAccountAdmin } from './firebase-admin';
-import type { DecodedIdToken } from '@/lib/server/vps-auth';
+import type { DecodedIdToken } from 'firebase-admin/auth';
 import { recordValues, vietnamDate } from '@/lib/domain/scheduling';
 import { eventIdValid } from '@/lib/domain/event-management';
 import { NextResponse } from 'next/server';
@@ -11,7 +11,7 @@ export class ScheduleError extends Error { constructor(public status:number, mes
 export function failure(err:unknown){
   if(err instanceof ScheduleError)return json({error:err.message,code:err.code},err.status);
   console.error('[staff-scheduling]',err);
-  return json({error:'Không kết nối được PostgreSQL. Kiểm tra server logs.',code:'SCHEDULE_DATABASE_ERROR'},503);
+  return json({error:'Không kết nối được Firebase. Kiểm tra server logs.',code:'SCHEDULE_DATABASE_ERROR'},503);
 }
 export async function identity(request:Request,adminOnly:boolean|'office'=false):Promise<DecodedIdToken|Response>{
   try {
@@ -137,7 +137,7 @@ export async function dailyBlackouts(date:string){
   const snapshot=await adminDatabase().ref('studioPlanner_v1/blackouts')
     .orderByChild('date').equalTo(date).limitToFirst(2001).once('value');
   const rows=recordValues(snapshot.val());
-  if(rows.length>=2001)throw new ScheduleError(503,'Quá nhiều lịch nghỉ trong ngày, cần kiểm tra dữ liệu PostgreSQL','BLACKOUTS_LIMIT');
+  if(rows.length>=2001)throw new ScheduleError(503,'Quá nhiều lịch nghỉ trong ngày, cần kiểm tra dữ liệu Firebase','BLACKOUTS_LIMIT');
   return rows;
 }
 export function safeStaff(data:Record<string,unknown>){
