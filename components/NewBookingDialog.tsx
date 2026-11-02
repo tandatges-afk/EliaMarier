@@ -1,10 +1,11 @@
 'use client';
 import { useEffect, useState, type FormEvent } from 'react';
-import { X, CalendarPlus, CheckCircle2 } from 'lucide-react';
+import { X, CalendarPlus, Plus } from 'lucide-react';
 import type { User } from '@/lib/auth/client';
 import type { Staff,Assignment } from '@/lib/domain/types';
 import { validateBooking, type BookingInput } from '@/lib/domain/booking';
 import {defaultStaffTask, taskOptionsFor} from '@/lib/domain/staff-task';
+import {crewChoices,crewKeysForPhoto,isCombinedHouses,photoVenueMode} from '@/lib/domain/elia-operations';
 import {MapLocationInput} from '@/lib/ui/MapLocationInput';
 import {VndInput} from '@/lib/ui/VndInput';
 import {useStaffAvailability} from '@/lib/ui/useStaffAvailability';
@@ -23,22 +24,25 @@ export function NewBookingDialog({isAdmin,open,onClose,onCreated,user,staff,init
  const [eventType,setEventType]=useState('Cưới'),[location,setLocation]=useState(''),[phone,setPhone]=useState(''),[note,setNote]=useState('');
  const [step,setStep]=useState<'main'|'wedding'|'form'>('main');
  const [weddingSubtype,setWeddingSubtype]=useState('');
- const mainTypes=[['✨','Concept','Concept'],['💍','Cưới','Cưới'],['🖼️','Chụp cổng - Prewedding','Pre-wedding'],['🎉','Sự kiện','Sự kiện'],['🧧','Tết','Tết']] as const;
- const weddingTypes=['Dạm Ngõ','Đám Nối','Vu Quy','Rước Dâu','Xuất Giá'] as const;
+ const mainTypes=[['✨','Concept','Concept'],['💍','Cưới','Cưới'],['📷','Chụp cổng','Chụp cổng'],['🖼️','Pre-wedding','Pre-wedding'],['🎉','Sự kiện','Sự kiện'],['🧧','Tết','Tết']] as const;
+ const weddingTypes=['Dạm Ngõ','Đám Nối','Vu Quy','Vu quy + Đám nối','Rước Dâu','Xuất Giá'] as const;
  const [status,setStatus]=useState<BookingInput['status']>('confirmed'),[price,setPrice]=useState('0'),[deposit,setDeposit]=useState('0');
  const [busy,setBusy]=useState(false),[error,setError]=useState('');
- const [hideBusy,setHideBusy]=useState(false);
+ const [staffPickerOpen,setStaffPickerOpen]=useState(false);
  const [assignments,setAssignments]=useState<Assignment[]>([]),[isRuocDau,setIsRuocDau]=useState(false);
  const [startTrai,setStartTrai]=useState('08:00'),[startGai,setStartGai]=useState('08:00');
  const [locTrai,setLocTrai]=useState(''),[locGai,setLocGai]=useState(''),[phoneTrai,setPhoneTrai]=useState(''),[phoneGai,setPhoneGai]=useState('');
- const toggleStaff=(staffId:string,enabled:boolean)=>setAssignments(prev=>enabled?[...prev,{id:staffId,task:defaultStaffTask(staff.find(s=>s.id===staffId)?.role||'',eventType),cost:0,locType:isRuocDau?'Nhà trai':''}]:prev.filter(a=>a.id!==staffId));
+ const [brideName,setBrideName]=useState(''),[groomName,setGroomName]=useState(''),[brideRestaurant,setBrideRestaurant]=useState(''),[groomRestaurant,setGroomRestaurant]=useState('');
+ const serviceType=weddingSubtype||eventType;
+ const allowedTasks=(role:string)=>{const allowed=new Set(crewKeysForPhoto(serviceType).map(k=>crewChoices[k]));return taskOptionsFor(role,'Cưới').filter(t=>allowed.has(t));};
+ const toggleStaff=(staffId:string,enabled:boolean)=>setAssignments(prev=>enabled?[...prev,{id:staffId,task:allowedTasks(staff.find(s=>s.id===staffId)?.role||'')[0]||defaultStaffTask(staff.find(s=>s.id===staffId)?.role||'',eventType),cost:0,locType:isCombinedHouses(serviceType)?'':isRuocDau?'Nhà gái':''}]:prev.filter(a=>a.id!==staffId));
  const changeAssignment=(staffId:string,key:'task'|'cost'|'locType',value:string|number)=>setAssignments(prev=>prev.map(a=>a.id===staffId?{...a,[key]:value}:a));
- const availability=useStaffAvailability(user,{date,start,end,isRuocDau,startTrai,startGai,status},open&&step==='form');
- useEffect(()=>{if(open){setHideBusy(false);setSelectedWardrobe([]);setStatus('confirmed');setWardrobeQuery('');setWardrobeAck(false);setWardrobeStart(/^\d{4}-\d{2}-\d{2}$/.test(initialDate||'')?initialDate!:today());setWardrobeEnd(/^\d{4}-\d{2}-\d{2}$/.test(initialDate||'')?initialDate!:today());setWardrobeError('');setCreatedEventId(null);setId(crypto.randomUUID());setError('');setAssignments([]);setStep('main');setWeddingSubtype('');setName('');setDate(/^\d{4}-\d{2}-\d{2}$/.test(initialDate||'')?initialDate!:today());setEventType('Cưới');setIsRuocDau(false);setStart('08:00');setEnd('17:00');}},[open,initialDate]);
+ const availability=useStaffAvailability(user,{date,start,end,isRuocDau,startTrai:isCombinedHouses(serviceType)?start:startTrai,startGai:isCombinedHouses(serviceType)?start:startGai,status},open&&step==='form');
+ useEffect(()=>{if(open){setStaffPickerOpen(false);setSelectedWardrobe([]);setStatus('confirmed');setWardrobeQuery('');setWardrobeAck(false);setWardrobeStart(/^\d{4}-\d{2}-\d{2}$/.test(initialDate||'')?initialDate!:today());setWardrobeEnd(/^\d{4}-\d{2}-\d{2}$/.test(initialDate||'')?initialDate!:today());setWardrobeError('');setCreatedEventId(null);setId(crypto.randomUUID());setError('');setAssignments([]);setStep('main');setWeddingSubtype('');setName('');setDate(/^\d{4}-\d{2}-\d{2}$/.test(initialDate||'')?initialDate!:today());setEventType('Cưới');setIsRuocDau(false);setStart('08:00');setEnd('17:00');}},[open,initialDate]);
  const chooseService=(type:string,subtype='')=>{
   if(type==='Cưới'&&!subtype){setStep('wedding');return;}
   const ruocDau=type==='Cưới'&&subtype==='Rước Dâu';
-  setEventType(type);setWeddingSubtype(subtype);setIsRuocDau(ruocDau);
+  setEventType(type);setWeddingSubtype(subtype);setIsRuocDau(ruocDau||isCombinedHouses(subtype));
   setName(subtype?`${subtype} `:'');
   setStart(subtype==='Xuất Giá'?'16:00':'08:00');setEnd(subtype==='Xuất Giá'?'22:00':subtype?'12:00':'17:00');
   setAssignments([]);setStep('form');
@@ -78,8 +82,8 @@ export function NewBookingDialog({isAdmin,open,onClose,onCreated,user,staff,init
    if(status==='cancelled' && selectedWardrobe.length){setError('Không thể giữ trang phục cho lịch đã hủy. Hãy bỏ chọn mã hoặc đổi trạng thái lịch.');return;}
    const busyNames=availability.ready?assignments.filter(a=>availability.busy[a.id]).map(a=>staff.find(s=>s.id===a.id)?.name||a.id):[];
    if(busyNames.length){setError(`${busyNames.join(', ')} đã có lịch hoặc đã báo nghỉ. Bỏ phân công này hoặc đổi giờ/ngày.`);return;}
-   const checked=validateBooking({id,name,date,start,end,eventType,location,phone,note,status,price:Number(price),deposit:Number(deposit),assignments:isAdmin?assignments:[],isRuocDau,
-     startTrai:isRuocDau?startTrai:'',startGai:isRuocDau?startGai:'',locTrai:isRuocDau?locTrai:'',locGai:isRuocDau?locGai:'',phoneTrai:isRuocDau?phoneTrai:'',phoneGai:isRuocDau?phoneGai:''});
+   const checked=validateBooking({id,name,date,start,end,eventType,photoServiceType:serviceType,brideName,groomName,brideRestaurant,groomRestaurant,location,phone,note,status,price:Number(price),deposit:Number(deposit),assignments:isAdmin?assignments:[],isRuocDau,
+     startTrai:isRuocDau?(isCombinedHouses(serviceType)?start:startTrai):'',startGai:isRuocDau?(isCombinedHouses(serviceType)?start:startGai):'',locTrai:isRuocDau?locTrai:'',locGai:isRuocDau?locGai:'',phoneTrai:isRuocDau?phoneTrai:'',phoneGai:isRuocDau?phoneGai:''});
    if(!checked.ok){setError(checked.message);return;}
    setBusy(true);setError('');
    try{
@@ -110,28 +114,32 @@ export function NewBookingDialog({isAdmin,open,onClose,onCreated,user,staff,init
     </div>:<>
     <form id="new-booking-form" onSubmit={submit} className="grid grid-cols-1 gap-4 overflow-y-auto px-5 py-5 sm:grid-cols-2 sm:px-7">
       <div className="sm:col-span-2 flex items-center justify-between gap-3 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-4"><div><p className="text-xs text-indigo-700">Dịch vụ đã chọn</p><strong className="text-sm text-indigo-950">{eventType==='Cưới'?`Cưới · ${weddingSubtype}`:eventType}</strong></div><button type="button" className="rounded-lg border border-indigo-200 bg-white px-3 py-2 text-xs font-bold text-indigo-700" onClick={()=>setStep('main')}>Đổi dịch vụ</button></div>
-      <label className={`${lab} sm:col-span-2`}>Tên khách hàng / dự án *<input required minLength={2} maxLength={180} className={field} value={name} onChange={e=>setName(e.target.value)} placeholder="VD: Lễ cưới Minh & Hà"/></label>
+      <label className={`${lab} sm:col-span-2`}>Tên khách hàng / dự án *<input required minLength={2} maxLength={180} className={field} value={name} onChange={e=>setName(e.target.value)}/></label>
       <label className={lab}>Ngày thực hiện *<input required type="date" className={field} value={date} onChange={e=>setDate(e.target.value)}/></label>
-      {!isRuocDau&&<label className={lab}>Bắt đầu *<input required type="time" className={field} value={start} onChange={e=>setStart(e.target.value)}/></label>}
+      {(!isRuocDau||isCombinedHouses(serviceType))&&<label className={lab}>Bắt đầu *<input required type="time" className={field} value={start} onChange={e=>setStart(e.target.value)}/></label>}
       <label className={lab}>Kết thúc *<input required type="time" className={field} value={end} onChange={e=>setEnd(e.target.value)}/></label>
       {isRuocDau&&<div className="sm:col-span-2 grid gap-3 rounded-xl border p-3 sm:grid-cols-2">
-       <label className={lab}>Giờ nhà trai<input type="time" required className={field} value={startTrai} onChange={e=>setStartTrai(e.target.value)}/></label>
-       <label className={lab}>Giờ nhà gái<input type="time" required className={field} value={startGai} onChange={e=>setStartGai(e.target.value)}/></label>
+       <label className={lab}>Tên cô dâu *<input required className={field} value={brideName} onChange={e=>setBrideName(e.target.value)}/></label>
+       <label className={lab}>Tên chú rể *<input required className={field} value={groomName} onChange={e=>setGroomName(e.target.value)}/></label>
+       {!isCombinedHouses(serviceType)&&<><label className={lab}>Giờ nhà trai<input type="time" required className={field} value={startTrai} onChange={e=>setStartTrai(e.target.value)}/></label>
+       <label className={lab}>Giờ nhà gái<input type="time" required className={field} value={startGai} onChange={e=>setStartGai(e.target.value)}/></label></>}
        <label className={lab}>Địa điểm nhà trai<MapLocationInput required className={field} user={user} value={locTrai} onChange={setLocTrai} maxLength={1500}/></label>
        <label className={lab}>Địa điểm nhà gái<MapLocationInput required className={field} user={user} value={locGai} onChange={setLocGai} maxLength={1500}/></label>
-       <label className={lab}>SĐT nhà trai<input className={field} value={phoneTrai} onChange={e=>setPhoneTrai(e.target.value)} maxLength={50}/></label>
-       <label className={lab}>SĐT nhà gái<input className={field} value={phoneGai} onChange={e=>setPhoneGai(e.target.value)} maxLength={50}/></label>
+       <label className={lab}>SĐT chú rể *<input required className={field} value={phoneTrai} onChange={e=>setPhoneTrai(e.target.value)} maxLength={50}/></label>
+       <label className={lab}>SĐT cô dâu *<input required className={field} value={phoneGai} onChange={e=>setPhoneGai(e.target.value)} maxLength={50}/></label>
+       <label className={lab}>Nhà hàng nhà trai<input className={field} value={groomRestaurant} onChange={e=>setGroomRestaurant(e.target.value)}/></label>
+       <label className={lab}>Nhà hàng nhà gái<input className={field} value={brideRestaurant} onChange={e=>setBrideRestaurant(e.target.value)}/></label>
       </div>}
-      {!isRuocDau&&<label className={`${lab} sm:col-span-2`}>Địa điểm<MapLocationInput className={field} user={user} maxLength={1500} value={location} onChange={setLocation} placeholder="Nhập địa chỉ hoặc dán link Google Maps"/></label>}
-      {!isRuocDau&&<label className={lab}>Số điện thoại<input type="tel" maxLength={50} className={field} value={phone} onChange={e=>setPhone(e.target.value)}/></label>}
+      {!isRuocDau&&<label className={`${lab} sm:col-span-2`}>{photoVenueMode(serviceType)==='external'?'Địa điểm':'Địa chỉ nhà dâu'}<MapLocationInput required className={field} user={user} maxLength={1500} value={location} onChange={setLocation} /></label>}
+      {!isRuocDau&&<><label className={lab}>SĐT cô dâu<input type="tel" maxLength={50} className={field} value={phone} onChange={e=>setPhone(e.target.value)}/></label><label className={lab}>Nhà hàng nhà gái<input className={field} value={brideRestaurant} onChange={e=>setBrideRestaurant(e.target.value)}/></label></>}
       <label className={lab}>Trạng thái<select className={field} value={status} onChange={e=>setStatus(e.target.value as BookingInput['status'])}><option value="confirmed">Đã chốt</option><option value="done">Hoàn thành</option><option value="cancelled">Đã hủy</option></select></label>
       <label className={lab}>Giá trị hợp đồng (VND)<VndInput className={field} value={Number(price)} onValueChange={v=>setPrice(String(v))}/></label>
       <label className={lab}>Đã cọc (VND)<VndInput className={field} value={Number(deposit)} onValueChange={v=>setDeposit(String(v))}/></label>
       <label className={`${lab} sm:col-span-2`}>Ghi chú<textarea rows={2} maxLength={1000} className={field} value={note} onChange={e=>setNote(e.target.value)}/></label>
       <section className="elia-new-booking-wardrobe elia-wardrobe-predict sm:col-span-2" aria-label="Chọn mã trang phục và dự báo lịch thuê">
-       <div className="elia-new-booking-head"><strong>Mã trang phục · Lịch lấy/trả</strong><small>Thay cho hình ảnh Concept · Kiểm tra lịch trước/sau 2 ngày.</small></div>
+       <div className="elia-new-booking-head"><strong>Mã trang phục · Lịch lấy/trả</strong></div>
        <div className="elia-wardrobe-predict-grid"><label className={lab}>Ngày lấy trang phục<input required={selectedWardrobe.length>0} className={field} type="date" value={wardrobeStart} onChange={e=>setWardrobeStart(e.target.value)}/></label><label className={lab}>Ngày trả trang phục<input required={selectedWardrobe.length>0} className={field} type="date" min={wardrobeStart} value={wardrobeEnd} onChange={e=>setWardrobeEnd(e.target.value)}/></label></div>
-       <div className="elia-wardrobe-predict-grid"><label className={lab}>Thư mục<select className={field} value={wardrobeFolder} onChange={e=>setWardrobeFolder(e.target.value)}><option value="all">Tất cả</option>{wardrobeFolders.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select></label><label className={lab}>Gõ mã váy / trang phục<input className={field} value={wardrobeQuery} onChange={e=>setWardrobeQuery(e.target.value)} placeholder="VD: VC-001, váy trắng"/></label></div>
+       <div className="elia-wardrobe-predict-grid"><label className={lab}>Thư mục<select className={field} value={wardrobeFolder} onChange={e=>setWardrobeFolder(e.target.value)}><option value="all">Tất cả</option>{wardrobeFolders.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select></label><label className={lab}>Gõ mã váy / trang phục<input className={field} value={wardrobeQuery} onChange={e=>setWardrobeQuery(e.target.value)}/></label></div>
        {wardrobeError&&<p role="alert" className="text-xs text-rose-700">{wardrobeError}</p>}
        <div className="elia-new-booking-chips">{wardrobeItems.filter(item=>item.active&&(wardrobeFolder==='all'||item.folderId===wardrobeFolder)&&`${item.code} ${item.name}`.toLocaleLowerCase('vi').includes(wardrobeQuery.trim().toLocaleLowerCase('vi'))).slice(0,40).map(item=>{const blocked=!validWeddingRange(wardrobeStart,wardrobeEnd)||Boolean(weddingConflict(item.bookings,wardrobeStart,wardrobeEnd));return <label key={item.id} className={`elia-new-booking-chip ${selectedWardrobe.includes(item.id)?'active':''} ${blocked?'blocked':''}`}><input type="checkbox" checked={selectedWardrobe.includes(item.id)} disabled={busy||blocked} onChange={e=>setSelectedWardrobe(ids=>e.target.checked?[...ids,item.id]:ids.filter(id=>id!==item.id))}/><span>{item.code}</span>{blocked&&<small>Trùng ngày</small>}</label>;})}{!wardrobeItems.length&&<span className="text-xs text-slate-500">Chưa có mã trang phục. Admin thêm tại Hệ thống → Kho trang phục.</span>}</div>
        {wardrobeQuery.trim().length>=2&&wardrobeItems.filter(item=>item.active&&!selectedWardrobe.includes(item.id)&&`${item.code} ${item.name}`.toLocaleLowerCase('vi').includes(wardrobeQuery.trim().toLocaleLowerCase('vi'))).slice(0,4).map(item=><div key={item.id} className="elia-selected-wardrobe-risk"><strong className="elia-selected-wardrobe-title">Kiểm tra mã {item.code}</strong><WardrobeRiskNotice item={item} startDate={wardrobeStart} endDate={wardrobeEnd} compact/></div>)}
@@ -139,20 +147,22 @@ export function NewBookingDialog({isAdmin,open,onClose,onCreated,user,staff,init
        {hasWardrobeNear&&!hasWardrobeConflict&&<label className="elia-risk-ack"><input type="checkbox" checked={wardrobeAck} onChange={e=>setWardrobeAck(e.target.checked)}/> Tôi đã kiểm tra các khách thuê sát lịch và sẽ tư vấn thời gian trả váy cho khách</label>}
        {selectedWardrobe.length>0&&<p className="text-xs text-emerald-800">Đã chọn {selectedWardrobe.length} mã · Lấy {weddingDateLabel(wardrobeStart)} · Trả {weddingDateLabel(wardrobeEnd)}. Hệ thống sẽ kiểm tra trùng lần cuối khi lưu.</p>}
       </section>
-      {isAdmin&&<fieldset className="sm:col-span-2 rounded-xl border border-indigo-100 bg-indigo-50/40 p-4"><legend className="px-2 text-sm font-bold text-slate-800">Phân công nhân sự ngay khi tạo lịch ({assignments.length})</legend>
-       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs"><span className="font-semibold text-indigo-800">{availability.loading?'Đang kiểm tra lịch bận…':availability.error?`Chưa kiểm tra được: ${availability.error}`:availability.ready?`${Object.keys(availability.busy).length} nhân sự bận trong khung giờ này`:'Chọn giờ để kiểm tra nhân sự'}</span><label className="flex items-center gap-2 text-slate-700"><input type="checkbox" checked={hideBusy} onChange={e=>setHideBusy(e.target.checked)}/> Ẩn người đã bận</label></div>
-       {staff.filter(s=>s.active!==false).length===0&&<p className="text-sm text-slate-500">Chưa có nhân sự. Vào mục Đội ngũ để thêm nhân sự.</p>}
-       <div className="max-h-80 space-y-2 overflow-y-auto">{staff.filter(s=>s.active!==false).map(st=>{const a=assignments.find(a=>a.id===st.id);const conflict=availability.busy[st.id];if(hideBusy&&conflict&&!a)return null;return <div key={st.id} className={`rounded-lg border bg-white p-3 ${conflict?'border-amber-300 bg-amber-50/60':''}`}><label className="flex items-center gap-2 text-xs font-semibold"><input type="checkbox" checked={!!a} disabled={!!conflict&&!a} onChange={e=>toggleStaff(st.id,e.target.checked)}/>{st.name} <span className="font-normal text-slate-500">{st.role}</span>{conflict&&<span className="ml-auto rounded bg-amber-100 px-2 py-1 text-[11px] font-bold text-amber-800" title={conflict.eventId||''}>{conflict.label}</span>}</label>{a&&<div className="mt-2 grid gap-2 sm:grid-cols-2">
-         {taskOptionsFor(st.role,eventType).length>0&&<label className={lab}>Công việc cưới<select className={field} value={a.task} onChange={e=>changeAssignment(st.id,'task',e.target.value)}>{taskOptionsFor(st.role,eventType).map(t=><option key={t} value={t}>{t}</option>)}</select></label>}
-         <label className={lab}>Chi phí (VND)<VndInput className={field} value={a.cost} onValueChange={v=>changeAssignment(st.id,'cost',v)}/></label>
-         {isRuocDau&&<label className={lab}>Vị trí rước dâu<select className={field} value={a.locType||'Nhà trai'} onChange={e=>changeAssignment(st.id,'locType',e.target.value)}><option value="Nhà trai">Nhà trai</option><option value="Nhà gái">Nhà gái</option></select></label>}
-       </div>}</div>})}</div>
-       <p className="mt-2 text-xs text-indigo-800">Người đã có lịch được đánh dấu và không thể chọn trùng giờ. Nếu thay đổi khung giờ, danh sách sẽ tự kiểm tra lại; server kiểm tra lần cuối khi lưu.</p>
+      {isAdmin&&<fieldset className="sm:col-span-2 rounded-xl border border-indigo-100 bg-indigo-50/40 p-4">
+       <legend className="px-2 text-sm font-bold text-slate-800">Phân công thợ ({assignments.length})</legend>
+       <div className="elia-v7-crew-top"><strong>{assignments.length} thợ đã chọn</strong><button type="button" className="secondary-button" aria-expanded={staffPickerOpen} onClick={()=>setStaffPickerOpen(v=>!v)}><Plus size={14}/> Thêm thợ</button></div>
+       {staffPickerOpen&&<div className="elia-v7-staff-menu">{staff.filter(s=>s.active!==false&&!assignments.some(a=>a.id===s.id)&&allowedTasks(s.role).length>0).map(st=>{const conflict=availability.busy[st.id];return <button type="button" key={st.id} disabled={Boolean(conflict)} title={conflict?.label||''} onClick={()=>{toggleStaff(st.id,true);setStaffPickerOpen(false);}}>{st.name} · {st.role}{conflict?' · Bận':''}</button>;})}</div>}
+       <div className="elia-v7-crew-assigned">{assignments.map(a=>{const st=staff.find(s=>s.id===a.id);return <div key={a.id} className="elia-v7-crew-row">
+         <strong>{st?.name||a.id}</strong>
+         <select aria-label={`Công việc ${st?.name||a.id}`} value={a.task} onChange={e=>changeAssignment(a.id,'task',e.target.value)}>{!allowedTasks(st?.role||'').includes(a.task)&&<option value={a.task}>{a.task}</option>}{allowedTasks(st?.role||'').map(t=><option key={t} value={t}>{t}</option>)}</select>
+         {isRuocDau&&<select aria-label={`Nhà làm việc ${st?.name||a.id}`} required value={a.locType||''} onChange={e=>changeAssignment(a.id,'locType',e.target.value)}><option value="">Chọn nhà</option><option value="Nhà trai">Nhà trai</option><option value="Nhà gái">Nhà gái</option></select>}
+         <button type="button" title="Bỏ thợ" aria-label={`Bỏ ${st?.name||a.id}`} onClick={()=>toggleStaff(a.id,false)}><X size={15}/></button>
+         <label className="elia-v7-crew-cost">Chi phí thợ <VndInput className={field} value={a.cost} onValueChange={v=>changeAssignment(a.id,'cost',v)}/></label>
+        </div>;})}</div>
       </fieldset>}
-      <p className="sm:col-span-2 rounded-xl bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-500">{isAdmin?'Admin có thể phân công và đặt chi phí nhân sự.':'Nhân viên tạo lịch và điền tài chính hợp đồng; chỉ Admin được phân công và nhập chi phí nhân sự.'}</p>
+
       {error&&<p role="alert" className="sm:col-span-2 rounded-lg bg-red-50 p-3 text-xs font-semibold text-red-700">{error}</p>}
     </form>
-    <footer className="flex items-center justify-between border-t border-slate-100 px-5 py-4 sm:px-7"><div className="flex items-center gap-2 text-xs text-slate-400"><CheckCircle2 size={15}/> Kiểm tra dữ liệu trước khi lưu</div><div className="flex gap-2"><button onClick={onClose} type="button" disabled={busy} className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-700">Hủy</button><button form="new-booking-form" disabled={busy} type="submit" className="rounded-xl bg-slate-900 px-5 py-2.5 text-xs font-bold text-white hover:bg-slate-700 disabled:opacity-50">{busy?'Đang lưu…':createdEventId?'Hoàn tất liên kết mã':'Lưu lịch'}</button></div></footer>
+    <footer className="flex items-center justify-between border-t border-slate-100 px-5 py-4 sm:px-7"><div/><div className="flex gap-2"><button onClick={onClose} type="button" disabled={busy} className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-700">Hủy</button><button form="new-booking-form" disabled={busy} type="submit" className="rounded-xl bg-slate-900 px-5 py-2.5 text-xs font-bold text-white hover:bg-slate-700 disabled:opacity-50">{busy?'Đang lưu…':createdEventId?'Hoàn tất liên kết mã':'Lưu lịch'}</button></div></footer>
     </>}
   </section>
  </div>;

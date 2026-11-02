@@ -18,6 +18,7 @@ export interface StudioEvent {
   location: string;
   assignments: Assignment[];
   requiredCrew?: Record<string,number>;
+  photoServiceType?: string;
   isRuocDau?: boolean;
   startTrai?: string;
   startGai?: string;

@@ -28,7 +28,7 @@ export async function GET(request:Request){
    const released=isEventReleased(e);
    return {
     id:String(e.id||''),name:String(e.name||''),date:String(e.date||''),start:String(e.start||''),end:String(e.end||''),
-    eventType:String(e.eventType||''),location:String(e.location||''),status:String(e.status||''),
+    eventType:String(e.photoServiceType||e.eventType||''),brideRestaurant:String(e.brideRestaurant||''),groomRestaurant:String(e.groomRestaurant||''),location:String(e.location||''),status:String(e.status||''),
     isRuocDau:e.isRuocDau===true,locTrai:String(e.locTrai||''),locGai:String(e.locGai||''),
     phone:String(e.phone||''),phoneTrai:String(e.phoneTrai||''),phoneGai:String(e.phoneGai||''),
     cost:own.reduce((sum,a)=>sum+(Number.isFinite(Number(a.cost))?Math.max(0,Number(a.cost)):0),0),

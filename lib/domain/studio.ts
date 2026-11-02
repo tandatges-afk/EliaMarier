@@ -23,7 +23,7 @@ export function normaliseEvents(raw: unknown): StudioEvent[] {
       }));
       return {
         id: txt(e.id, 160), name: txt(e.name), date: txt(e.date, 10), start: txt(e.start, 8),
-        end: txt(e.end, 8), eventType: txt(e.eventType),
+        end: txt(e.end, 8), eventType: txt(e.eventType), photoServiceType:txt(e.photoServiceType),
         status: ['confirmed','done','cancelled'].includes(status) ? status : 'confirmed',
         location: txt(e.location, 240), assignments, isRuocDau:e.isRuocDau===true, startTrai:txt(e.startTrai,8), startGai:txt(e.startGai,8), requiredCrew:(e.requiredCrew&&typeof e.requiredCrew==='object'?e.requiredCrew:{} ) as Record<string,number>, sourcePackageId:txt(e.sourcePackageId,160), price: amount(e.price), deposit: amount(e.deposit),
         products: values<Record<string, unknown>>(e.products).filter(p => p.id != null).map(p => ({

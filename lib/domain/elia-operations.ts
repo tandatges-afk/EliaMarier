@@ -4,8 +4,27 @@ export const MODULES:EliaModule[]=['decor','makeup','packages'];
 export type ModuleRecord={id:string;createdAt:number;updatedAt:number;createdBy:string;photos?:string[];[key:string]:unknown};
 export const serviceLabels:Record<string,string>={photo:'Quay / Chụp',wardrobe:'Trang phục',makeup:'Makeup',decor:'Decor'};
 export const decorTypes:Record<string,string>={dam_ngo:'Dạm ngõ',dam_noi:'Đám nối',vu_quy:'Vu quy',thanh_hon:'Thành hôn'};
-export const photoTypes=['Chụp cổng','Dạm ngõ','Đám nối','Vu quy','Rước dâu','Xuất giá','Concept','Pre-wedding','Khác'] as const;
+export const photoTypes=['Chụp cổng','Dạm ngõ','Đám nối','Vu quy','Rước dâu','Vu quy + Đám nối','Xuất giá','Concept','Pre-wedding','Khác'] as const;
 export const crewChoices:Record<string,string>={photo_traditional:'Chụp truyền thống',photo_reportage:'Chụp phóng sự',video_traditional:'Quay truyền thống',video_reportage:'Quay phóng sự'};
+/** Photo service rules shared by the package UI, server and photo leader. */
+export function photoTypeKey(value:unknown):string {
+ return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D').trim().toLowerCase();
+}
+export function isCombinedHouses(type:unknown):boolean{return photoTypeKey(type).includes('vu quy + dam noi');}
+export function isRuocDau(type:unknown):boolean{return photoTypeKey(type).includes('ruoc dau');}
+export function isTwoHousePhoto(type:unknown):boolean{return isCombinedHouses(type)||isRuocDau(type);}
+export function photoVenueMode(type:unknown):'external'|'bride'|'both'{
+ const t=photoTypeKey(type);
+ if(['chup cong','concept','pre-wedding','prewedding'].includes(t))return 'external';
+ return isTwoHousePhoto(type)?'both':'bride';
+}
+export function crewKeysForPhoto(type:unknown):string[]{
+ const t=photoTypeKey(type);
+ if(['chup cong','concept'].includes(t))return ['photo_traditional'];
+ if(['dam ngo','xuat gia','pre-wedding','prewedding'].includes(t))return ['photo_traditional','video_traditional'];
+ return Object.keys(crewChoices);
+}
+export const compactCrewLabels:Record<string,string>={photo_traditional:'Thợ chụp',video_traditional:'Thợ quay',photo_reportage:'Thợ chụp phóng sự',video_reportage:'Thợ quay phóng sự'};
 export const VALID_STATUSES=['confirmed','done','cancelled'] as const;
 export type ModuleFailure={error:string;status:number};
 const date=/^\d{4}-\d{2}-\d{2}$/,time=/^([01]\d|2[0-3]):[0-5]\d$/;
@@ -34,16 +53,22 @@ function validateDecorEvents(input:unknown){
 function validatePhotoEntries(input:unknown){
  return unique(entries(input,'Lịch quay chụp',30).map(row=>{
   const id=stableId(row.id),type=field(row.type,'gói chụp',80);
-  if(!type||type.length>80)throw Error('Cần tên gói chụp');
+  if(!type)throw Error('Cần chọn dịch vụ quay chụp');
   const date=day(row.date,'quay chụp'),start=clock(row.start,'bắt đầu'),end=clock(row.end,'kết thúc');
   if(end<start)throw Error('Giờ kết thúc phải sau giờ bắt đầu');
-  const ruocDau=type.toLocaleLowerCase('vi').includes('rước dâu');
+  const ruocDau=isRuocDau(type),external=photoVenueMode(type)==='external';
+  const location=external?field(row.location??'','địa điểm',500):'';
+  if(external&&!location)throw Error(`${type}: vui lòng nhập địa điểm`);
   const startTrai=ruocDau?clock(row.startTrai,'nhà trai'):'',startGai=ruocDau?clock(row.startGai,'nhà gái'):'';
-  const locTrai=ruocDau?field(row.locTrai??'','địa điểm nhà trai',500):'',locGai=ruocDau?field(row.locGai??'','địa điểm nhà gái',500):'';
-  if(ruocDau&&(!locTrai||!locGai||end<startTrai||end<startGai))throw Error('Rước dâu cần địa điểm và giờ hợp lệ cho cả hai nhà');
-  const rawCrew=row.crew&&typeof row.crew==='object'&&!Array.isArray(row.crew)?row.crew as Record<string,unknown>:{};
-  const crew=Object.fromEntries(Object.keys(crewChoices).map(k=>{const n=Number(rawCrew[k]??0);if(!Number.isSafeInteger(n)||n<0||n>20)throw Error('Số lượng thợ không hợp lệ');return [k,n];}));
-  return {id,type,date,start,end,location:field(row.location??'','địa điểm',500),notes:field(row.notes??'','ghi chú',1000),startTrai,startGai,locTrai,locGai,phoneTrai:field(row.phoneTrai??'','số nhà trai',40),phoneGai:field(row.phoneGai??'','số nhà gái',40),crew};
+  if(ruocDau&&(end<startTrai||end<startGai))throw Error('Rước dâu cần giờ kết thúc hợp lệ cho hai nhà');
+  const rawCrew=row.crew&&typeof row.crew==='object'&&!Array.isArray(row.crew)?row.crew as Record<string,unknown>:{},allowed=crewKeysForPhoto(type);
+  const crew=Object.fromEntries(Object.keys(crewChoices).map(k=>{
+   const n=Number(rawCrew[k]??0);
+   if(!Number.isSafeInteger(n)||n<0||n>20)throw Error('Số lượng thợ không hợp lệ');
+   if(n>0&&!allowed.includes(k))throw Error(`${type} không sử dụng công việc ${crewChoices[k]}`);
+   return [k,n];
+  }));
+  return {id,type,date,start,end,location,notes:field(row.notes??'','ghi chú',1000),startTrai,startGai,crew};
  }));
 }
 function validateWardrobeEntries(input:unknown){
@@ -62,10 +87,10 @@ export function validateModule(module:EliaModule,raw:unknown):Record<string,unkn
  if(!raw||typeof raw!=='object'||Array.isArray(raw))throw Error('Dữ liệu không hợp lệ');
  const v=raw as Record<string,unknown>;
  if(module==='decor'){
-  const obj={...textFields(v,['brideName','groomName','brideAddress','groomAddress','bridePhone','groomPhone','contactPhone']),notes:field(v.notes??'','ghi chú',1500),price:money(v.price??0,'chi phí'),deposit:money(v.deposit??0,'cọc'),status:v.status==='done'||v.status==='cancelled'?v.status:'confirmed',events:validateDecorEvents(v.events)};
+  const obj={...textFields(v,['brideName','groomName','brideAddress','groomAddress','bridePhone','groomPhone','brideRestaurant','groomRestaurant']),notes:field(v.notes??'','ghi chú',1500),price:money(v.price??0,'chi phí'),deposit:money(v.deposit??0,'cọc'),status:v.status==='done'||v.status==='cancelled'?v.status:'confirmed',events:validateDecorEvents(v.events)};
   if(obj.deposit>obj.price)throw Error('Cọc không vượt tổng chi phí');
   if(!obj.brideName&&!obj.groomName)throw Error('Cần tên dâu hoặc rể');
-  if(obj.events.some(x=>x.type==='thanh_hon')&&!obj.groomName)throw Error('Tiệc Thành hôn cần tên chú rể');
+  if((obj.events.some(x=>x.type==='thanh_hon')||obj.groomRestaurant)&&(!obj.groomName||!obj.groomPhone||!obj.groomAddress))throw Error('Tiệc hoặc nhà hàng nhà trai cần tên, SĐT và địa chỉ chú rể');
   if(obj.events.some(x=>x.type!=='thanh_hon')&&!obj.brideName)throw Error('Tiệc nhà dâu cần tên cô dâu');
   return {...obj,balance:obj.price-obj.deposit};
  }
@@ -73,7 +98,7 @@ export function validateModule(module:EliaModule,raw:unknown):Record<string,unkn
   const obj={customerName:field(v.customerName??'','tên khách',150),phone:field(v.phone??'','số liên hệ',40),makeupDate:day(v.makeupDate,'makeup'),makeupTime:clock(v.makeupTime,'makeup'),layout:field(v.layout??'','layout',500),notes:field(v.notes??'','ghi chú',1500),status:v.status==='done'||v.status==='cancelled'?v.status:'confirmed'};
   if(obj.customerName.length<2)throw Error('Tên khách cần ít nhất 2 ký tự');return obj;
  }
- const obj={...textFields(v,['brideName','groomName','bridePhone','groomPhone','contactPhone','brideAddress','groomAddress']),notes:field(v.notes??'','ghi chú',1500),price:money(v.price??0,'chi phí'),deposit:money(v.deposit??0,'cọc'),status:v.status==='done'||v.status==='cancelled'?v.status:'confirmed'};
+ const obj={...textFields(v,['brideName','groomName','bridePhone','groomPhone','brideRestaurant','groomRestaurant','brideAddress','groomAddress']),notes:field(v.notes??'','ghi chú',1500),price:money(v.price??0,'chi phí'),deposit:money(v.deposit??0,'cọc'),status:v.status==='done'||v.status==='cancelled'?v.status:'confirmed'};
  if(obj.deposit>obj.price)throw Error('Cọc không vượt tổng chi phí');
  if(!obj.brideName&&!obj.groomName)throw Error('Cần thông tin dâu hoặc rể');
  if(!v.services||typeof v.services!=='object'||Array.isArray(v.services))throw Error('Hãy chọn ít nhất một dịch vụ');
@@ -85,7 +110,14 @@ export function validateModule(module:EliaModule,raw:unknown):Record<string,unkn
   const rows=(section as Record<string,unknown>).entries;
   services[key]={entries:key==='photo'?validatePhotoEntries(rows):key==='wardrobe'?validateWardrobeEntries(rows):key==='makeup'?validateMakeupEntries(rows):validateDecorEvents(rows)};
  }
- return {...obj,balance:obj.price-obj.deposit,services};
+ const photos=(services.photo as {entries?:{type:string}[]}|undefined)?.entries||[];
+  const decor=(services.decor as {entries?:{type:string}[]}|undefined)?.entries||[];
+  const twoHouses=photos.some(e=>isTwoHousePhoto(e.type));
+  const groomNeeded=twoHouses||decor.some(e=>e.type==='thanh_hon')||Boolean(obj.groomRestaurant||obj.groomAddress);
+  if(groomNeeded&&(!obj.groomName||!obj.groomPhone||!obj.groomAddress))throw Error('Dịch vụ có nhà trai: cần tên chú rể, số điện thoại và địa chỉ nhà rể');
+  const brideNeeded=photos.some(e=>photoVenueMode(e.type)!=='external')||decor.some(e=>e.type!=='thanh_hon');
+  if(brideNeeded&&(!obj.brideName||!obj.bridePhone||!obj.brideAddress))throw Error('Dịch vụ nhà dâu: cần tên cô dâu, số điện thoại và địa chỉ nhà dâu');
+  return {...obj,balance:obj.price-obj.deposit,services};
 }
 export function safeScheduleEdit(module:EliaModule,old:Record<string,unknown>,newData:Record<string,unknown>){
  if(module==='packages')return false;

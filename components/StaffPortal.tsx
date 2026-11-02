@@ -5,7 +5,7 @@ import {CalendarDays,CalendarOff,RefreshCcw,ShieldCheck,Phone,Copy,MapPin,Users,
 import {formatVnd} from '@/lib/domain/vietnam-money';
 import {googleMapUrl} from '@/lib/domain/maps';
 
-type Work={id:string;name:string;date:string;start:string;end:string;eventType:string;location:string;status:string;isRuocDau:boolean;locTrai:string;locGai:string;phone:string;phoneTrai:string;phoneGai:string;cost:number;assignment:{task:string;locType:string}[];crew:{id:string;name:string;role:string}[];sourceUnlocked:boolean;sourceAvailableAt:number|null;sourceUrl:string};
+type Work={id:string;name:string;date:string;start:string;end:string;eventType:string;brideRestaurant:string;groomRestaurant:string;location:string;status:string;isRuocDau:boolean;locTrai:string;locGai:string;phone:string;phoneTrai:string;phoneGai:string;cost:number;assignment:{task:string;locType:string}[];crew:{id:string;name:string;role:string}[];sourceUnlocked:boolean;sourceAvailableAt:number|null;sourceUrl:string};
 type Blackout={id:string;date:string;reason:string};
 type Payroll={month:string;opening:number;gross:number;advance:number;paid:number;closing:number;jobs:number};
 type View={staff:{name:string;role:string};events:Work[];blackouts:Blackout[];payroll:Payroll|null;payrollMonth:string;payrollError?:string;expiresAt:number;from:string;to:string};
@@ -71,7 +71,7 @@ export function StaffPortal(){
    <section className="elia-staff-section rounded-2xl bg-white p-5 shadow-sm"><h2 className="mb-4 flex items-center gap-2 text-lg font-bold"><CalendarDays size={20}/> Lịch làm việc (30 ngày qua và 90 ngày tới) · {info.events.length} ca</h2>
     {info.events.length?<div className="space-y-3">{info.events.map(e=><article key={e.id} className="rounded-xl border p-4"><div className="flex flex-wrap justify-between gap-2"><strong>{e.name}</strong><span className="text-sm font-semibold text-indigo-700">{e.date} · {e.start||'--:--'} – {e.end||'--:--'}</span></div>
      <p className="mt-1 text-xs text-slate-500">{e.eventType}</p>
-     <div className="mt-3 space-y-2 rounded-xl bg-slate-50 p-3"><Location value={e.location}/>{e.isRuocDau&&<><Location name="Nhà trai" value={e.locTrai}/><Location name="Nhà gái" value={e.locGai}/></>}
+     <div className="mt-3 space-y-2 rounded-xl bg-slate-50 p-3"><Location value={e.location}/>{e.isRuocDau&&<><Location name="Nhà trai" value={e.locTrai}/><Location name="Nhà gái" value={e.locGai}/></>}{e.brideRestaurant&&<Location name="Nhà hàng nhà gái" value={e.brideRestaurant}/>} {e.groomRestaurant&&<Location name="Nhà hàng nhà trai" value={e.groomRestaurant}/>}
       {!e.isRuocDau?<PhoneActions phone={e.phone}/>:<><div className="text-xs font-bold text-slate-600">SĐT nhà trai</div><PhoneActions phone={e.phoneTrai}/><div className="text-xs font-bold text-slate-600">SĐT nhà gái</div><PhoneActions phone={e.phoneGai}/></>}
      </div><p className="mt-3 text-sm">{e.assignment.map(a=>[a.task,a.locType].filter(Boolean).join(' — ')).join(', ')||'Chưa có nhiệm vụ cụ thể'}</p>
      <p className="mt-2 text-sm font-bold text-emerald-800">Chi phí của bạn: {formatVnd(e.cost)}</p>

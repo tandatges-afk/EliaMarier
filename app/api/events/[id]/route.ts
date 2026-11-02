@@ -11,6 +11,7 @@ import { scheduleConflict, recordValues } from '@/lib/domain/scheduling';
 import { withScheduleLock, dailyEvents, dailyBlackouts, ScheduleError } from '@/lib/server/staff-scheduling';
 import {authenticatedOffice,safeOfficeEvent} from '@/lib/server/office-auth';
 import {taskOptionsFor} from '@/lib/domain/staff-task';
+import {crewChoices,crewKeysForPhoto,isCombinedHouses} from '@/lib/domain/elia-operations';
 import {moduleRef} from '@/lib/server/elia-operations';
 import {isAdmin} from '@/lib/server/firebase-admin';
 import { encryptBookingArchive, ArchiveConfigurationError } from '@/lib/server/booking-archive';
@@ -55,7 +56,7 @@ async function handleGET(request:Request,{params}:{params:Promise<{id:string}>})
     const completedProductIds=Object.entries(productState as Record<string,{completedAt?:unknown}>).filter(([,value])=>Boolean(value?.completedAt)).map(([productId])=>productId);
     const role=(await authenticatedOffice(request,['admin','sale','leader_photo']))?.role;
     const event=safeOfficeEvent(normaliseEvents([item.value])[0],isAdmin(user)?'admin':role||'sale');
-    return json({event:{...event,...(role==='leader_photo'?{price:0,deposit:0,products:[]}:{ }),deliveryCompleted,completedProductIds,phone:item.value.phone||'',note:item.value.note||'',isRuocDau:item.value.isRuocDau===true,
+    return json({event:{...event,...(role==='leader_photo'?{price:0,deposit:0,products:[]}:{ }),deliveryCompleted,completedProductIds,phone:item.value.phone||'',note:item.value.note||'',isRuocDau:item.value.isRuocDau===true,photoServiceType:item.value.photoServiceType||'',brideName:item.value.brideName||'',groomName:item.value.groomName||'',brideRestaurant:item.value.brideRestaurant||'',groomRestaurant:item.value.groomRestaurant||'',
     sourceLinks:role==='leader_photo'?{}:Object.fromEntries(recordValues(item.value.assignments).filter(a=>a.id!=null).map(a=>[String(a.id),String(a.link||'')])),
     products:role==='leader_photo'?[]:recordValues(item.value.products).map(p=>({id:String(p.id||''),name:String(p.name||''),url:String(p.url||''),mediaType:String(p.mediaType||'auto')})),
     startTrai:item.value.startTrai||'',startGai:item.value.startGai||'',locTrai:item.value.locTrai||'',locGai:item.value.locGai||'',phoneTrai:item.value.phoneTrai||'',phoneGai:item.value.phoneGai||''},version:item.version});
@@ -103,6 +104,19 @@ async function handlePATCH(request:Request,{params}:{params:Promise<{id:string}>
       const proposedKeys=payload.changes&&typeof payload.changes==='object'&&!Array.isArray(payload.changes)?Object.keys(payload.changes):[];
       if(proposedKeys.some(key=>!allowed.includes(key)))return json({error:'Lịch thuộc gói: chỉ thay đổi thời gian và phân công tại đây. Thông tin, trạng thái và tiền phải chỉnh trong Chọn gói.'},409);
     }
+    // Narrow the untrusted request body before reading assignments (TS strict mode).
+    // Keep the house rule enforced server-side even when clients bypass the UI.
+    const rawChanges=payload.changes;
+    if(rawChanges && typeof rawChanges==='object' && !Array.isArray(rawChanges) &&
+       Object.prototype.hasOwnProperty.call(rawChanges,'assignments') &&
+       isCombinedHouses(located.value.photoServiceType||located.value.eventType)){
+      const assignments=(rawChanges as Record<string,unknown>).assignments;
+      if(!Array.isArray(assignments) || assignments.some((entry:unknown)=>{
+        if(!entry || typeof entry!=='object' || Array.isArray(entry))return true;
+        const house=(entry as {locType?:unknown}).locType;
+        return house!=='Nhà trai' && house!=='Nhà gái';
+      }))return json({error:'Vu quy + Đám nối: bắt buộc chọn nhà trai hoặc nhà gái cho từng thợ'},422);
+    }
     const validated=validateEventChanges(payload.changes,located.value);
     if(!validated.ok)return json({error:validated.message,code:'BOOKING_VALIDATION'},422);
     if(located.version!==payload.expectedVersion)return json({error:'Lịch đã thay đổi ở một phiên khác. Hãy tải lại trước khi lưu.'},409);
@@ -120,7 +134,9 @@ async function handlePATCH(request:Request,{params}:{params:Promise<{id:string}>
       if(actorRole==='leader_photo'){
         const roster=new Map(staff.map(s=>[String(s.id),String((s as {role?:string}).role||'')]));
         for(const assigned of validated.value.assignments){
-          const options=taskOptionsFor(roster.get(assigned.id)||'','Cưới');
+          const selected=located.value.photoServiceType||located.value.eventType;
+          const accepted=new Set(crewKeysForPhoto(selected).map(k=>crewChoices[k]));
+          const options=taskOptionsFor(roster.get(assigned.id)||'','Cưới').filter(t=>accepted.has(t));
           if(options.length&&!options.includes(assigned.task))return json({error:'Công việc thợ không phù hợp chuyên môn.'},422);
         }
       }

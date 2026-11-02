@@ -1,5 +1,6 @@
 import type { EventStatus,Assignment } from './types';
-import {validateEventChanges} from './event-management';
+import {isCombinedHouses,isTwoHousePhoto,photoVenueMode} from './elia-operations.ts';
+import {validateEventChanges} from './event-management.ts';
 
 export type BookingInput = {
   id: string;
@@ -11,6 +12,8 @@ export type BookingInput = {
   location: string;
   phone?: string;
   note?: string;
+  photoServiceType?:string; brideName?:string; groomName?:string;
+  brideRestaurant?:string;groomRestaurant?:string;
   status: EventStatus;
   price: number;
   deposit: number;
@@ -34,6 +37,7 @@ export function validateBooking(input: unknown): BookingValidation {
   const v = input as Record<string, unknown>;
   const string = (key:string,limit:number) => typeof v[key]==='string' ? (v[key] as string).trim().slice(0,limit) : '';
   const id=string('id',101), name=string('name',180), date=string('date',10), start=string('start',5), end=string('end',5);
+  const photoServiceType=string('photoServiceType',80), brideName=string('brideName',150),groomName=string('groomName',150),brideRestaurant=string('brideRestaurant',500),groomRestaurant=string('groomRestaurant',500);
   const eventType=string('eventType',80), location=string('location',1500), phone=string('phone',50), note=string('note',1000), status=string('status',30);
   const price= v.price, deposit=v.deposit;
   if (!validId.test(id)) return {ok:false,message:'Mã lịch không hợp lệ'};
@@ -54,7 +58,11 @@ export function validateBooking(input: unknown): BookingValidation {
   const locTrai=string('locTrai',1500),locGai=string('locGai',1500);
   const phoneTrai=string('phoneTrai',50),phoneGai=string('phoneGai',50);
   if(isRuocDau&&(!timePattern.test(startTrai)||!timePattern.test(startGai)||!locTrai||!locGai))return {ok:false,message:'Lịch rước dâu cần giờ và địa điểm cho cả hai nhà'};
+  if(photoServiceType&&isTwoHousePhoto(photoServiceType)&&(!brideName||!groomName||!phoneTrai||!phoneGai||!locTrai||!locGai))return {ok:false,message:'Lịch hai nhà cần đầy đủ thông tin cô dâu, chú rể, SĐT và địa chỉ hai nhà'};
+  if(photoServiceType&&!isRuocDau&&photoVenueMode(photoServiceType)==='external'&&!location)return {ok:false,message:'Dịch vụ này cần địa điểm quay chụp'};
+  if(groomRestaurant&&!groomName)return {ok:false,message:'Nhà hàng nhà trai cần thông tin chú rể'};
+  if(isCombinedHouses(photoServiceType)&&assignments.some(a=>!['Nhà trai','Nhà gái'].includes(a.locType)))return {ok:false,message:'Vu quy + Đám nối: chọn nhà trai hoặc nhà gái cho từng thợ'};
   if(isRuocDau && (end<startTrai||end<startGai))return {ok:false,message:'Giờ kết thúc phải sau giờ bắt đầu tại cả hai nhà'};
   if(!isRuocDau&&['startTrai','startGai','locTrai','locGai','phoneTrai','phoneGai'].some(k=>v[k]))return {ok:false,message:'Trường hai nhà chỉ được dùng cho lịch rước dâu'};
-  return {ok:true,value:{id,name,date,start,end,eventType:eventType||'Khác',location,phone,note,status:status as EventStatus,price,deposit,assignments,isRuocDau,startTrai:startTrai||'',startGai:startGai||'',locTrai:locTrai||'',locGai:locGai||'',phoneTrai:phoneTrai||'',phoneGai:phoneGai||''}};
+  return {ok:true,value:{id,name,date,start,end,eventType:eventType||'Khác',photoServiceType,brideName,groomName,brideRestaurant,groomRestaurant,location,phone,note,status:status as EventStatus,price,deposit,assignments,isRuocDau,startTrai:startTrai||'',startGai:startGai||'',locTrai:locTrai||'',locGai:locGai||'',phoneTrai:phoneTrai||'',phoneGai:phoneGai||''}};
 }

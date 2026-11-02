@@ -16,7 +16,8 @@
     "test:elia-v5": "node --experimental-strip-types --test tests/elia-v5-features.test.mjs",
     "test:firebase-restore": "node --experimental-strip-types --test tests/elia-v5-firebase-restore.test.mjs",
     "rules:proposal": "node scripts/prepare-rtdb-rules.mjs",
-    "test:elia-v6": "node --experimental-strip-types --test tests/elia-v6-operations.test.mjs"
+    "test:elia-v6": "node --experimental-strip-types --test tests/elia-v6-operations.test.mjs",
+    "test:elia-v7": "node --experimental-strip-types --test tests/elia-v7-photo-workflow.test.mjs"
   },
   "engines": {
     "node": "22.x"

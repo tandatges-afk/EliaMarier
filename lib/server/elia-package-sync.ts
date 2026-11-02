@@ -7,7 +7,7 @@ import {adminDatabase} from './firebase-admin';
 import {asWeddingItem,weddingItemsRef,makeWeddingBooking,validateWeddingBookingInput} from './wedding-wardrobe';
 import {weddingConflict, type WeddingBooking} from '@/lib/domain/wedding-rental';
 import {predictWardrobeUsage} from '@/lib/domain/wedding-advisory';
-import {validateModule} from '@/lib/domain/elia-operations';
+import {validateModule,isTwoHousePhoto,isRuocDau,photoVenueMode} from '@/lib/domain/elia-operations';
 import {moduleRef} from './elia-operations';
 import type {OfficeIdentity} from './office-auth';
 
@@ -63,16 +63,17 @@ export async function savePackage(actor:OfficeIdentity,input:unknown,opts:{id?:s
   }
   if(serviceEntries(old||{},'decor').length){const prior=(await moduleRef('decor').child(pkgId).once('value')).val();if(prior&&(statusIsCancelled(doc)||!serviceEntries(doc,'decor').length))projected.set(`eliaModules/decor/${pkgId}`,{...prior,status:'cancelled',updatedAt:Date.now()});}
   const clientName=[doc.brideName,doc.groomName].filter(Boolean).join(' & ')||'Khách hàng';
-  const phone=safeText(doc.contactPhone||doc.bridePhone||doc.groomPhone);
+  const phone=safeText(doc.bridePhone||doc.groomPhone);
   if(status!=='cancelled'){
    for(const entry of serviceEntries(doc,'photo')){
-    const id=recordId(pkgId,entry.id),ruocDau=entry.type.toLocaleLowerCase('vi').includes('rước dâu');
+    const id=recordId(pkgId,entry.id),ruocDau=isRuocDau(entry.type),twoHouses=isTwoHousePhoto(entry.type),venueMode=photoVenueMode(entry.type);
     const oldEvent=photoOld.some(e=>e.id===entry.id)?(await base().child('events').child(id).once('value')).val():null;
-    if(oldEvent?.assignments?.length &&(entry.date!==oldEvent.date||entry.start!==oldEvent.start||entry.end!==oldEvent.end||entry.startTrai!==oldEvent.startTrai||entry.startGai!==oldEvent.startGai)){
+    if(oldEvent?.assignments?.length &&entry.type!==(oldEvent.photoServiceType||oldEvent.eventType))throw new PackageFault(409,'Lịch đã phân công thợ. Hãy gỡ phân công trước khi đổi loại dịch vụ.','CREW_ASSIGNED_TYPE');
+    if(oldEvent?.assignments?.length &&(entry.date!==oldEvent.date||entry.start!==oldEvent.start||entry.end!==oldEvent.end||(ruocDau&&(entry.startTrai!==oldEvent.startTrai||entry.startGai!==oldEvent.startGai)))){
      throw new PackageFault(409,'Lịch quay chụp đã phân công thợ. Hãy chỉnh thời gian tại lịch chuyên môn trước.','CREW_ASSIGNED');
     }
-    projected.set(`events/${id}`,{...oldEvent,id,name:clientName,date:entry.date,start:entry.start,end:entry.end,eventType:entry.type,phone,location:ruocDau?entry.locGai||doc.brideAddress:entry.location||doc.brideAddress,note:entry.notes,price:0,deposit:0,status,
-     assignments:oldEvent?.assignments||[],isRuocDau:ruocDau,startTrai:ruocDau?entry.startTrai:'',startGai:ruocDau?entry.startGai:'',locTrai:ruocDau?entry.locTrai:'',locGai:ruocDau?entry.locGai:'',phoneTrai:ruocDau?entry.phoneTrai:'',phoneGai:ruocDau?entry.phoneGai:'',
+    projected.set(`events/${id}`,{...oldEvent,id,name:clientName,date:entry.date,start:entry.start,end:entry.end,eventType:entry.type,phone,location:venueMode==='external'?entry.location:doc.brideAddress,note:entry.notes,price:0,deposit:0,status,
+     assignments:oldEvent?.assignments||[],photoServiceType:entry.type,isRuocDau:twoHouses,startTrai:twoHouses?(ruocDau?entry.startTrai:entry.start):'',startGai:twoHouses?(ruocDau?entry.startGai:entry.start):'',locTrai:twoHouses?doc.groomAddress:'',locGai:twoHouses?doc.brideAddress:'',phoneTrai:twoHouses?doc.groomPhone:'',phoneGai:twoHouses?doc.bridePhone:'',brideName:doc.brideName,groomName:doc.groomName,brideRestaurant:doc.brideRestaurant,groomRestaurant:doc.groomRestaurant,
      products:oldEvent?.products||[],favoritePhotos:oldEvent?.favoritePhotos||[],favoritePhotoItems:oldEvent?.favoritePhotoItems||[],
      requiredCrew:entry.crew,sourcePackageId:pkgId,sourceEntryId:entry.id});
    }
@@ -81,7 +82,7 @@ export async function savePackage(actor:OfficeIdentity,input:unknown,opts:{id?:s
     projected.set(`eliaModules/makeup/${id}`,{...oldRecord,id,customerName:clientName,phone,makeupDate:entry.date,makeupTime:entry.time,layout:oldRecord?.layout||'',photos:oldRecord?.photos||[],notes:entry.notes,status,createdAt:oldRecord?.createdAt||now,createdBy:oldRecord?.createdBy||actor.token.uid,updatedAt:now,sourcePackageId:pkgId,sourceEntryId:entry.id});
    }
    const decorEntries=serviceEntries(doc,'decor');
-   if(decorEntries.length){const oldDecor=(await moduleRef('decor').child(pkgId).once('value')).val();projected.set(`eliaModules/decor/${pkgId}`,{...oldDecor,...Object.fromEntries(['brideName','groomName','bridePhone','groomPhone','brideAddress','groomAddress','contactPhone'].map(k=>[k,doc[k]])),id:pkgId,notes:doc.notes,price:0,deposit:0,balance:0,status,events:decorEntries,createdAt:oldDecor?.createdAt||now,createdBy:oldDecor?.createdBy||actor.token.uid,updatedAt:now,sourcePackageId:pkgId});}
+   if(decorEntries.length){const oldDecor=(await moduleRef('decor').child(pkgId).once('value')).val();projected.set(`eliaModules/decor/${pkgId}`,{...oldDecor,...Object.fromEntries(['brideName','groomName','bridePhone','groomPhone','brideAddress','groomAddress','brideRestaurant','groomRestaurant'].map(k=>[k,doc[k]])),id:pkgId,notes:doc.notes,price:0,deposit:0,balance:0,status,events:decorEntries,createdAt:oldDecor?.createdAt||now,createdBy:oldDecor?.createdBy||actor.token.uid,updatedAt:now,sourcePackageId:pkgId});}
   }
   if(status==='cancelled'){for(const entry of oldWard){const item=asWeddingItem((await weddingItemsRef().child(entry.itemId).once('value')).val());const booking=item?.bookings[recordId(pkgId,entry.id)];if(booking?.status==='picked_up')throw new PackageFault(409,'Trang phục đang được khách nhận. Cần hoàn trả trước khi hủy gói.','WARDROBE_NOT_RETURNED');}}
   // Reserve newly selected/changed dress dates one item at a time, with conflict checks.

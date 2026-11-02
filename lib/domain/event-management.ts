@@ -1,4 +1,5 @@
 /** Validation and diffing for the modern booking editor. Never replace a whole legacy event. */
+import {isCombinedHouses} from './elia-operations.ts';
 export type EditableChanges = {
   name?: string; date?: string; start?: string; end?: string; eventType?: string;
   location?: string; phone?: string; note?: string;
@@ -57,7 +58,7 @@ export function validateEventChanges(raw: unknown, current: Record<string,unknow
     if(key==='date'&&!isCalendarDate(input))return {ok:false,message:'Ngày không hợp lệ'};
     if(['start','end','startTrai','startGai'].includes(key)&&!timeRe.test(input))return {ok:false,message:'Giờ phải theo HH:mm'};
     if(key==='status'&&!['confirmed','done','cancelled'].includes(input))return {ok:false,message:'Trạng thái không hợp lệ'};
-    if(current.isRuocDau===true && ['start','location','phone'].includes(key))
+    if(current.isRuocDau===true && (isCombinedHouses(current.photoServiceType)?['location','phone']:['start','location','phone']).includes(key))
       return {ok:false,message:'Lịch rước dâu: chỉnh giờ, địa điểm, số điện thoại theo từng nhà'};
     if(current.isRuocDau!==true && ['startTrai','startGai','locTrai','locGai','phoneTrai','phoneGai'].includes(key))
       return {ok:false,message:'Thông tin hai nhà chỉ dành cho lịch rước dâu'};
