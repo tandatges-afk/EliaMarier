@@ -4,7 +4,9 @@ export type EditableChanges = {
   name?: string; date?: string; start?: string; end?: string; eventType?: string;
   location?: string; phone?: string; note?: string;
   startTrai?:string;startGai?:string;locTrai?:string;locGai?:string;phoneTrai?:string;phoneGai?:string;
-  status?: 'confirmed'|'done'|'cancelled';
+  // 'pending' may appear in the editor while reviewing legacy Firebase data.
+  // validateEventChanges still forbids writing this status.
+  status?: 'confirmed'|'done'|'cancelled'|'pending';
   price?: number; deposit?: number;
   assignments?: { id:string; task:string; cost:number; locType:string }[];
 };

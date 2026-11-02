@@ -1,6 +1,6 @@
 /** Pure operational selectors. Read-only: never mutates existing Firebase records. */
 import type {StudioEvent, Staff} from './types';
-import {crewChoices} from './elia-operations';
+import {crewChoices} from './elia-operations.ts';
 
 /** Does the event still require a qualified crew? Only actual assignments count. */
 export function hasMissingCrew(event:StudioEvent){
@@ -14,20 +14,21 @@ export function hasMissingCrew(event:StudioEvent){
 }
 
 const dateOnly = /^\d{4}-\d{2}-\d{2}$/;
-const active = (event:StudioEvent) => event.status!=='cancelled';
+// Unsupported legacy statuses must not trigger financial/crew actions before review.
+const active = (event:StudioEvent) => event.status==='confirmed' || event.status==='done';
 
 export function getOperationsSnapshot(events:StudioEvent[],staff:Staff[],month:string,today:string){
  const scoped=events.filter(e=>e.date.startsWith(`${month}-`) && dayAsDate(e.date)!==null);
  const scheduled=scoped.filter(active);
  const validStaff=new Set(staff.filter(s=>s.active!==false).map(s=>s.id));
  const unassigned=scheduled.filter(e=>e.status!=='done' && (hasMissingCrew(e) || !e.assignments.some(a=>validStaff.has(a.id))));
- const pendingConfirmation:StudioEvent[]=[];
+ const pendingConfirmation=scoped.filter(e=>e.status==='pending');
  const unfinishedProducts=scheduled.flatMap(event=>event.deliveryCompleted?[]:event.products.filter(p=>!event.completedProductIds?.includes(p.id)).map(p=>({eventId:event.id,eventName:event.name,productId:p.id,productName:p.name,date:event.date})));
  const upcoming=scheduled.filter(e=>e.date>=today).sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start)).slice(0,8);
  const missingInfo=scheduled.filter(e=>!e.name.trim() || !e.date || (e.assignments.length>0 && !e.start && e.eventType.toLowerCase().indexOf('rước dâu')<0));
  const priceSum=scheduled.reduce((sum,e)=>sum+Math.max(0,e.price||0),0);
  const outstanding=scheduled.reduce((sum,e)=>sum+Math.max(0,(e.price||0)-(e.deposit||0)),0);
- const statusCounts={pending:0,confirmed:scoped.filter(e=>e.status==='confirmed').length,done:scoped.filter(e=>e.status==='done').length,cancelled:scoped.filter(e=>e.status==='cancelled').length};
+ const statusCounts={pending:pendingConfirmation.length,confirmed:scoped.filter(e=>e.status==='confirmed').length,done:scoped.filter(e=>e.status==='done').length,cancelled:scoped.filter(e=>e.status==='cancelled').length};
  return {total:scoped.length,unassigned,pendingConfirmation,unfinishedProducts,upcoming,missingInfo,priceSum,outstanding,statusCounts};
 }
 

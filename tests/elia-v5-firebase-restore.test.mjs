@@ -52,10 +52,26 @@ test('office photo keys cannot overlap event concept keys',()=>{
  assert.equal(conceptKey('wardrobe-'+id,photo,'jpg'),`concepts/wardrobe-${id}/${photo}.jpg`);
  assert.equal(conceptKey('makeup-'+photo,photo,'webp'),`concepts/makeup-${photo}/${photo}.webp`);
 });
-test('npm manifest and lockfile include Firebase SDK, but no active PostgreSQL dependency',()=>{
+test('npm manifest and lockfile retain supported Firebase SDKs without PostgreSQL',()=>{
  const pkg=JSON.parse(read('package.json')),lock=JSON.parse(read('package-lock.json'));
- assert.equal(pkg.dependencies.firebase,'^12.4.0');assert.equal(pkg.dependencies['firebase-admin'],'^13.4.0');
- assert.equal(pkg.dependencies.pg,undefined);assert.equal(pkg.name,lock.name);assert.equal(pkg.version,lock.version);
+ // Check the installed versions in the lockfile, not an outdated manifest range.
+ // Security upgrades may legitimately pin or raise the dependency range.
+ const atLeast=(rawVersion,minimum)=>{
+  const parts=String(rawVersion||'').match(/^(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$/);
+  assert.ok(parts,`Invalid or missing resolved dependency version: ${rawVersion}`);
+  const actual=parts.slice(1,4).map(Number);
+  for(let i=0;i<3;i++){
+   if(actual[i]!==minimum[i])return actual[i]>minimum[i];
+  }
+  return true;
+ };
+ assert.ok(typeof pkg.dependencies.firebase==='string'&&pkg.dependencies.firebase.trim(),'Firebase JS SDK must be installed');
+ assert.ok(typeof pkg.dependencies['firebase-admin']==='string'&&pkg.dependencies['firebase-admin'].trim(),'Firebase Admin must be installed');
+ assert.ok(atLeast(lock.packages['node_modules/firebase']?.version,[12,4,0]),'Firebase JS SDK is below the accepted version');
+ assert.ok(atLeast(lock.packages['node_modules/firebase-admin']?.version,[14,5,0]),'Firebase Admin is below the required security-upgrade version');
+ assert.equal(pkg.dependencies.pg,undefined);
+ assert.equal(pkg.devDependencies?.pg,undefined);
+ assert.equal(pkg.name,lock.name);assert.equal(pkg.version,lock.version);
  assert.deepEqual(pkg.dependencies,lock.packages[''].dependencies);
  assert.deepEqual(pkg.devDependencies,lock.packages[''].devDependencies);
 });

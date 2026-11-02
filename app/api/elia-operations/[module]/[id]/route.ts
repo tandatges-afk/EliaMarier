@@ -44,11 +44,12 @@ export async function PATCH(req:Request,{params}:Ctx){
     const sharedUpdates:Record<string,unknown>={};
     if(module==='decor'&&!restricted)for(const key of sharedNames)sharedUpdates[key]=updated[key];
     await savePackage(actor,{...parent,...sharedUpdates,services},{id:pkgId,expectedUpdatedAt:parent.updatedAt});
-    const latest=(await moduleRef(module).child(id).once('value')).val();
     // Makeup layout and photos are specialist-only details and are not part of package timelines.
     if(module==='makeup'&&!restricted&&typeof updated.layout==='string'&&updated.layout!==current.layout){
      await moduleRef('makeup').child(id).update({layout:updated.layout,updatedAt:Date.now()});
     }
+    // Read after the final specialist update; otherwise API returns stale layout.
+    const latest=(await moduleRef(module).child(id).once('value')).val();
     await auditModule(actor,'MODULE_UPDATED_LINKED',module,id);
     return send({record:latest,linked:true});
    }

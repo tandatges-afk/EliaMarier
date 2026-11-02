@@ -274,3 +274,6 @@ body{background:var(--base);color:var(--ink);font-family:'DM Sans',system-ui,san
 .elia-staff-portal .elia-staff-section input{border-color:#e1d6c6;border-radius:9px}
 .elia-staff-portal .elia-staff-section button.bg-indigo-700{background:#3d4939!important;color:white}
 @media(max-width:600px){.elia-staff-portal .elia-staff-hero{padding:21px}.elia-booking-dialog,.elia-editor-panel{border-radius:14px}.elia-booking-dialog form{padding-left:15px;padding-right:15px}}
+
+/* V7: unsupported historical Firebase statuses are not silently shown as confirmed. */
+.status-pending, .ops29-status-text.s-pending, .ops29-event.s-pending { color:#8b5417; background-color:#fff3dc; border-color:#efca86; }

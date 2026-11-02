@@ -1,14 +1,17 @@
 /** Package save + specialist calendar projection for Firebase RTDB.
  * RTDB multi-location update makes photo, decor, makeup and package records visible together.
- * Dress reservations are independently guarded by per-item transactions and compensated on failure.
+ * Dress reservations are independently guarded by per-item ETag CAS and compensated on failure.
  */
 import {createHash,randomUUID} from 'node:crypto';
 import {adminDatabase} from './firebase-admin';
-import {asWeddingItem,weddingItemsRef,makeWeddingBooking,validateWeddingBookingInput} from './wedding-wardrobe';
+import {asWeddingItem,weddingItemsRef,makeWeddingBooking,validateWeddingBookingInput,WeddingFault} from './wedding-wardrobe';
+import {weddingItemCas,packageLockCas} from './wedding-etag-cas';
+import {acquirePackageLease,releasePackageLease} from '@/lib/domain/package-lease';
 import {weddingConflict, type WeddingBooking} from '@/lib/domain/wedding-rental';
 import {predictWardrobeUsage} from '@/lib/domain/wedding-advisory';
 import {validateModule,isTwoHousePhoto,isRuocDau,photoVenueMode} from '@/lib/domain/elia-operations';
 import {moduleRef} from './elia-operations';
+import {retiringWardrobeEntries,wardrobeHasUnreturnedPickup} from '@/lib/domain/elia-package-write-safety';
 import type {OfficeIdentity} from './office-auth';
 
 type Item={id:string;[key:string]:any};
@@ -20,11 +23,49 @@ const safeText=(value:unknown)=>String(value||'').trim();
 const statusIsCancelled=(doc:PackageRecord)=>doc.status==='cancelled';
 class PackageFault extends Error{constructor(public status:number,message:string,public code:string){super(message);}}
 export {PackageFault};
+/** Wardrobe entries require an itemId; reject malformed legacy records instead of silently skipping cleanup. */
+type WardrobeItem=Item & {itemId:string};
+function wardrobeEntries(doc:PackageRecord):WardrobeItem[]{
+ const rows=serviceEntries(doc,'wardrobe');
+ if(rows.some(e=>typeof e.itemId!=='string'||!/^[a-f0-9]{64}$/.test(e.itemId)))
+  throw new PackageFault(409,'Gói có dữ liệu trang phục không hợp lệ. Cần kiểm tra trước khi cập nhật.','WARDROBE_ENTRY_INVALID');
+ return rows as WardrobeItem[];
+}
+
+/** Server-authoritative package lock. A cold-cache SDK transaction could
+ * acquire the lock and then ABORT its release callback on initial null,
+ * leaving PACKAGE_BUSY until TTL. Use ETag CAS for both directions.
+ */
 async function lease(pkgId:string,uid:string){
- const lock=base().child('eliaPackageLocks').child(pkgId),token=randomUUID();
- const tx=await lock.transaction(current=>!current||Number(current.expiresAt)<Date.now()?{uid,token,expiresAt:Date.now()+90000}:undefined,undefined,false);
- if(!tx.committed)throw new PackageFault(409,'Gói đang được cập nhật bởi người khác. Vui lòng thử lại.','PACKAGE_BUSY');
- return async()=>{try{await lock.transaction(current=>current?.token===token?null:undefined,undefined,false);}catch(e){console.error('[package] failed to release lease',e);}};
+ const token=randomUUID();
+ let acquired;
+ try{
+  acquired=await packageLockCas(pkgId,current=>{
+   const now=Date.now();
+   return acquirePackageLease(current,{uid,token,expiresAt:now+90000},now);
+  });
+ }catch(error){
+  if(error instanceof WeddingFault)throw new PackageFault(error.status,'Không thể kiểm tra khóa gói: '+error.message,error.code);
+  throw error;
+ }
+ if(!acquired.committed)throw new PackageFault(409,'Gói đang được cập nhật bởi người khác. Vui lòng thử lại.','PACKAGE_BUSY');
+ return async()=>{
+  try{
+   // Conditional null write only if our unique token STILL owns this lock.
+   // No-op on an absent, expired/replaced or foreign lock. Never delete others'.
+   await packageLockCas(pkgId,current=>releasePackageLease(current,token));
+  }catch(error){
+   console.error('[package] lock release outcome uncertain',pkgId,error instanceof Error?error.name:'unknown');
+   // Never report unverified unlock as success. The 90-second TTL remains
+   // an emergency escape hatch; callers should reload before retrying.
+   throw new PackageFault(503,'Không xác định được trạng thái giải phóng khóa gói. Hãy tải lại dữ liệu trước khi thao tác tiếp.','PACKAGE_LEASE_RELEASE_UNCERTAIN');
+  }
+ };
+}
+/** Shared lease: specialist event edits and package projections must never run concurrently. */
+export async function withPackageMutationLease<T>(pkgId:string,uid:string,work:()=>Promise<T>):Promise<T>{
+ const release=await lease(pkgId,uid);
+ try{return await work();}finally{await release();}
 }
 /** Create/update an operational package and every specialist calendar using one source package ID. */
 export async function savePackage(actor:OfficeIdentity,input:unknown,opts:{id?:string;expectedUpdatedAt?:number}={}){
@@ -37,13 +78,22 @@ export async function savePackage(actor:OfficeIdentity,input:unknown,opts:{id?:s
   if(opts.id&&(!old||old.updatedAt!==opts.expectedUpdatedAt))throw new PackageFault(409,'Gói đã được cập nhật. Tải lại để tránh ghi đè.','PACKAGE_VERSION');
   if(old && old.sourceVersion!==2)throw new PackageFault(409,'Gói phiên bản khác cần chuyển đổi trước khi sửa.','PACKAGE_LEGACY');
   if(old?.status==='cancelled'&&doc.status!=='cancelled')throw new PackageFault(409,'Gói đã hủy. Hãy tạo một gói mới để giữ lịch và trang phục.','PACKAGE_CANCELLED');
-  const oldWard=serviceEntries(old||{},'wardrobe');
+  const oldWard=wardrobeEntries(old||{});
+  const nextWard=wardrobeEntries(doc);
+  const retiring=retiringWardrobeEntries(oldWard,nextWard,doc.status==='cancelled');
+  // A pickup cannot disappear from its source package, even when the dress is switched.
+  // Check BEFORE making any new reservations. The post-commit cleanup also verifies reality.
+  for(const entry of retiring){
+   const item=asWeddingItem((await weddingItemsRef().child(entry.itemId).once('value')).val());
+   if(wardrobeHasUnreturnedPickup(item?.bookings[recordId(pkgId,entry.id)]?.status))
+    throw new PackageFault(409,'Trang phục đã giao cho khách. Phải nhận trả trước khi bỏ hoặc đổi trang phục trong gói.','WARDROBE_NOT_RETURNED');
+  }
   // Disallow two simultaneous reservations of the same dress inside one package.
   const selected=new Set<string>();
   for(const entry of serviceEntries(doc,'wardrobe')){
    const key=`${entry.itemId}`;if(selected.has(key))throw new PackageFault(422,'Một gói không thể chọn trùng một trang phục. Hãy gộp khoảng thuê.','DUPLICATE_DRESS');selected.add(key);
   }
-  const parentId=old?.id||pkgId,now=Date.now();
+  const parentId=old?.id||pkgId,now=Math.max(Date.now(),Number(old?.updatedAt||0)+1);
   const status=doc.status==='cancelled'?'cancelled':doc.status==='done'?'done':'confirmed';
   const projected=new Map<string,unknown>();
   const photoOld=serviceEntries(old||{},'photo'),makeupOld=serviceEntries(old||{},'makeup');
@@ -84,18 +134,19 @@ export async function savePackage(actor:OfficeIdentity,input:unknown,opts:{id?:s
    const decorEntries=serviceEntries(doc,'decor');
    if(decorEntries.length){const oldDecor=(await moduleRef('decor').child(pkgId).once('value')).val();projected.set(`eliaModules/decor/${pkgId}`,{...oldDecor,...Object.fromEntries(['brideName','groomName','bridePhone','groomPhone','brideAddress','groomAddress','brideRestaurant','groomRestaurant'].map(k=>[k,doc[k]])),id:pkgId,notes:doc.notes,price:0,deposit:0,balance:0,status,events:decorEntries,createdAt:oldDecor?.createdAt||now,createdBy:oldDecor?.createdBy||actor.token.uid,updatedAt:now,sourcePackageId:pkgId});}
   }
-  if(status==='cancelled'){for(const entry of oldWard){const item=asWeddingItem((await weddingItemsRef().child(entry.itemId).once('value')).val());const booking=item?.bookings[recordId(pkgId,entry.id)];if(booking?.status==='picked_up')throw new PackageFault(409,'Trang phục đang được khách nhận. Cần hoàn trả trước khi hủy gói.','WARDROBE_NOT_RETURNED');}}
   // Reserve newly selected/changed dress dates one item at a time, with conflict checks.
   // Old reservations remain until the linked calendars and package commit succeeds.
-  const nextWard=serviceEntries(doc,'wardrobe');
   for(const entry of nextWard){
    const previous=oldWard.find(e=>e.id===entry.id && e.itemId===entry.itemId && e.startDate===entry.startDate && e.endDate===entry.endDate);
    if(previous && status!=='cancelled')continue;
    if(status==='cancelled')continue;
    const validated=validateWeddingBookingInput({customerName:clientName,customerPhone:phone,startDate:entry.startDate,endDate:entry.endDate,notes:entry.notes});
    const booking={...makeWeddingBooking(actor.token,entry.itemId,validated),id:recordId(pkgId,entry.id),packageId:pkgId,packageEntryId:entry.id};
+   const itemRef=weddingItemsRef().child(entry.itemId);
+   if(!asWeddingItem((await itemRef.once('value')).val()))
+    throw new PackageFault(409,'Không tìm thấy trang phục trong kho.','WARDROBE_NOT_FOUND');
    let denial='';let prior:WeddingBooking|undefined;
-   const tx=await weddingItemsRef().child(entry.itemId).transaction(raw=>{
+   const tx=await weddingItemCas(entry.itemId,raw=>{
     const item=asWeddingItem(raw);if(!item){denial='Không tìm thấy trang phục';return;}
     if(!item.active){denial='Trang phục đã ngừng sử dụng';return;}
     prior=item.bookings[booking.id];
@@ -105,34 +156,58 @@ export async function savePackage(actor:OfficeIdentity,input:unknown,opts:{id?:s
     const nearby=predictWardrobeUsage(item.bookings,entry.startDate,entry.endDate,booking.id).nearby;
     if(nearby.length&&!entry.advisoryAcknowledged){denial=`Trang phục ${item.code} có lịch sát ngày. Vui lòng kiểm tra và xác nhận tư vấn.`;return;}
     return {...item,bookings:{...item.bookings,[booking.id]:booking}};
-   },undefined,false);
+   });
    if(!tx.committed)throw new PackageFault(409,denial||'Không giữ được trang phục','WARDROBE_CONFLICT');
    made.push({itemId:entry.itemId,bookingId:booking.id,prior});
   }
-  const oldBookingPairs=oldWard.map(e=>({itemId:e.itemId,bookingId:recordId(pkgId,e.id)}));
-  const newBookingPairs=nextWard.map(e=>({itemId:e.itemId,bookingId:recordId(pkgId,e.id)}));
-  const retained=new Set(status==='cancelled'?[]:newBookingPairs.map(x=>`${x.itemId}:${x.bookingId}`));
   const record={...doc,id:parentId,createdBy:old?.createdBy||actor.token.uid,createdAt:old?.createdAt||now,updatedAt:now,sourceVersion:2};
   projected.set(`eliaModules/packages/${pkgId}`,record);
+  // Durable post-commit reconciliation marker. RTDB cannot atomically update per-item
+  // transactions and this multi-location package update. A crash must be detectable.
+  const reconciliationRef=base().child('eliaPackageReconciliations').child(pkgId);
+  if(retiring.length)projected.set(`eliaPackageReconciliations/${pkgId}`,{
+   status:'cleanup_pending',updatedAt:now,actorUid:actor.token.uid,
+   reservations:retiring.map(entry=>({itemId:entry.itemId,bookingId:recordId(pkgId,entry.id)}))
+  });
   await base().update(Object.fromEntries(projected));
   parentCommitted=true;
-  // Release old dress reservations ONLY after the new schedule is committed.
-  // Use transaction guards so independent staff changes cannot be overwritten.
-  for(const previous of oldBookingPairs){
-   if(retained.has(`${previous.itemId}:${previous.bookingId}`))continue;
-   try{await weddingItemsRef().child(previous.itemId).transaction(raw=>{
-    const item=asWeddingItem(raw);if(!item)return;
-    const booking=item.bookings[previous.bookingId] as any;
-    if(!booking||booking.packageId!==pkgId)return;
-    if(booking.status==='picked_up'||booking.status==='returned')return;
-    const bookings={...item.bookings,[previous.bookingId]:{...booking,status:'cancelled',updatedAt:Date.now()}};return {...item,bookings};
-   },undefined,false);}catch(e){console.error('[package] old wardrobe booking cleanup needed',previous,e);}
+  // Release old reservations after the package commit. Verify each final state;
+  // transaction failure or a newly picked-up dress must NOT be reported as success.
+  const cleanupFailures:string[]=[];
+  for(const previous of retiring){
+   const itemId=previous.itemId,bookingId=recordId(pkgId,previous.id);
+   const itemRef=weddingItemsRef().child(itemId);
+   try{
+    // Prime the exact item ref; a cold cache must not silently skip cleanup.
+    await itemRef.once('value');
+    await weddingItemCas(itemId,raw=>{
+     const item=asWeddingItem(raw);if(!item)return;
+     const booking=item.bookings[bookingId] as WeddingBooking|undefined;
+     if(!booking||booking.packageId!==pkgId||['cancelled','returned'].includes(booking.status))return;
+     if(wardrobeHasUnreturnedPickup(booking.status))return;
+     return {...item,bookings:{...item.bookings,[bookingId]:{...booking,status:'cancelled',updatedAt:Date.now()}}};
+    });
+    // Recheck authoritative state; an aborted CAS must not be assumed successful.
+    const latest=asWeddingItem((await itemRef.once('value')).val())?.bookings[bookingId];
+    if(latest?.packageId===pkgId && !['cancelled','returned'].includes(latest.status))
+     cleanupFailures.push(`${itemId}:${bookingId}`);
+   }catch(e){console.error('[package] reservation cleanup failed',itemId,e);cleanupFailures.push(`${itemId}:${bookingId}`);}
+  }
+  if(cleanupFailures.length){
+   try{await reconciliationRef.update({status:'cleanup_needed',failed:cleanupFailures,updatedAt:Date.now()});}
+   catch(error){console.error('[package] unable to record cleanup failure',pkgId,error);}
+   throw new PackageFault(409,'Gói đã lưu nhưng chưa giải phóng hết lịch trang phục cũ. Không tạo lại gói; yêu cầu Admin đối soát.','PACKAGE_WARDROBE_CLEANUP_PENDING');
+  }
+  if(retiring.length){
+   try{await reconciliationRef.remove();}
+   catch(e){console.error('[package] pending reconciliation marker could not be cleared',pkgId,e);}
   }
   return record;
  }catch(e){
   if(!parentCommitted){for(const x of made.reverse()){
-   try{await weddingItemsRef().child(x.itemId).transaction(raw=>{const item=asWeddingItem(raw);if(!item)return;const existing=item.bookings[x.bookingId] as any;if(existing?.packageId!==pkgId)return;const bookings={...item.bookings};if(x.prior)bookings[x.bookingId]=x.prior as typeof item.bookings[string];else delete bookings[x.bookingId];return {...item,bookings};},undefined,false);}catch(rollbackError){console.error('[package] reservation compensation failed; manual reconciliation needed',rollbackError);}
+   try{const itemRef=weddingItemsRef().child(x.itemId);await itemRef.once('value');await weddingItemCas(x.itemId,raw=>{const item=asWeddingItem(raw);if(!item)return;const existing=item.bookings[x.bookingId] as any;if(existing?.packageId!==pkgId)return;const bookings={...item.bookings};if(x.prior)bookings[x.bookingId]=x.prior as typeof item.bookings[string];else delete bookings[x.bookingId];return {...item,bookings};});}catch(rollbackError){console.error('[package] reservation compensation failed; manual reconciliation needed',rollbackError);}
   }}
+  if(e instanceof WeddingFault)throw new PackageFault(e.status,e.message,e.code);
   throw e;
  }finally{await release();}
 }

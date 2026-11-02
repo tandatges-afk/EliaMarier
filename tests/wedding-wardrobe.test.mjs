@@ -30,6 +30,6 @@ test('code normalization treats same codes as same key input',()=>{
 test('booking endpoints use transaction and authenticated office guard',()=>{
  const create=readFileSync(new URL('../app/api/wedding-wardrobe/bookings/route.ts',import.meta.url),'utf8');
  const edit=readFileSync(new URL('../app/api/wedding-wardrobe/bookings/[itemId]/[bookingId]/route.ts',import.meta.url),'utf8');
- assert.match(create,/authenticatedOffice\(request\)/);assert.match(create,/\.transaction\(/);assert.match(create,/weddingConflict/);
- assert.match(edit,/authenticatedOffice\(request\)/);assert.match(edit,/\.transaction\(/);assert.match(edit,/weddingConflict/);
+ assert.match(create,/authenticatedOffice\(request\)/);assert.match(create,/weddingItemCas\(itemId/);assert.match(create,/weddingConflict/);
+ assert.match(edit,/authenticatedOffice\(request\)/);assert.match(edit,/weddingItemCas\(itemId/);assert.match(edit,/weddingConflict/);
 });

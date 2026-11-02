@@ -17,14 +17,16 @@ export function normaliseStaff(raw: unknown): Staff[] {
 export function normaliseEvents(raw: unknown): StudioEvent[] {
   return values<Record<string, unknown>>(raw).filter(e => e.id != null && /^\d{4}-\d{2}-\d{2}$/.test(txt(e.date)))
     .map(e => {
-      const status = txt(e.status) as EventStatus;
+      const rawStatus = txt(e.status, 40);
+      const validStatus = ['confirmed','done','cancelled'].includes(rawStatus);
+      const status: EventStatus = validStatus ? rawStatus as EventStatus : 'pending';
       const assignments: Assignment[] = values<Record<string, unknown>>(e.assignments).filter(a => a.id != null).map(a => ({
         id: txt(a.id, 160), cost: amount(a.cost), task: txt(a.task), locType: txt(a.locType)
       }));
       return {
         id: txt(e.id, 160), name: txt(e.name), date: txt(e.date, 10), start: txt(e.start, 8),
         end: txt(e.end, 8), eventType: txt(e.eventType), photoServiceType:txt(e.photoServiceType),
-        status: ['confirmed','done','cancelled'].includes(status) ? status : 'confirmed',
+        status, needsStatusReview: !validStatus, ...(!validStatus ? {legacyStatus:rawStatus || '(missing)'} : {}),
         location: txt(e.location, 240), assignments, isRuocDau:e.isRuocDau===true, startTrai:txt(e.startTrai,8), startGai:txt(e.startGai,8), requiredCrew:(e.requiredCrew&&typeof e.requiredCrew==='object'?e.requiredCrew:{} ) as Record<string,number>, sourcePackageId:txt(e.sourcePackageId,160), price: amount(e.price), deposit: amount(e.deposit),
         products: values<Record<string, unknown>>(e.products).filter(p => p.id != null).map(p => ({
           id: txt(p.id, 160), name: txt(p.name), mediaType: txt(p.mediaType, 32)
@@ -49,7 +51,7 @@ export function normaliseAudit(raw: unknown): AuditEvent[] {
   })).sort((a,b)=>b.createdAt - a.createdAt).slice(0, 20);
 }
 export function statusName(status: EventStatus): string {
-  return {confirmed:'Đã chốt', done:'Hoàn thành', cancelled:'Đã hủy'}[status];
+  return {confirmed:'Đã chốt', done:'Hoàn thành', cancelled:'Đã hủy', pending:'Cần xác minh'}[status];
 }
 export function monthEvents(events: StudioEvent[], month: string): StudioEvent[] {
   return events.filter(e => e.date.startsWith(month)).sort((a,b) =>
@@ -60,15 +62,15 @@ export function getMonthStats(events: StudioEvent[], month: string) {
   return {
     total: list.length,
     confirmed: list.filter(x=>x.status==='confirmed').length,
-    pending: 0,
+    pending: list.filter(x=>x.status==='pending').length,
     cancelled: list.filter(x=>x.status==='cancelled').length,
     done: list.filter(x=>x.status==='done').length,
-    unpaid: list.filter(x=>x.status!=='cancelled' && x.price>x.deposit).length,
+    unpaid: list.filter(x=>(x.status==='confirmed'||x.status==='done') && x.price>x.deposit).length,
   };
 }
 export function calculatePayroll(data: DashboardData, staffId: string) {
   const gross = monthEvents(data.events, data.month)
-    .filter(e => e.status !== 'cancelled')
+    .filter(e => e.status === 'confirmed' || e.status === 'done')
     .flatMap(e => e.assignments)
     .filter(a => a.id === staffId)
     .reduce((acc,a)=>acc+a.cost,0);

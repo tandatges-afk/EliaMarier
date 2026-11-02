@@ -13,6 +13,7 @@ import {authenticatedOffice,safeOfficeEvent} from '@/lib/server/office-auth';
 import {taskOptionsFor} from '@/lib/domain/staff-task';
 import {crewChoices,crewKeysForPhoto,isCombinedHouses} from '@/lib/domain/elia-operations';
 import {moduleRef} from '@/lib/server/elia-operations';
+import {withPackageMutationLease} from '@/lib/server/elia-package-sync';
 import {isAdmin} from '@/lib/server/firebase-admin';
 import { encryptBookingArchive, ArchiveConfigurationError } from '@/lib/server/booking-archive';
 import type { DecodedIdToken } from 'firebase-admin/auth';
@@ -88,6 +89,14 @@ async function handlePATCH(request:Request,{params}:{params:Promise<{id:string}>
     let committedForAudit:Record<string,unknown>|null=null;
     const action=async()=>{
     const located=await findBooking(id);
+    // Never treat an unverified legacy status as a confirmed booking.
+    // Only Admin may explicitly resolve it using the normal ETag-protected PATCH.
+    const legacyStatus=String(located.value.status||'');
+    if(!['confirmed','done','cancelled'].includes(legacyStatus)){
+      const requestedStatus=(payload.changes as Record<string,unknown> | undefined)?.status;
+      if(!isAdmin(user)||!['confirmed','done','cancelled'].includes(String(requestedStatus||'')))
+        return json({error:'Lịch cũ chưa xác minh trạng thái. Chỉ Admin được chọn lại trạng thái trước khi chỉnh sửa.',code:'LEGACY_STATUS_REVIEW_REQUIRED'},409);
+    }
     // Leader may choose the crew but never change or even submit its pay rates.
     if(actorRole==='leader_photo'&&payload.changes&&typeof payload.changes==='object'&&'assignments' in payload.changes){
       const changes=payload.changes as Record<string,unknown>;
@@ -167,7 +176,7 @@ async function handlePATCH(request:Request,{params}:{params:Promise<{id:string}>
        const tx=await moduleRef('packages').child(pkgId).transaction(raw=>{
         if(!raw?.services?.photo?.entries?.some((entry:{id:string})=>entry.id===entryId))return;
         const entries=raw.services.photo.entries.map((entry:{id:string;[key:string]:unknown})=>entry.id===entryId?{...entry,date:committed.date,start:committed.start,end:committed.end,startTrai:committed.startTrai,startGai:committed.startGai}:entry);
-        return {...raw,services:{...raw.services,photo:{...raw.services.photo,entries}},updatedAt:Date.now()};
+        return {...raw,services:{...raw.services,photo:{...raw.services.photo,entries}},updatedAt:Math.max(Date.now(),Number(raw.updatedAt||0)+1)};
        },undefined,false);
        packageUpdated=tx.committed;
       }catch(syncError){console.error('[event] linked package sync failed',syncError);}
@@ -177,7 +186,12 @@ async function handlePATCH(request:Request,{params}:{params:Promise<{id:string}>
     };
     // Lock the destination date. The optimistic version check inside action protects stale reads.
     const targetDate=String((payload.changes as Record<string,unknown> | undefined)?.date||previous.value.date||'');
-    const response=needsScheduleLock ? await withScheduleLock(action,targetDate) : await action();
+    const write=()=>needsScheduleLock ? withScheduleLock(action,targetDate) : action();
+    // This is the same lease as savePackage: prevent a Sale edit from silently
+    // replacing a Leader's just-saved assignment or specialist timeline.
+    const response=previous.value.sourcePackageId
+      ? await withPackageMutationLease(String(previous.value.sourcePackageId),user.uid,write)
+      : await write();
     // Logging must not extend the scheduling lock duration. The record is already committed.
     if(committedForAudit)await audit('EVENT_UPDATED',user,committedForAudit,id,
       `Cập nhật lịch ${String(previous.value.name||'')} ngày ${String(previous.value.date||'')}`);

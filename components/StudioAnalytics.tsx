@@ -5,13 +5,13 @@ import {CalendarCheck,ChartNoAxesCombined,FolderCheck,Wallet} from 'lucide-react
 import type {DashboardData} from '@/lib/domain/types';
 import {getOperationsSnapshot} from '@/lib/domain/operations';
 
-const statuses=[{key:'confirmed',label:'Đã chốt',color:'#6383c9'},{key:'done',label:'Hoàn thành',color:'#51a27a'},{key:'cancelled',label:'Đã hủy',color:'#a8b1bd'}] as const;
+const statuses=[{key:'pending',label:'Cần xác minh (lịch cũ)',color:'#c78a4a'},{key:'confirmed',label:'Đã chốt',color:'#6383c9'},{key:'done',label:'Hoàn thành',color:'#51a27a'},{key:'cancelled',label:'Đã hủy',color:'#a8b1bd'}] as const;
 const vnMoney = formatVnd;
 export function StudioAnalytics({data,today}:{data:DashboardData;today:string}){
  const summary=useMemo(()=>getOperationsSnapshot(data.events,data.staff,data.month,today),[data,today]);
  const services=useMemo(()=>{
    const counts=new Map<string,number>();
-   for(const event of data.events.filter(event=>event.date.startsWith(data.month+'-')&&event.status!=='cancelled')){
+   for(const event of data.events.filter(event=>event.date.startsWith(data.month+'-')&&(event.status==='confirmed'||event.status==='done'))){
      const type=event.eventType.trim()||'Chưa phân loại';counts.set(type,(counts.get(type)||0)+1);
    }
    return [...counts].sort((a,b)=>b[1]-a[1]).slice(0,7);

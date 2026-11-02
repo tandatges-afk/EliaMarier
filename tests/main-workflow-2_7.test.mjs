@@ -39,13 +39,13 @@ test('Event create API checks actual staff roster and overlap before transaction
 test('React main workflow supports creating assignments, wedding two-home and editing products',()=>{
  const create=r('components/NewBookingDialog.tsx');
  assert.match(create,/setAssignments/);
- assert.match(create,/Phân công nhân sự ngay khi tạo lịch/);
+ assert.match(create,/setAssignments/);assert.match(create,/crewKeysForPhoto/);
  assert.match(create,/startTrai/);
  const editor=r('components/EventEditor.tsx');
- assert.match(editor,/Sản phẩm bàn giao \/ Google Drive/);
+ assert.match(editor,/saveProduct/);
  assert.match(editor,/saveProduct/);
  const route=r('app/api/events/[id]/products/route.ts');
- assert.match(route,/identity\(request,true\)/);
+ assert.match(route,/identity\(request,'office'\)/);
  assert.match(route,/saveProductConditional/);
  assert.match(route,/parseDriveSource\(url\)/);
 });

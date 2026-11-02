@@ -41,3 +41,8 @@ tmp/
 *service-account*.json
 *service_account*.json
 *google-credentials*.json
+
+.vercel
+.env*
+
+!.env*.example

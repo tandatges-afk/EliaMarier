@@ -15,6 +15,7 @@ test('Legacy customer root bookmarks redirect to new routes',()=>{
 });
 test('Native studio API and Google Drive streaming remain',()=>{
  for(const p of ['app/api/dashboard/route.ts','app/api/events/route.ts','app/api/staff/route.ts','app/api/delivery/[eventId]/media/route.ts','pages/api/drive-video.js'])assert.ok(exists(p),p);
- assert.match(read('app/api/dashboard/route.ts'),/authenticatedAdmin\(request\)/);
+ assert.match(read('app/api/dashboard/route.ts'),/authenticatedOffice\(request/);
+ assert.match(read('app/api/dashboard/route.ts'),/actorRole==='admin'\?normalisePayroll/);
  assert.ok(!exists('pages/api/get-drive-images.js'));
 });

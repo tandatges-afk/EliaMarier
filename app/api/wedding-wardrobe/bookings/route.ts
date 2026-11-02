@@ -2,6 +2,7 @@ import {NextResponse} from 'next/server';
 import {authenticatedOffice} from '@/lib/server/office-auth';
 import {publicAuthFailure} from '@/lib/server/firebase-admin';
 import {weddingConflict} from '@/lib/domain/wedding-rental';
+import {weddingItemCas} from '@/lib/server/wedding-etag-cas';
 import {predictWardrobeUsage} from '@/lib/domain/wedding-advisory';
 import {findBooking,BookingStoreError} from '@/lib/server/event-storage';
 import {asWeddingItem,makeWeddingBooking,publicWeddingError,validateWeddingBookingInput,weddingAudit,weddingItemsRef,WeddingFault} from '@/lib/server/wedding-wardrobe';
@@ -25,9 +26,10 @@ export async function POST(request:Request){
    if(String(studioEvent.value.status||'')==='cancelled')throw new WeddingFault(409,'Không thể giữ trang phục cho lịch đã hủy.','EVENT_CANCELLED');
    booking.eventId=eventId;
   }
+  // Conditional REST ETag write reads the server value, not a cold SDK cache.
   let denied='';
-  // Atomic per-dress transaction: simultaneous requests cannot reserve overlapping dates.
-  const tx=await weddingItemsRef().child(itemId).transaction(raw=>{
+  // Atomic per-dress ETag CAS: simultaneous requests cannot reserve overlapping dates.
+  const tx=await weddingItemCas(itemId,raw=>{
    const item=asWeddingItem(raw);
    if(!item){denied='NOT_FOUND';return;}
    if(!item.active){denied='INACTIVE_ITEM';return;}
@@ -37,7 +39,7 @@ export async function POST(request:Request){
    const acknowledgedIds=Array.isArray(body.acknowledgedNearbyIds)?body.acknowledgedNearbyIds.filter((x):x is string=>typeof x==='string'):[];
    if(risk.nearby.length && (body.advisoryAcknowledged!==true||risk.nearby.some(x=>!acknowledgedIds.includes(x.id)))){denied='NEARBY_ACK_REQUIRED';return;}
    denied='';return {...item,bookings:{...item.bookings,[booking.id]:booking}};
-  },undefined,false);
+  });
   if(!tx.committed){
    if(denied==='NEARBY_ACK_REQUIRED')throw new WeddingFault(409,'Có lịch thuê trong vòng 2 ngày trước/sau. Hãy tải lại danh mục, kiểm tra tên khách và xác nhận đã tư vấn trước khi lưu.','NEARBY_ACK_REQUIRED');
    if(denied==='RENTAL_CONFLICT')throw new WeddingFault(409,'Mã váy đã có lịch thuê trùng ngày. Vui lòng chọn mã khác hoặc ngày khác.','RENTAL_CONFLICT');

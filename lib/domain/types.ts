@@ -1,4 +1,5 @@
-export type EventStatus = 'confirmed' | 'done' | 'cancelled';
+// 'pending' is a READ-ONLY legacy value. All write validators accept only the three V7 statuses.
+export type EventStatus = 'confirmed' | 'done' | 'cancelled' | 'pending';
 export type RecordList<T> = Record<string, T> | T[] | null | undefined;
 export interface Staff { id: string; name: string; role: string; authUid?: string; active?: boolean; }
 export interface Assignment {
@@ -15,6 +16,9 @@ export interface StudioEvent {
   end: string;
   eventType: string;
   status: EventStatus;
+  /** Original unsupported Firebase status; never auto-migrate on read. */
+  legacyStatus?: string;
+  needsStatusReview?: boolean;
   location: string;
   assignments: Assignment[];
   requiredCrew?: Record<string,number>;

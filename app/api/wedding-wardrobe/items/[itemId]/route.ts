@@ -3,6 +3,7 @@ import {authenticatedOffice} from '@/lib/server/office-auth';
 import {AdminAuthFailure,publicAuthFailure} from '@/lib/server/firebase-admin';
 import {asWeddingItem,publicWeddingError,weddingAudit,weddingItemsRef,weddingFoldersRef,weddingKey,WeddingFault} from '@/lib/server/wedding-wardrobe';
 import {normalizeWeddingCode} from '@/lib/domain/wedding-rental';
+import {weddingItemsCas,weddingItemCas} from '@/lib/server/wedding-etag-cas';
 export const runtime='nodejs';export const dynamic='force-dynamic';
 const json=(data:object,status=200)=>NextResponse.json(data,{status,headers:{'Cache-Control':'private, no-store'}});
 async function admin(request:Request){const actor=await authenticatedOffice(request);if(!actor||!['admin','sale'].includes(actor.role))throw new WeddingFault(403,'Chỉ Admin được sửa/xóa mã trang phục.','ADMIN_ONLY');return actor;}
@@ -23,15 +24,20 @@ export async function PATCH(request:Request,{params}:{params:Promise<{itemId:str
   const folderId=has('folderId')?String(body.folderId||'').trim():undefined;
   if(folderId!==undefined && folderId && !(await weddingFoldersRef().child(folderId).once('value')).exists())throw new WeddingFault(422,'Thư mục không tồn tại.','INVALID_FOLDER');
   if(has('active')&&typeof body.active!=='boolean')throw new WeddingFault(422,'Trạng thái không hợp lệ.','INVALID_ACTIVE');
+  // Fast not-found preflight. The conditional write below rechecks the server
+  // ETag and does not rely on this SDK cache read for correctness.
+  if(!asWeddingItem((await weddingItemsRef().child(itemId).once('value')).val()))
+   throw new WeddingFault(404,'Không tìm thấy mã trang phục.','NOT_FOUND');
+  await weddingItemsRef().once('value');
   let denied='';
-  // Root transaction prevents two concurrent code edits from creating duplicate codes.
-  const tx=await weddingItemsRef().transaction(raw=>{
+  // Collection-scoped ETag CAS prevents two concurrent code edits from duplicating codes.
+  const tx=await weddingItemsCas(raw=>{
     const all=(raw||{}) as Record<string,unknown>,item=asWeddingItem(all[itemId]);
     if(!item){denied='NOT_FOUND';return;}
     const nextCode=code??item.code;
     if(Object.entries(all).some(([id,value])=>id!==itemId&&asWeddingItem(value)?.code===nextCode)){denied='CODE_EXISTS';return;}
     denied='';return {...all,[itemId]:{...item,...(code!==undefined?{code}:{}),...(name!==undefined?{name}:{}),...(kind!==undefined?{kind}:{}),...(folderId!==undefined?{folderId}:{}),...(has('active')?{active:body.active}:{}),updatedAt:Date.now()}};
-  },undefined,false);
+  });
   if(!tx.committed)throw new WeddingFault(denied==='NOT_FOUND'?404:409,denied==='CODE_EXISTS'?'Mã trang phục đã tồn tại.':'Không tìm thấy mã trang phục. ',denied||'UPDATE_FAILED');
   await weddingAudit(actor.token,'WEDDING_ITEM_UPDATED',itemId,'Sửa mã trang phục');
   const updatedItems=tx.snapshot.val() as Record<string,unknown>|null;
@@ -42,13 +48,16 @@ export async function DELETE(request:Request,{params}:{params:Promise<{itemId:st
  try{
   const actor=await admin(request),{itemId}=await params;
   if(!idOk(itemId))throw new WeddingFault(422,'Mã không hợp lệ.','INVALID_ID');
+  const itemRef=weddingItemsRef().child(itemId);
+  if(!asWeddingItem((await itemRef.once('value')).val()))
+   throw new WeddingFault(404,'Không tìm thấy mã.','NOT_FOUND');
   let denied='';
-  const tx=await weddingItemsRef().child(itemId).transaction(raw=>{
+  const tx=await weddingItemCas(itemId,raw=>{
     const item=asWeddingItem(raw);if(!item){denied='NOT_FOUND';return;}
     if(Object.keys(item.bookings).length){denied='HAS_HISTORY';return;}
     if(item.photos?.length){denied='HAS_PHOTOS';return;}
     denied='';return null;
-  },undefined,false);
+  });
   if(!tx.committed)throw new WeddingFault(denied==='NOT_FOUND'?404:409,denied==='HAS_HISTORY'?'Mã đã có lịch sử thuê. Hãy ngừng sử dụng thay vì xóa.':denied==='HAS_PHOTOS'?'Hãy xóa các hình trước khi xóa trang phục.':'Không tìm thấy mã.',denied||'DELETE_FAILED');
   await weddingAudit(actor.token,'WEDDING_ITEM_DELETED',itemId,'Xóa mã chưa có lịch thuê');
   return json({success:true});

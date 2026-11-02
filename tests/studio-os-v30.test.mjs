@@ -70,7 +70,7 @@ test('V3.0.1 System panel diagnostics render independently of dashboard data',()
  const src=read('components/Dashboard.tsx');
  assert.match(src,/tab==='system'&&<section/);
  assert.match(src,/systemSection==='health'&&<SystemHealth user=\{user\}/);
- assert.match(src,/\{data && tab!=='system'/);
+ assert.match(src,/\{data && \(canAdmin\|\|access==='sale'\) && !\['system'/);
  assert.match(src,/Mở Hệ thống/);
  assert.match(read('components/SystemHealth.tsx'),/\/api\/system\/diagnostics/);
 });

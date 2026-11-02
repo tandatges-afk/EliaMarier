@@ -2,6 +2,7 @@ import {NextResponse} from 'next/server';
 import {authenticatedOffice} from '@/lib/server/office-auth';
 import {AdminAuthFailure,publicAuthFailure} from '@/lib/server/firebase-admin';
 import {asWeddingItem,asWeddingFolder,publicWeddingError,weddingAudit,weddingFoldersRef,weddingItemsRef,WeddingFault} from '@/lib/server/wedding-wardrobe';
+import {weddingFolderCas} from '@/lib/server/wedding-etag-cas';
 export const runtime='nodejs';export const dynamic='force-dynamic';
 const json=(data:object,status=200)=>NextResponse.json(data,{status,headers:{'Cache-Control':'private, no-store'}});
 const valid=(s:string)=>/^[a-f0-9-]{36}$/i.test(s);
@@ -9,7 +10,9 @@ export async function PATCH(req:Request,{params}:{params:Promise<{folderId:strin
  try{const actor=await authenticatedOffice(req);if(!actor||!['admin','sale'].includes(actor.role))return json({error:'Chỉ Admin được sửa thư mục.'},403);
   const {folderId}=await params;if(!valid(folderId))throw new WeddingFault(422,'ID thư mục không hợp lệ.','INVALID_FOLDER');
   const body=await req.json(),name=String(body?.name||'').trim();if(!name||name.length>60)throw new WeddingFault(422,'Tên thư mục không hợp lệ.','INVALID_NAME');
-  let missing=false;const tx=await weddingFoldersRef().child(folderId).transaction(raw=>{const folder=asWeddingFolder(raw);if(!folder){missing=true;return;}missing=false;return {...folder,name};},undefined,false);
+  const folderRef=weddingFoldersRef().child(folderId);
+  if(!asWeddingFolder((await folderRef.once('value')).val()))throw new WeddingFault(404,'Không tìm thấy thư mục.','NOT_FOUND');
+  let missing=false;const tx=await weddingFolderCas(folderId,raw=>{const folder=asWeddingFolder(raw);if(!folder){missing=true;return;}missing=false;return {...folder,name};});
   if(!tx.committed)throw new WeddingFault(missing?404:409,'Không tìm thấy thư mục.','NOT_FOUND');
   await weddingAudit(actor.token,'WEDDING_FOLDER_UPDATED',folderId,`Sửa thư mục ${name}`);return json({folder:asWeddingFolder(tx.snapshot.val())});
  }catch(e){if(e instanceof AdminAuthFailure){const f=publicAuthFailure(e);return json(f,f.status);}const f=publicWeddingError(e);return json(f,f.status);}

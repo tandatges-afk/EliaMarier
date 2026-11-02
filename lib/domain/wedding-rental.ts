@@ -10,6 +10,9 @@ export type WeddingBooking = {
   status: WeddingRentalStatus;
   notes: string;
   eventId?: string;
+  /** Internal link to source service package. Preserved for pickup/return safety. */
+  packageId?: string;
+  packageEntryId?: string;
   createdAt: number;
   createdBy: string;
   updatedAt: number;

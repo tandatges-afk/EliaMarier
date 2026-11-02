@@ -19,7 +19,7 @@ check(read('app/page.tsx').includes('params.staff'),'Old staff links redirect');
 check(read('components/Dashboard.tsx').includes("name:'Hệ thống'"),'Unified System navigation exists');
 check(read('lib/server/delivery-media.ts').includes('persistMedia(sharedKey,items)'),'Persisted encrypted media metadata wired');
 check(read('lib/server/delivery-media-cache.ts').includes('aes-256-gcm'),'Cache encrypted with AES-256-GCM');
-check(read('app/api/dashboard/route.ts').includes('authenticatedOffice(request)'),'Dashboard checks server-side office access');
+check(read('app/api/dashboard/route.ts').includes('authenticatedOffice(request'),'Dashboard checks server-side office access');
 check(!read('app/api/dashboard/route.ts').includes('NEXT_PUBLIC_FIREBASE_ADMIN'),'No public admin private credentials');
 check(exists('postcss.config.mjs')&&read('app/globals.css').includes("@import 'tailwindcss'"),'Tailwind v4 build configured');
 check(exists('app/api/events/route.ts')&&exists('components/NewBookingDialog.tsx'),'Native booking workflow preserved');

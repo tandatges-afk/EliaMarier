@@ -16,7 +16,8 @@ test('scheduling conflict detects overlap and allows adjacent shifts',()=>{
 });
 test('preview is admin-only and uses authoritative booking conflict rules',()=>{
  const api=read('app/api/scheduling/availability/route.ts');
- assert.match(api,/identity\(request,true\)/);
+ assert.match(api,/identity\(request,'office'\)/);
+ assert.match(read('lib/server/staff-scheduling.ts'),/if\(adminOnly==='office'\)\{if\(!await officeRole\(token\)\)return json/);
  assert.match(api,/scheduleConflict\(candidate,\[id\]/);
  assert.match(api,/dailyEvents\(date\)/);
  assert.match(api,/dailyBlackouts\(date\)/);
@@ -24,14 +25,16 @@ test('preview is admin-only and uses authoritative booking conflict rules',()=>{
  const e=read('components/EventEditor.tsx');
  for(const ui of [n,e]){
   assert.match(ui,/useStaffAvailability/);
-  assert.match(ui,/Ẩn người đã bận/);
   assert.match(ui,/availability\.busy/);
  }
+ assert.match(n,/disabled=\{Boolean\(conflict\)\}/);
+ assert.match(e,/Ẩn người đã bận/);
 });
 test('money editor displays a permanently fixed .000 suffix and scales user digits once',()=>{
  const field=read('lib/ui/VndInput.tsx');
  assert.match(field,/Math\.trunc\(safe\/1000\)/);
  assert.match(field,/unit\*1000/);
- assert.match(field,/>\.000<\/span>/);
+ assert.match(field,/const display=formatter\.format\(rawNumber\)/);
+ assert.match(field,/editUnit\.current==='vnd'\?unit:unit\*1000/);
  assert.match(field,/safe%1000!==0/); // Preserve historical amounts not divisible by 1,000
 });

@@ -47,7 +47,7 @@ export function buildPayrollLedger(month:string,staffRaw:unknown,eventsRaw:unkno
   const stats=new Map<string,{before:number;gross:number;jobs:number}>();
   for(const event of entries(eventsRaw)){
     const date=String(event.date??'');
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||date.slice(0,7)>month||event.status==='cancelled')continue;
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||date.slice(0,7)>month||!['confirmed','done'].includes(String(event.status)))continue;
     const list=entries(event.assignments);
     // Each staff earns at most one assignment per event, matching the legacy UI.
     const processed=new Set<string>();

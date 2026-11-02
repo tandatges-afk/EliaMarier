@@ -18,7 +18,7 @@ test('backend validates acknowledgement against exactly the nearby bookings seen
  const src=read('app/api/wedding-wardrobe/bookings/route.ts');
  assert.match(src,/NEARBY_ACK_REQUIRED/);
  assert.match(src,/acknowledgedNearbyIds/);
- assert.match(src,/\.transaction\(/);
+ assert.match(src,/weddingItemCas\(itemId/);
  assert.doesNotMatch(src,/EVENT_DATE_MISMATCH/);
 });
 test('wardrobe availability API shows names and nearby reservations',()=>{

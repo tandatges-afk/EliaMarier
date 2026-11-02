@@ -17,8 +17,13 @@ test('booking PATCH uses ETag instead of aborting on a transient local null',()=
 });
 test('audit is performed AFTER per-date schedule lock returns',()=>{
  const src=read('app/api/events/[id]/route.ts');
- assert.match(src,/const response=needsScheduleLock \? await withScheduleLock\(action,targetDate\)/);
+ // Package-linked writes also hold the shared package lease. The audit still runs
+ // after both the date lock and package lease return, not inside either lock.
+ assert.match(src,/const write=\(\)=>needsScheduleLock \? withScheduleLock\(action,targetDate\) : action\(\)/);
+ assert.match(src,/const response=previous\.value\.sourcePackageId/);
+ assert.match(src,/withPackageMutationLease\(String\(previous\.value\.sourcePackageId\)/);
  assert.match(src,/if\(committedForAudit\)await audit/);
+ assert.ok(src.indexOf('if(committedForAudit)await audit')>src.indexOf('const response=previous.value.sourcePackageId'));
 });
 test('lease TTL and retry budget tolerate a crashed writer then release safely',()=>{
  const src=read('lib/server/staff-scheduling.ts');

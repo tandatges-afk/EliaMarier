@@ -14,12 +14,14 @@ test('wedding assignments only show valid two-option drop downs for photographer
 });
 test('new booking opens a two-stage service picker matching legacy options',()=>{
  const src=source('components/NewBookingDialog.tsx');
- for(const name of ['Tốt nghiệp','Concept','Cưới','Pre-wedding','Sự kiện','Tết','Dạm Ngõ','Đám Nối','Vu Quy','Rước Dâu','Xuất Giá'])assert.ok(src.includes(name));
+ for(const name of ['Concept','Chụp cổng','Cưới','Pre-wedding','Sự kiện','Tết','Dạm Ngõ','Đám Nối','Vu Quy','Vu quy + Đám nối','Rước Dâu','Xuất Giá'])assert.ok(src.includes(name),name);
+ assert.doesNotMatch(src,/\[.*['"]Tốt nghiệp['"]/);
  assert.match(src,/setStep\('main'\)/);
  assert.match(src,/setStep\('wedding'\)/);
- assert.match(src,/setIsRuocDau\(ruocDau\)/);
- assert.match(src,/taskOptionsFor\(st\.role,eventType\)/);
- assert.match(src,/<select className=\{field\} value=\{a.locType\|\|'Nhà trai'\}/);
+ assert.match(src,/setIsRuocDau\(ruocDau\|\|isCombinedHouses\(subtype\)\)/);
+ assert.match(src,/taskOptionsFor\(role,'Cưới'\)/);
+ assert.match(src,/<select aria-label=\{`Nhà làm việc/);
+ assert.match(src,/required value=\{a.locType\|\|''\}/);
  assert.doesNotMatch(src,/Công việc<input/);
 });
 test('editor preserves legacy task and only shows house choices for two-house wedding',()=>{

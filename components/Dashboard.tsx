@@ -288,6 +288,7 @@ export function Dashboard(){
         .join(' ').toLocaleLowerCase('vi').includes(term)));
   },[data,deliverySearch]);
   const stats=data?getMonthStats(data.events,data.month):null;
+  const legacyPendingCount=stats?.pending ?? 0;
   const nextEvents=useMemo(()=>filtered.filter(e=>e.date>=localToday()&&e.status!=='cancelled').slice(0,6),[filtered]);
   const userPages=canAdmin?pages:access==='sale'?pages.filter(p=>!['payroll','analytics','system','accounts'].includes(p.key)):pages.filter(p=>p.key===(access==='leader_photo'?'calendar':access==='leader_makeup'?'makeup':'decor'));
   const title=pages.find(p=>p.key===tab);
@@ -323,6 +324,7 @@ export function Dashboard(){
         <div className="page-heading ops29-page-heading"><div><div className="eyebrow">ÉLIA MARIER · STUDIO WORKSPACE</div><h1>{title?.name}</h1><p>{title?.sub}{tab!=='system'?` · Tháng ${month.slice(5)}/${month.slice(0,4)}`:' · Chỉ tài khoản Admin'}</p></div><div className="heading-actions">{canSale&&tab!=='system'&&tab!=='wedding'&&tab!=='catalog'&&tab!=='makeup'&&tab!=='decor'&&tab!=='packages'&&<><button className="secondary-button" onClick={()=>setReload(x=>x+1)} disabled={loading}><RefreshCw size={16} className={loading?'spin':''}/> Đồng bộ</button><button className="primary-button" onClick={()=>createBooking()}><Plus size={18}/> Tạo lịch mới</button></>}</div></div>
         
         {requestError&&['overview','calendar','delivery','staff','analytics'].includes(tab)&&<div className="alert error"><ShieldCheck size={18}/><div><strong>Không tải được dữ liệu quản trị</strong><p>{requestError}</p>{data?.month===month&&<p>Đang hiển thị dữ liệu tải thành công gần nhất của tháng này; hãy thử Đồng bộ lại.</p>}<button type="button" className="secondary-button" onClick={()=>{setSystemSection('health');goTab('system');}}><Settings2 size={15}/> Mở Hệ thống</button></div></div>}
+        {legacyPendingCount>0&&<div className="alert notice" role="status"><strong>{legacyPendingCount} lịch cũ cần xác minh trạng thái.</strong> Dữ liệu gốc vẫn được giữ nguyên; Admin cần kiểm tra trước khi chốt, thực hiện hoặc tính công nợ.</div>}
         {data?.eventLimitReached&&<div className="alert notice">Dữ liệu tháng vượt giới hạn truy vấn 1001 bản ghi. Cần phân trang và chỉ mục Firebase trước khi dùng báo cáo.</div>}
         {canAdmin&&tab==='system'&&<section className="ops30-system-panel">
           <div className="ops30-system-tabs" role="group" aria-label="Chức năng hệ thống">
@@ -359,7 +361,7 @@ export function Dashboard(){
               {nextEvents.length?<div className="upcoming-items">{nextEvents.map(e=><button className="upcoming-row" onClick={()=>setSelected(e.id)} key={e.id}><div className="upcoming-date"><b>{e.date.slice(-2)}</b><span>TH {Number(e.date.slice(5,7))}</span></div><div className="upcoming-info"><strong>{e.name}</strong><span>{e.start||'--:--'} · {e.eventType||'Khác'}</span></div><Status status={e.status}/><ChevronRight size={17}/></button>)}</div>:<Empty title="Chưa có lịch sắp tới" detail="Các sự kiện sắp diễn ra trong tháng sẽ xuất hiện tại đây."/>}</section>
               <section className="surface"><div className="surface-title"><div><span className="eyebrow">THÁNG NÀY</span><h3>Tổng hợp trạng thái</h3></div><button className="month-navigator" onClick={()=>setMonth(shiftMonth(month,-1))} title="Tháng trước"><ChevronLeft size={16}/></button><span className="month-chip">{month.slice(5)}/{month.slice(0,4)}</span><button className="month-navigator" onClick={()=>setMonth(shiftMonth(month,1))} title="Tháng sau"><ChevronRight size={16}/></button></div>
                 <div className="status-breakdown">{[
-                  ['Đã chốt',stats?.confirmed||0,'var(--blue)'],['Hoàn thành',stats?.done||0,'var(--green)'],['Đã hủy',stats?.cancelled||0,'var(--amber)']
+                  ['Cần xác minh',stats?.pending||0,'var(--amber)'],['Đã chốt',stats?.confirmed||0,'var(--blue)'],['Hoàn thành',stats?.done||0,'var(--green)'],['Đã hủy',stats?.cancelled||0,'var(--amber)']
                 ].map(([name,count,color])=><div className="breakdown-row" key={String(name)}><div className="breakdown-copy"><span>{name}</span><strong>{count}</strong></div><div className="progress-track"><div style={{width:`${stats?.total?Number(count)/stats.total*100:0}%`,background:String(color)}}/></div></div>)}<div className="breakdown-foot"><span>Nhân sự hoạt động</span><strong>{data.staff.length} thành viên</strong></div></div>
               </section></div>
             <section className="surface"><div className="surface-title"><div><span className="eyebrow">DANH SÁCH LỊCH HẸN</span><h3>Danh sách lịch trong tháng</h3></div><button onClick={()=>goTab('calendar')} className="text-action">Xem lịch tháng <ArrowRight size={16}/></button></div><EventTable events={filtered} staff={data.staff} compact onSelect={setSelected} onCustomer={setCustomerEvent}/></section>

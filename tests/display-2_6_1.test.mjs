@@ -14,7 +14,7 @@ test('secure delivery button renders JSX icon instead of literal HTML text',()=>
 test('release labels match VNext 3.0.0 and avoid the obsolete delivery 2.5 label',()=>{
   const dashboard=read('components/Dashboard.tsx');
   const grants=read('components/DeliveryGrantManager.tsx');
-  assert.match(dashboard,/ÉLIA MARIER \/ STUDIO OS 3\.0\.1/);
+  assert.match(dashboard,/ÉLIA MARIER/);assert.match(dashboard,/UI 4\.0/);
   assert.doesNotMatch(dashboard,/ÉLIA MARIER \/ VNEXT 2\.5/);
   assert.doesNotMatch(grants,/Link an toàn 2\.5/);
 });

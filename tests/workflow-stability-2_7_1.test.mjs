@@ -40,5 +40,5 @@ test('booking sends changed fields only and preserves wedding + source details',
  assert.match(api,/if\(err instanceof ScheduleError\)/);
  assert.match(editor,/saveSource/);
  assert.ok(has('app/api/events/[id]/source/route.ts'));
- assert.match(r('app/api/events/[id]/source/route.ts'),/identity\(request,true\)/);
+ assert.match(r('app/api/events/[id]/source/route.ts'),/identity\(request,'office'\)/);
 });

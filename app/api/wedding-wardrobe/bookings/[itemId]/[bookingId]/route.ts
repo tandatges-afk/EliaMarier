@@ -3,6 +3,9 @@ import {authenticatedOffice} from '@/lib/server/office-auth';
 import {publicAuthFailure} from '@/lib/server/firebase-admin';
 import {weddingConflict,WEDDING_STATUSES,type WeddingBooking,type WeddingRentalStatus} from '@/lib/domain/wedding-rental';
 import {asWeddingItem,publicWeddingError,validateWeddingBookingInput,weddingAudit,weddingItemsRef,WeddingFault} from '@/lib/server/wedding-wardrobe';
+import {linkedWardrobeEditCode} from '@/lib/domain/elia-package-write-safety';
+import {weddingItemCas} from '@/lib/server/wedding-etag-cas';
+import {withPackageMutationLease} from '@/lib/server/elia-package-sync';
 export const runtime='nodejs';export const dynamic='force-dynamic';
 const json=(data:object,status=200)=>NextResponse.json(data,{status,headers:{'Cache-Control':'private, no-store'}});
 export async function PATCH(request:Request,{params}:{params:Promise<{itemId:string;bookingId:string}>}){
@@ -18,9 +21,13 @@ export async function PATCH(request:Request,{params}:{params:Promise<{itemId:str
   const wantedStatus=body.status as WeddingRentalStatus|undefined;
   if(!canEdit&&!wantedStatus)throw new WeddingFault(422,'Không có thay đổi.','EMPTY_UPDATE');
   let denied='';
-  const tx=await weddingItemsRef().child(itemId).transaction(raw=>{
+  const itemRef=weddingItemsRef().child(itemId);
+  const original=asWeddingItem((await itemRef.once('value')).val())?.bookings[bookingId];
+  const execute=()=>weddingItemCas(itemId,raw=>{
    const item=asWeddingItem(raw);if(!item){denied='NOT_FOUND';return;}
    const previous=item.bookings[bookingId];if(!previous){denied='NOT_FOUND';return;}
+   const linkedError=linkedWardrobeEditCode(Boolean(previous.packageId),canEdit,wantedStatus);
+   if(linkedError){denied=linkedError;return;}
    // A cancelled or returned rental is immutable. Keep audit history intact.
    if(previous.status==='cancelled'||previous.status==='returned'){denied='CLOSED_BOOKING';return;}
    const allowed:WeddingRentalStatus[]=previous.status==='reserved'?['reserved','picked_up','cancelled']:['picked_up','returned'];
@@ -32,9 +39,13 @@ export async function PATCH(request:Request,{params}:{params:Promise<{itemId:str
    if(nextStatus!=='cancelled'&&weddingConflict(item.bookings,fields.startDate,fields.endDate,bookingId)){denied='RENTAL_CONFLICT';return;}
    const updated:WeddingBooking={...previous,...fields,status:nextStatus,updatedAt:Date.now(),updatedBy:actor.token.uid};
    denied='';return {...item,bookings:{...item.bookings,[bookingId]:updated}};
-  },undefined,false);
+  });
+  // Serialize linked pickup/return with package edits that could remove the booking.
+  const tx=original?.packageId
+   ? await withPackageMutationLease(original.packageId,actor.token.uid,execute)
+   : await execute();
   if(!tx.committed){
-   const errors:Record<string,[number,string]>={NOT_FOUND:[404,'Không tìm thấy lịch thuê.'],CLOSED_BOOKING:[409,'Lịch thuê đã đóng, không thể sửa.'],INVALID_TRANSITION:[409,'Không thể chuyển trạng thái theo thứ tự này.'],PICKED_UP_IMMUTABLE:[409,'Đã giao váy nên không thể đổi thông tin lịch.'],INVALID_FIELDS:[422,'Thông tin lịch thuê không hợp lệ.'],RENTAL_CONFLICT:[409,'Mã váy đã được đặt trong khoảng ngày này.']};
+   const errors:Record<string,[number,string]>={NOT_FOUND:[404,'Không tìm thấy lịch thuê.'],CLOSED_BOOKING:[409,'Lịch thuê đã đóng, không thể sửa.'],INVALID_TRANSITION:[409,'Không thể chuyển trạng thái theo thứ tự này.'],PICKED_UP_IMMUTABLE:[409,'Đã giao váy nên không thể đổi thông tin lịch.'],INVALID_FIELDS:[422,'Thông tin lịch thuê không hợp lệ.'],RENTAL_CONFLICT:[409,'Mã váy đã được đặt trong khoảng ngày này.'],PACKAGE_LINKED_FIELDS:[409,'Trang phục thuộc Chọn gói: chỉ sửa ngày lấy/trả hoặc thông tin thuê tại Chọn gói.'],PACKAGE_LINKED_CANCEL:[409,'Trang phục thuộc Chọn gói: hãy hủy trong Chọn gói để đồng bộ lịch.']};
    const [status,message]=errors[denied]||[409,'Có người vừa thay đổi lịch thuê. Hãy tải lại.'];throw new WeddingFault(status,message,denied||'UPDATE_CONFLICT');
   }
   await weddingAudit(actor.token,'WEDDING_BOOKING_UPDATED',itemId,`Cập nhật lịch thuê ${bookingId}`);

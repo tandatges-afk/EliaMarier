@@ -19,6 +19,6 @@ test('dashboard identifies six branches without exposing raw Firebase errors',()
   assert.match(dashboard,/Promise\.allSettled/);
   assert.match(dashboard,/classifyFirebaseError/);
   assert.match(dashboard,/DASHBOARD_DATA_INVALID/);
-  assert.match(dashboard,/DASHBOARD_DATABASE_MISMATCH/);
+  assert.match(dashboard,/DASHBOARD_READ_FAILED/);assert.match(dashboard,/return errorResponse\(\{error:failure\.error,code:failure\.code\},failure\.status/);
   assert.doesNotMatch(dashboard,/console\.error\([^\n]*(?:err\.message|JSON\.stringify\(err)/);
 });

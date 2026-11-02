@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const source = readFileSync(new URL('../app/api/places/route.ts', import.meta.url), 'utf8');
 
-test('Places autocomplete requires authenticated Admin before upstream Google call', () => {
- assert.match(source, /authenticatedAdmin\(request\)/);
- assert.match(source, /if \(!admin\) return json\(\{error: 'Chỉ Admin được tìm địa điểm'\}, 403\)/);
+test('Places autocomplete requires authenticated Admin or Sale before upstream Google call', () => {
+ assert.match(source, /authenticatedOffice\(request\)/);
+ assert.match(source, /if \(!admin\) return json\(\{error: 'Chỉ Admin hoặc nhân viên vận hành được tìm địa điểm'\}, 403\)/);
+ assert.match(readFileSync(new URL('../lib/server/office-auth.ts',import.meta.url),'utf8'),/allowed:readonly OfficeRole\[\]=\['admin','sale'\]/);
 });
 
 test('Places key remains server-side and never appears in API response', () => {

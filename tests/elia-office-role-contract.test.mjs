@@ -19,10 +19,11 @@ test('account management requires admin',()=>{
  assert.match(read('app/api/office-accounts/route.ts'),/authenticatedAdmin/);
  assert.match(read('app/api/office-accounts/[uid]/route.ts'),/authenticatedAdmin/);
 });
-test('receptionist has interface without payroll and reports',()=>{
+test('Sale has operational pages without payroll or analytics; Admin-only controls are guarded',()=>{
  const dashboard=read('components/Dashboard.tsx');
- assert.match(dashboard,/availablePages=pages\.filter/);
- assert.match(dashboard,/OfficeAccountsManager/);
- assert.match(read('components/NewBookingDialog.tsx'),/isAdmin&&<fieldset/);
- assert.match(read('components/BookingDetailPanel.tsx'),/isAdmin&&<span/);
+ assert.match(dashboard,/access==='sale'\?pages\.filter\(p=>!\['payroll','analytics','system','accounts'\]\.includes\(p\.key\)\)/);
+ assert.match(dashboard,/canAdmin&&tab==='payroll'/);
+ assert.match(dashboard,/canAdmin&&tab==='analytics'/);
+ assert.match(dashboard,/<OfficeAccountsManager user=\{user\}/);
+ assert.match(read('app/api/payroll/route.ts'),/identity\(request,true\)/);
 });

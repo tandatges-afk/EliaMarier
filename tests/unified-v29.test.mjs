@@ -9,9 +9,9 @@ test('2.9 operations separates unassigned, status, and per-product pending deliv
  const rows=[sample(),sample({id:'b',status:'pending',assignments:[{id:'s1',task:'Quay',cost:500000,locType:''}],products:[{id:'p1',name:'Clip',mediaType:'video'},{id:'p2',name:'Ảnh',mediaType:'image'}],completedProductIds:['p1']}),sample({id:'c',status:'done'}),sample({id:'d',status:'cancelled'}),sample({id:'e',date:'2026-11-02'})];
  const v=getOperationsSnapshot(rows,staff,'2026-10','2026-10-13');
  assert.equal(v.total,4);assert.deepEqual(v.unassigned.map(e=>e.id),['ev-a']);assert.deepEqual(v.pendingConfirmation.map(e=>e.id),['b']);
- assert.deepEqual(v.unfinishedProducts.map(p=>p.productId),['p2']);
+ assert.deepEqual(v.unfinishedProducts.map(p=>p.productId),[]); // Unverified legacy events cannot trigger delivery actions.
  assert.deepEqual(v.statusCounts,{pending:1,confirmed:1,done:1,cancelled:1});
- assert.equal(v.outstanding,12000000);
+ assert.equal(v.outstanding,8000000); // Pending legacy record is excluded until manually reviewed.
 });
 test('2.9 completed event or delivered products must not reappear in action queue',()=>{
  const v=getOperationsSnapshot([sample({id:'a',deliveryCompleted:true,products:[{id:'p',name:'Photo',mediaType:'image'}]}),sample({id:'b',status:'cancelled',products:[{id:'c',name:'Clip',mediaType:'video'}]})],staff,'2026-10','2026-10-13');
@@ -36,7 +36,7 @@ test('2.9 instrumentation returns diagnostic request IDs without client fields',
 test('V3.0.1 retires legacy UI while preserving Google Drive streaming',()=>{
  assert.doesNotMatch(source('next.config.ts'),/source: '\/studio'/);
  assert.match(source('app/studio/page.tsx'),/redirect\('\/'\)/);
- assert.match(source('app/api/health/route.ts'),/google-drive-only/);
+ assert.match(source('app/api/health/route.ts'),/privateVideoMode: 'r2-only'/);
  assert.match(source('components/Dashboard.tsx'),/DeliveryProductGroup/);
 });
 test('2.9 analytics uses month-scoped counts and does not claim deposit as revenue',()=>{
