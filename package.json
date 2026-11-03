@@ -49,6 +49,9 @@
     "re2js": "2.8.7",
     "google-gax": {
       "rimraf": {}
+    },
+    "jwks-rsa": {
+      "jose": "5.10.0"
     }
   }
 }
